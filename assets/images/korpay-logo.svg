@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 376 88" fill="none">
+  <!-- Mark: the legacy brand red (#ff003a) as a circle, with a white monoline K. -->
+  <circle cx="44" cy="44" r="40" fill="var(--korpay-brand, #ff003a)"/>
+  <path d="M33 26V62M33 44L55 26M41 40L57 62" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Wordmark "Kor" + "pay": monoline, rounded. Only M/L/C/V commands and circles (no arc commands: safe for iOS's system SVG decoder). -->
+  <g transform="translate(98 0)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <g stroke="var(--korpay-ink, #2D3640)">
+      <path d="M10 18V62M38 18L10 42M20 34L40 62"/>
+      <circle cx="72" cy="47" r="15"/>
+      <path d="M108 32V62M108 46C108 37 114 32 124 32"/>
+    </g>
+    <g stroke="var(--korpay-brand, #ff003a)">
+      <path d="M141 32V76"/>
+      <circle cx="156" cy="47" r="15"/>
+      <circle cx="200" cy="47" r="15"/>
+      <path d="M215 32V62"/>
+      <path d="M234 32L250 62M266 32L242.5 76"/>
+    </g>
+  </g>
+</svg>
