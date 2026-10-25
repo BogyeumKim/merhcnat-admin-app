@@ -12,6 +12,14 @@ export const ko: typeof en = {
     home: '홈',
     menu: '전체메뉴',
   },
+  validation: {
+    USER_ID_REQUIRED: '아이디를 입력해 주세요.',
+    PASSWORD_REQUIRED: '비밀번호를 입력해 주세요.',
+    CODE_INVALID_FORMAT: '6자리를 모두 입력해 주세요.',
+  },
+  toast: {
+    codeSent: '인증번호를 보냈습니다',
+  },
   errors: {
     screenTitle: '문제가 발생했습니다',
     UNKNOWN: '예기치 않은 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
@@ -27,6 +35,49 @@ export const ko: typeof en = {
     TIMEOUT: '요청 시간이 초과되었습니다. 다시 시도해 주세요.',
     INVALID_RESPONSE: '서버에서 예상하지 못한 응답을 받았습니다.',
   },
+  auth: {
+    tagline: '어디서나 가맹점을 관리하세요.',
+    signInTitle: '로그인',
+    signInDescription: '가맹점 관리자 계정으로 로그인하세요.',
+    userId: '아이디',
+    password: '비밀번호',
+    signIn: '로그인',
+    signingIn: '로그인 중…',
+    signOut: '로그아웃',
+    method: {
+      TOTP: '인증 앱(Google OTP)',
+      SMS: '문자 메시지',
+      EMAIL: '이메일',
+      KAKAO: '카카오톡',
+    },
+    verify: {
+      deviceNewTitle: '이 기기를 등록합니다',
+      deviceNewBody: '이 기기에서 처음 로그인합니다. 본인 확인을 완료하면 기기가 등록됩니다.',
+      deviceChangedTitle: '새 기기에서 로그인합니다',
+      deviceChangedBody:
+        '계정이 다른 기기에 등록되어 있습니다. 계속하면 본인 확인 후 이 기기로 변경됩니다.',
+      chooseMethodTitle: '인증 방법을 선택하세요',
+      chooseMethodBody: '일회용 인증번호를 보내드립니다.',
+      codeTitle: '인증번호를 입력하세요',
+      codeHintTotp: '인증 앱에 표시된 6자리 코드를 입력하세요.',
+      codeHintSent: '{{destination}}(으)로 보낸 6자리 인증번호를 입력하세요.',
+      codeLabel: '인증번호',
+      verify: '확인',
+      verifying: '확인 중…',
+      resend: '인증번호 다시 받기',
+      resendIn: '{{seconds}}초 후 다시 받기',
+      sending: '전송 중…',
+      useAnotherAccount: '로그인 화면으로',
+    },
+  },
+  maintenance: {
+    title: '서비스 점검 중입니다',
+    body: '더 나은 서비스를 위해 점검하고 있습니다. 점검이 끝난 뒤 다시 이용해 주세요.',
+    period: '점검 시간',
+    from: '{{date}}부터',
+    until: '{{date}}까지',
+    back: '로그인 화면으로',
+  },
   home: {
     title: '홈',
     body: '가맹점 현황이 이곳에 표시됩니다.',
@@ -34,5 +85,6 @@ export const ko: typeof en = {
   },
   menu: {
     title: '전체메뉴',
+    signOut: '로그아웃',
   },
 };

@@ -2,6 +2,7 @@ import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-
 import { useEffect, type PropsWithChildren } from 'react';
 import { AppState } from 'react-native';
 
+import { registerSignOutHandler } from '@/features/auth';
 import { isApiError } from '@/shared/api/errors';
 
 /** Retry transient failures only. A 4xx, a maintenance window or a malformed response will not improve by asking again. */
@@ -20,6 +21,9 @@ const queryClient = new QueryClient({
     mutations: { retry: false },
   },
 });
+
+// Another user may sign in on this device next: nothing cached for the previous user may survive.
+registerSignOutHandler(() => queryClient.clear());
 
 export function QueryProvider({ children }: PropsWithChildren) {
   // React Native has no window focus: map app foreground/background to React Query's focus state.

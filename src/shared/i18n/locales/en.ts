@@ -9,6 +9,14 @@ export const en = {
     home: 'Home',
     menu: 'Menu',
   },
+  validation: {
+    USER_ID_REQUIRED: 'Enter your ID.',
+    PASSWORD_REQUIRED: 'Enter your password.',
+    CODE_INVALID_FORMAT: 'Enter all 6 digits.',
+  },
+  toast: {
+    codeSent: 'We sent you a code',
+  },
   errors: {
     screenTitle: 'Something went wrong',
     UNKNOWN: 'An unexpected error occurred. Please try again.',
@@ -24,6 +32,49 @@ export const en = {
     TIMEOUT: 'The request timed out. Please try again.',
     INVALID_RESPONSE: 'Received an unexpected response from the server.',
   },
+  auth: {
+    tagline: 'Manage your merchants anywhere.',
+    signInTitle: 'Sign in',
+    signInDescription: 'Sign in with your merchant admin account.',
+    userId: 'ID',
+    password: 'Password',
+    signIn: 'Sign in',
+    signingIn: 'Signing in…',
+    signOut: 'Sign out',
+    method: {
+      TOTP: 'Authenticator app',
+      SMS: 'Text message',
+      EMAIL: 'Email',
+      KAKAO: 'KakaoTalk',
+    },
+    verify: {
+      deviceNewTitle: 'Register this device',
+      deviceNewBody: 'This is your first sign-in on this device. Verify your identity to register it.',
+      deviceChangedTitle: 'Signing in on a new device',
+      deviceChangedBody:
+        'Your account is registered to another device. If you continue, this device replaces it after verification.',
+      chooseMethodTitle: 'Choose how to verify',
+      chooseMethodBody: 'We will send a one-time code.',
+      codeTitle: 'Enter the code',
+      codeHintTotp: 'Enter the 6-digit code from your authenticator app.',
+      codeHintSent: 'Enter the 6-digit code we sent to {{destination}}.',
+      codeLabel: 'Verification code',
+      verify: 'Verify',
+      verifying: 'Verifying…',
+      resend: 'Resend code',
+      resendIn: 'Resend in {{seconds}}s',
+      sending: 'Sending…',
+      useAnotherAccount: 'Back to sign in',
+    },
+  },
+  maintenance: {
+    title: 'Service under maintenance',
+    body: 'We are improving the service. Please try again after the maintenance ends.',
+    period: 'Maintenance period',
+    from: 'From {{date}}',
+    until: 'Until {{date}}',
+    back: 'Back to sign in',
+  },
   home: {
     title: 'Home',
     body: 'Your merchant overview will appear here.',
@@ -31,5 +82,6 @@ export const en = {
   },
   menu: {
     title: 'Menu',
+    signOut: 'Sign out',
   },
 };

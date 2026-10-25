@@ -25,6 +25,7 @@
 | 2026-10 | 키보드/스크롤은 `@expo/ui` 네이티브 방식(iOS SwiftUI 키보드 세이프에어리어, Android `imePadding`). `react-native-keyboard-controller`는 Android Compose 입력창을 인식하지 못해 제거 | `docs/architecture/responsive-ui.md` (기기 확인 필요) |
 | 2026-10 | 시스템 글꼴 크기 추종: 문구는 RN `Text`/`NativeText`(iOS는 SwiftUI text style), `@expo/ui` Text의 `fontSize`는 iOS 고정 크기라 사용 금지 | `responsive-ui.md` |
 | 2026-10 | 반응형은 창 크기 기준(600/840dp), 두 단 레이아웃, `orientation: default`. 로고는 `expo-image` + SVG(`svgVariables`) | `responsive-ui.md` |
+| 2026-10 | 로그인 화면·추가 인증·점검·에러 바운더리 구현. 서버 전까지 개발용 mock(릴리스 번들에서 제거) | `docs/architecture/login-ui.md` |
 | 2026-10 | 서브에이전트 리뷰(SDK 58 일치 + 성능/접근성) 반영: 토큰 수락 규칙, 세션 세대 카운터, 타임아웃 판별, 색 대비 재계산, 라벨/낭독, 자동 제출 | `docs/reviews/skill-compliance.md` |
 | 2026-10 | 로고를 기존 회사 로고 정체성(빨강 #ff003a, 흰 K 원형 마크, 차콜 Kor + 빨강 pay)으로 다시 제작. 빨강은 로고/그래픽 전용, 버튼·링크는 대비를 맞춘 `action` 색 | `docs/architecture/responsive-ui.md` |
 | 2026-10 | 폼은 react-hook-form + zod(`@hookform/resolvers` 5.x 고정). 검증 메시지는 코드, UI에서 번역 | `docs/architecture/feedback-ux.md` |

@@ -22,6 +22,7 @@ docs/
 │   ├── api-conventions.md       # 오류 응답 형식, HTTP 클라이언트
 │   ├── webview.md               # WebView 전략과 웹↔앱 계약 초안
 │   ├── responsive-ui.md         # 반응형·시스템 글꼴·키보드·로고(SVG)
+│   ├── login-ui.md              # 로그인/추가 인증 UI, 개발용 mock 시나리오
 │   ├── feedback-ux.md           # 폼(react-hook-form), 오류 표시 정책, 토스트
 │   ├── styling-performance.md   # 인라인 style vs StyleSheet, React Compiler 점검
 │   └── storage-env-testing.md   # 저장소/환경변수/테스트 조사

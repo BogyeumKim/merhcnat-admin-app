@@ -22,5 +22,5 @@ paths:
 - 기기 값: 설치 단위 랜덤 UUID(`deviceId`, `expo-secure-store`, iOS는 `WHEN_UNLOCKED_THIS_DEVICE_ONLY`). Android는 추가로 `getAndroidId()`를 `androidId`로 보낸다 (서버가 해시로만 저장). iOS는 IDFV를 쓰지 않는다 (재설치 시 바뀔 수 있음). iOS Keychain 유지는 보장되지 않으므로 못 알아봐도 안전하게 재인증으로 폴백한다. 이 값들은 로그/커밋/문서/예시에 남기지 않는다.
 - 한 기기에는 한 userId만 바인딩된다. 다른 계정으로 로그인하면 인증 후 기기가 그 계정으로 옮겨지고 이전 계정은 다음 로그인에서 재인증한다.
 - 점검(`503 MAINTENANCE`)은 서버가 준 문장이 아니라 시각 필드를 앱 언어로 포맷해 보여준다. 점검 응답에서 자동 재시도하지 않는다.
-- 구현 위치: `shared/api/client.ts`(fetch 래퍼, 응답 헤더 `Access-Token`으로 메모리 토큰 교체, 401이면 `signOutLocally`), `shared/api/session-token.ts`(메모리 토큰), `features/auth/model/session-store.ts`(zustand, 영속 저장 없음, `userType`만 보관). 헤더 이름은 서버와 합의 전 제안값이다.
+- 구현 위치: `shared/api/client.ts`(fetch 래퍼, 응답 헤더 `Access-Token`으로 메모리 토큰 교체, 401이면 `signOutLocally`), `shared/api/session-token.ts`(메모리 토큰), `features/auth/model/session-store.ts`(zustand, 영속 저장 없음, `userType`만 보관), 개발 mock은 `features/auth/api/auth-api.mock.ts` (`docs/architecture/login-ui.md`). 헤더 이름은 서버와 합의 전 제안값이다.
 - 로그인 여부는 `userType !== null`로 판단한다 (`0`이 유효한 타입).

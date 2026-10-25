@@ -34,7 +34,7 @@ npx expo install --fix       # 호환되지 않는 버전 수정
 - 서버 상태: TanStack Query. UI는 화면 동작(toast/이동)을 `UseMutationCallback`으로 넘기고, 서비스 훅은 캐시만 다룬다. 클라이언트 UI 상태(모달 등): zustand. 상세: `docs/architecture/data-fetching.md`, `.claude/rules/zustand.md`
 - 사용자 타입(0, 1, 2, 3, 4, 5, 9)별 UI 차이는 capability 맵으로 처리하고, 코드에서 타입 숫자를 직접 쓰지 않는다(`UserType` 상수). 상세: `docs/architecture/user-types.md`
 - 인증: JWT, refresh token 없음, 앱 실행마다 로그인(토큰 영속 저장 금지). 상세 `docs/architecture/auth-jwt.md`, `device-binding.md`, `api-conventions.md`
-- UI는 `@expo/ui`(네이티브 스크롤·키보드). 반응형/시스템 글꼴/키보드/로고 규칙: `docs/architecture/responsive-ui.md`, `.claude/rules/responsive-ui.md`. 폼/오류 표시/토스트: `docs/architecture/feedback-ux.md`, `.claude/rules/feedback-ux.md`
+- UI는 `@expo/ui`(네이티브 스크롤·키보드). 반응형/시스템 글꼴/키보드/로고 규칙: `docs/architecture/responsive-ui.md`, `.claude/rules/responsive-ui.md`. 로그인 화면과 mock 시나리오: `docs/architecture/login-ui.md`. 폼/오류 표시/토스트: `docs/architecture/feedback-ux.md`, `.claude/rules/feedback-ux.md`
 - 가맹점/거래내역 등 데이터 화면은 WebView. 상세: `docs/architecture/webview.md`. 이전 대상 앱 분석: `docs/migration/mms-mobile.md`
 - 별칭 `@/*` → `./src/*`, `@/assets/*` → `./assets/*`
 - `ios/`, `android/`는 CNG로 생성됨. 직접 만들거나 수정하지 않는다. `app.json`과 config plugin으로 설정한다.
