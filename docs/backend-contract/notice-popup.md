@@ -1,6 +1,6 @@
-# 로그인 후 공지 팝업 계약 (제안, 서버 미구현)
+# 로그인 후 공지 팝업 계약 (server 세션이 구현, 앱이 연동함)
 
-앱이 기대하는 형태다. 서버 세션과 합의 전이므로 구현 전에 확인한다 (`features/notices/api/notice-api.ts`가 이 형태를 zod로 검증한다).
+서버가 이 형태로 구현했다(로컬 서버에서 더미 3건 확인: 사진만/텍스트만/사진+텍스트). `features/notices/api/notice-api.ts`가 zod로 검증한다.
 
 `GET /api/notices/popup` (Bearer)
 

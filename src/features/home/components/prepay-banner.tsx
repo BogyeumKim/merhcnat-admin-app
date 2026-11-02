@@ -9,12 +9,12 @@ import { NativeText } from '@/shared/ui/native-text';
 
 import { HomeCard } from './home-card';
 
-/** A promotional card (like the benefit banners of the reference apps) for accounts that may request an advance payout. */
-export function PrepayBanner() {
+/** A promotional card (like the benefit banners of the reference apps) for accounts that may request an advance payout: the server's per-merchant flag and the account type must both allow it. */
+export function PrepayBanner({ available }: { available: boolean }) {
   const { t } = useTranslation();
   const colors = useNativeColors();
-  const visible = visibleItemIds(useCapabilities()).includes('prepay');
-  if (!visible) return null;
+  const allowedByType = visibleItemIds(useCapabilities()).includes('prepay');
+  if (!available || !allowedByType) return null;
 
   return (
     <HomeCard>

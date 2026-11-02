@@ -23,3 +23,9 @@ export function formatCompactAmount(value: number): string {
 /** Short weekday name for an ISO date (ko: 수, en: Wed). */
 export const formatWeekday = (isoDate: string) =>
   new Intl.DateTimeFormat(LOCALES[getCurrentLanguage()], { weekday: 'short' }).format(new Date(`${isoDate}T00:00:00`));
+
+/** ISO date to "MM.DD" (2026-11-04 -> 11.04). Anything that is not an ISO date is returned as is. */
+export function formatMonthDay(isoDate: string): string {
+  const match = /^\d{4}-(\d{2})-(\d{2})/.exec(isoDate);
+  return match ? `${match[1]}.${match[2]}` : isoDate;
+}

@@ -112,8 +112,11 @@ export const en = {
     prepayTitle: 'Need your payout sooner?',
     prepayAction: 'Request an advance payout',
     support: 'Support',
+    loading: 'Loading…',
+    loadFailed: "Couldn't load your figures.",
+    retry: 'Try again',
+    noDeposit: 'None scheduled',
     notifications: 'Notifications',
-    sampleNotice: 'Sample data. Live figures are coming.',
   },
   menu: {
     title: 'Menu',

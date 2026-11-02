@@ -6,8 +6,8 @@ import { NativeText } from '@/shared/ui/native-text';
 
 import { AmountRow } from './amount-row';
 import { HomeCard } from './home-card';
-import { formatAmount } from '../model/format';
-import { SAMPLE_STORE_NAME, SAMPLE_SUMMARY } from '../model/sample-summary';
+import { formatAmount, formatMonthDay } from '../model/format';
+import type { HomeSummary } from '../model/schemas';
 
 type Handlers = { onStore: () => void; onTransactions: () => void; onDeposits: () => void };
 
@@ -15,29 +15,30 @@ type Handlers = { onStore: () => void; onTransactions: () => void; onDeposits: (
  * The store card: store name (to the Stores tab), today's sales and the next payout as figure rows with a small button
  * each, and a footer line with the approval/cancellation counts like the footer tabs of the reference apps.
  */
-export function StoreCard({ onStore, onTransactions, onDeposits }: Handlers) {
+export function StoreCard({ summary, onStore, onTransactions, onDeposits }: Handlers & { summary: HomeSummary }) {
   const { t } = useTranslation();
+  const { nextDepositAmount, nextDepositDate } = summary;
 
   return (
-    <HomeCard title={SAMPLE_STORE_NAME} onTitlePress={onStore} testID="home-store">
+    <HomeCard title={summary.storeName} onTitlePress={onStore} testID="home-store">
       <AmountRow
         testID="home-sales-detail"
         icon={{ ios: 'wonsign.circle.fill', android: CreditScore }}
         label={t('home.todaySales')}
-        amount={t('home.amount', { amount: formatAmount(SAMPLE_SUMMARY.todaySales) })}
+        amount={t('home.amount', { amount: formatAmount(summary.todaySales) })}
         action={t('home.detail')}
         onAction={onTransactions}
       />
       <AmountRow
         testID="home-deposit-detail"
         icon={{ ios: 'calendar', android: Event }}
-        label={`${t('home.nextDeposit')} · ${SAMPLE_SUMMARY.nextDepositDate}`}
-        amount={t('home.amount', { amount: formatAmount(SAMPLE_SUMMARY.nextDepositAmount) })}
+        label={nextDepositDate ? `${t('home.nextDeposit')} · ${formatMonthDay(nextDepositDate)}` : t('home.nextDeposit')}
+        amount={nextDepositAmount == null ? t('home.noDeposit') : t('home.amount', { amount: formatAmount(nextDepositAmount) })}
         action={t('home.lookUp')}
         onAction={onDeposits}
       />
       <NativeText variant="subhead" tone="secondary">
-        {t('home.counts', { approvals: SAMPLE_SUMMARY.approvalCount, cancellations: SAMPLE_SUMMARY.cancellationCount })}
+        {t('home.counts', { approvals: summary.approvalCount, cancellations: summary.cancellationCount })}
       </NativeText>
     </HomeCard>
   );

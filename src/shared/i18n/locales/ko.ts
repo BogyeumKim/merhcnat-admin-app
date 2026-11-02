@@ -115,8 +115,11 @@ export const ko: typeof en = {
     prepayTitle: '정산금을 미리 받고 싶으신가요?',
     prepayAction: '선지급 신청하기',
     support: '고객지원',
+    loading: '불러오는 중입니다',
+    loadFailed: '수치를 불러오지 못했습니다.',
+    retry: '다시 시도',
+    noDeposit: '예정 없음',
     notifications: '알림',
-    sampleNotice: '샘플 데이터입니다. 실제 수치는 곧 연결됩니다.',
   },
   menu: {
     title: '전체메뉴',
