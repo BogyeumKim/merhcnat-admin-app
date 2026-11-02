@@ -112,8 +112,9 @@ export const ko: typeof en = {
     monthSales: '이번 달 매출',
     detail: '내역',
     lookUp: '조회',
-    latestNotice: '새 공지',
-    shortcut: { manualPay: '수기결제', smsPay: 'SMS결제', transactions: '거래내역', deposits: '입금내역', stores: '가맹점', vatReport: '부가세' },
+    prepayTitle: '정산금을 미리 받고 싶으신가요?',
+    prepayAction: '선지급 신청하기',
+    support: '고객지원',
     notifications: '알림',
     sampleNotice: '샘플 데이터입니다. 실제 수치는 곧 연결됩니다.',
   },
@@ -154,6 +155,10 @@ export const ko: typeof en = {
     language: '언어',
     about: '앱 정보',
     version: '버전',
+  },
+  notices: {
+    close: '닫기',
+    hideToday: "오늘 하루 보지 않기",
   },
   stores: {
     detailHint: '내 가맹점의 정보와 상태입니다.',

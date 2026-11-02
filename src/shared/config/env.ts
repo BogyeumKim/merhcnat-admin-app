@@ -4,6 +4,8 @@ const schema = z.object({
   apiBaseUrl: z.url(),
   /** Dev only: serve auth responses from the in-app mock instead of the network. Ignored in release builds. */
   apiMock: z.boolean(),
+  /** Dev only: serve the sign-in notice popups from fixtures. Ignored in release builds. */
+  noticeMock: z.boolean(),
 });
 
 /**
@@ -14,6 +16,7 @@ const schema = z.object({
 const parsed = schema.parse({
   apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL,
   apiMock: process.env.EXPO_PUBLIC_API_MOCK === '1',
+  noticeMock: process.env.EXPO_PUBLIC_NOTICE_MOCK === '1',
 });
 
 /**

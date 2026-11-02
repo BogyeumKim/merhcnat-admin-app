@@ -109,8 +109,9 @@ export const en = {
     monthSales: 'This month',
     detail: 'Details',
     lookUp: 'View',
-    latestNotice: 'Latest notice',
-    shortcut: { manualPay: 'Manual', smsPay: 'SMS', transactions: 'History', deposits: 'Payouts', stores: 'Stores', vatReport: 'VAT' },
+    prepayTitle: 'Need your payout sooner?',
+    prepayAction: 'Request an advance payout',
+    support: 'Support',
     notifications: 'Notifications',
     sampleNotice: 'Sample data. Live figures are coming.',
   },
@@ -151,6 +152,10 @@ export const en = {
     language: 'Language',
     about: 'About',
     version: 'Version',
+  },
+  notices: {
+    close: 'Close',
+    hideToday: "Don't show today",
   },
   stores: {
     detailHint: 'Details and status of your store.',

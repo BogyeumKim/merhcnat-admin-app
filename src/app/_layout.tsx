@@ -36,6 +36,14 @@ const VERIFY_SHEET_OPTIONS: NativeStackNavigationOptions = {
   contentStyle: { backgroundColor: SHEET_IS_GLASS ? 'transparent' : colors.background },
 };
 
+/** The sign-in notice: a bottom sheet over the tabs (iOS partial height; Android full height, like the verify sheet). */
+const NOTICE_SHEET_OPTIONS: NativeStackNavigationOptions = {
+  presentation: 'formSheet',
+  sheetGrabberVisible: true,
+  sheetAllowedDetents: process.env.EXPO_OS === 'android' ? [1] : [0.85],
+  contentStyle: { backgroundColor: colors.background },
+};
+
 function RootNavigator() {
   const isSignedIn = useIsSignedIn();
 
@@ -43,6 +51,7 @@ function RootNavigator() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={isSignedIn}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="notice-popup" options={NOTICE_SHEET_OPTIONS} />
       </Stack.Protected>
       <Stack.Protected guard={!isSignedIn}>
         <Stack.Screen name="sign-in" />
