@@ -6,6 +6,7 @@ import Help from '@expo/material-symbols/help.xml';
 import Payments from '@expo/material-symbols/payments.xml';
 import Receipt from '@expo/material-symbols/receipt_long.xml';
 import RequestQuote from '@expo/material-symbols/request_quote.xml';
+import Settings from '@expo/material-symbols/settings.xml';
 import Sms from '@expo/material-symbols/sms.xml';
 import Storefront from '@expo/material-symbols/storefront.xml';
 import Verified from '@expo/material-symbols/verified.xml';
@@ -25,4 +26,5 @@ export const MENU_ICONS = {
   preferredBusiness: { ios: 'checkmark.seal.fill', android: Verified },
   notices: { ios: 'megaphone.fill', android: Campaign },
   faq: { ios: 'questionmark.circle.fill', android: Help },
+  settings: { ios: 'gearshape.fill', android: Settings },
 } as const satisfies Record<MenuItemId, { ios: string; android: unknown }>;
