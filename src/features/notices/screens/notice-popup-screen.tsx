@@ -1,56 +1,63 @@
 import { Column } from '@expo/ui';
-import { router, useLocalSearchParams } from 'expo-router';
-import { View } from 'react-native';
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { FlatList, View, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTranslation } from '@/shared/i18n';
 import { spacing } from '@/shared/theme';
 import { NativeButton } from '@/shared/ui/native-button';
-import { NativeFormScroll } from '@/shared/ui/native-form-scroll';
 import { NativeHost } from '@/shared/ui/native-host';
-import { NativeText } from '@/shared/ui/native-text';
 
-import { NoticeImage } from '../components/notice-image';
-import { hideToday } from '../model/hidden-today';
+import { NoticePage } from '../components/notice-page';
+import { PageDots } from '../components/page-dots';
+import { hideToday, isHiddenToday } from '../model/hidden-today';
 import { usePopupNoticesData } from '../queries/use-popup-notices-data';
 
 /**
- * The sign-in notice, presented as a bottom sheet (the form-sheet route pattern the verification step uses): optional
- * image on top, the server's title and plain-text body, then "don't show today" and "close". Closing leaves the notice
- * eligible for the next sign-in; the other button hides it until tomorrow.
+ * The sign-in notices as one bottom sheet (the form-sheet route pattern the verification step uses). Several notices are
+ * a swipeable carousel with page dots; "don't show today" hides every notice in the sheet until tomorrow, "close" only
+ * closes it (it comes back after the next sign-in). The list is fixed when the sheet opens, so hiding does not reshuffle pages.
  */
 export default function NoticePopupScreen() {
   const { t } = useTranslation();
-  const { id } = useLocalSearchParams<{ id: string }>();
   const { data } = usePopupNoticesData();
   const insets = useSafeAreaInsets();
-  const notice = data?.find((candidate) => candidate.id === id);
+  const [notices] = useState(() => (data ?? []).filter((notice) => !isHiddenToday(notice.id)));
+  const [size, setSize] = useState<{ width: number; height: number } | null>(null);
+  const [index, setIndex] = useState(0);
 
-  const close = () => router.back();
+  const onLayout = (event: LayoutChangeEvent) => {
+    const { width, height } = event.nativeEvent.layout;
+    setSize({ width, height });
+  };
+
   const hideAndClose = () => {
-    if (notice) hideToday(notice.id);
+    for (const notice of notices) hideToday(notice.id);
     router.back();
   };
 
   return (
     <View style={{ flex: 1, paddingLeft: insets.left, paddingRight: insets.right }}>
-      {notice?.image ? <NoticeImage image={notice.image} /> : null}
-      <NativeHost fill>
-        <NativeFormScroll
-          bottomInset={insets.bottom}
-          footer={
-            <Column spacing={spacing.sm} style={{ width: '100%' }}>
-              <NativeButton testID="notice-hide-today" variant="outlined" label={t('notices.hideToday')} onPress={hideAndClose} />
-              <NativeButton testID="notice-close" label={t('notices.close')} onPress={close} />
-            </Column>
-          }>
-          {notice ? (
-            <>
-              <NativeText variant="title">{notice.title}</NativeText>
-              <NativeText>{notice.body}</NativeText>
-            </>
-          ) : null}
-        </NativeFormScroll>
+      <View style={{ flex: 1 }} onLayout={onLayout}>
+        {size ? (
+          <FlatList
+            data={notices}
+            keyExtractor={(notice) => notice.id}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={(event) => setIndex(Math.round(event.nativeEvent.contentOffset.x / size.width))}
+            renderItem={({ item }) => <NoticePage notice={item} width={size.width} height={size.height} />}
+          />
+        ) : null}
+      </View>
+      {notices.length > 1 ? <PageDots count={notices.length} index={index} label={`${index + 1} / ${notices.length}`} /> : null}
+      <NativeHost>
+        <Column spacing={spacing.sm} style={{ width: '100%', padding: spacing.md, paddingBottom: insets.bottom + spacing.md }}>
+          <NativeButton testID="notice-hide-today" variant="outlined" label={t('notices.hideToday')} onPress={hideAndClose} />
+          <NativeButton testID="notice-close" label={t('notices.close')} onPress={() => router.back()} />
+        </Column>
       </NativeHost>
     </View>
   );

@@ -9,7 +9,8 @@
 ## 구조 (`features/notices`)
 - `api/notice-api.ts` 서버 호출 + zod 검증(`model/schemas.ts`). 개발용 fixture는 `EXPO_PUBLIC_NOTICE_MOCK=1`(`__DEV__`에서만, 릴리스 번들에서 제거).
 - `queries/use-popup-notices-data.ts` TanStack Query. 실패해도 오류 화면 없이 팝업만 건너뛴다.
-- `model/use-notice-popup-launcher.ts` 로그인 영역(`(tabs)/_layout`)에서 한 번 호출. 아직 안 보여준 공지를 하나씩 `notice-popup` 시트로 연다(이전 시트가 닫히면 다음). "닫기"는 이번 로그인 동안만 건너뛰므로(ref가 로그인 영역과 함께 사라짐) 다음 로그인에 다시 뜬다.
+- `model/use-notice-popup-launcher.ts` 로그인 영역(`(tabs)/_layout`)에서 한 번 호출. 숨기지 않은 공지가 있으면 `notice-popup` 시트를 **한 번** 연다(직전 시트가 나가는 중이면 push가 무시될 수 있어 시트가 보일 때까지 재시도). "닫기"는 이번 로그인 동안만 건너뛰므로(ref가 로그인 영역과 함께 사라짐) 다음 로그인에 다시 뜬다.
+- **여러 공지는 캐러셀**: 시트 안에서 좌우 스와이프(`FlatList horizontal pagingEnabled`) + 페이지 점(`page-dots.tsx`, 스크린리더는 "2 / 3" 낭독). 열릴 때 목록을 고정해 "오늘 하루 보지 않기"가 페이지를 흔들지 않는다. "오늘 하루 보지 않기"는 시트 안의 모든 공지를 숨기고 닫는다.
 - `model/hidden-today.ts` "오늘 하루 보지 않기": `{ date, ids }`를 `shared/lib/storage`에 저장. 기기의 로컬 날짜가 바뀌면 비워진다. 공지 id만 저장(개인정보 없음).
 - `components/notice-image.tsx` `expo-image`: 서버가 준 width/height로 높이를 먼저 잡아 레이아웃이 튀지 않고, 디스크 캐시, 로드 실패하면 이미지를 숨긴다. 원격 이미지는 이 컴포넌트로만 보여준다.
 - `screens/notice-popup-screen.tsx` 이미지(RN) + 네이티브 본문/버튼(`@expo/ui`).
@@ -19,4 +20,4 @@
 - 이미지 URL은 https만 허용(스키마 검증 실패 시 응답 전체를 거부).
 - 이미지는 서버/CDN에 두고 앱은 URL만 받는다(앱 번들 크기와 무관, 앱 재배포 없이 교체).
 - 서버 계약 초안: `docs/backend-contract/notice-popup.md`(미합의).
-- 확인하지 못한 것: Android 시트 동작, 실제 서버 응답(아직 없음). iOS 시뮬레이터에서 이미지 공지 → "오늘 하루 보지 않기" → 다음 공지 → 닫기 → 홈 흐름을 fixture로 확인했다.
+- 확인하지 못한 것: Android 시트 동작, 실제 서버 응답(아직 없음). iOS 시뮬레이터에서 fixture 3개로 시트와 페이지 점 표시, 닫기 → 홈을 확인했다. 스와이프 동작과 숨김 유지는 아직 확인하지 못했다.
