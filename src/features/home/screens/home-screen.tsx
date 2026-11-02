@@ -7,11 +7,11 @@ import { AppHeader } from '@/shared/ui/app-header';
 import { NativeText } from '@/shared/ui/native-text';
 import { TabScreen } from '@/shared/ui/tab-screen';
 
-import { RecentTransactions } from '../components/recent-transactions';
+import { NoticeBanner } from '../components/notice-banner';
 import { TodaySummary } from '../components/today-summary';
 
 /**
- * Home: the brand bar (logo, notifications), today's numbers for the store and the latest transactions. Everything else
+ * Home: the brand bar (logo, notifications), the store and today's sales, one notice card. Everything else
  * lives under the Menu tab's categories. Numbers are sample data until the server (or the WebView) provides them.
  */
 export default function HomeScreen() {
@@ -31,8 +31,8 @@ export default function HomeScreen() {
           ]}
         />
       }>
-      <TodaySummary />
-      <RecentTransactions onViewAll={() => router.navigate('/transactions')} />
+      <TodaySummary onStorePress={() => router.navigate('/stores')} />
+      <NoticeBanner onPress={() => openMenuItem('notices')} />
       <NativeText variant="caption" tone="secondary">
         {t('home.sampleNotice')}
       </NativeText>
