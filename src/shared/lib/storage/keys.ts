@@ -2,6 +2,8 @@
 export const STORAGE_KEYS = {
   language: 'preferences.language',
   /** `{ date, ids }`: sign-in notices hidden for today (`features/notices`). */
+  /** '1' when the home amounts are masked (privacy at the counter). */
+  hideAmounts: 'home.hideAmounts',
   noticeHiddenToday: 'notices.hiddenToday',
 } as const;
 

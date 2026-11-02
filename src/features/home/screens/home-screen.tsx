@@ -21,7 +21,7 @@ import { useHomeSummaryData } from '../queries/use-home-summary-data';
  */
 export default function HomeScreen() {
   const { t } = useTranslation();
-  const { data: summary, isError, refetch } = useHomeSummaryData();
+  const { data: summary, isError, refetch, dataUpdatedAt } = useHomeSummaryData();
 
   return (
     <TabScreen
@@ -42,6 +42,8 @@ export default function HomeScreen() {
         <>
           <StoreCard
             summary={summary}
+            updatedAt={dataUpdatedAt}
+            onRefresh={() => void refetch()}
             onStore={() => router.navigate('/stores')}
             onTransactions={() => router.navigate('/transactions')}
             onDeposits={() => openMenuItem('deposits')}

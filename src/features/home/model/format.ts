@@ -29,3 +29,7 @@ export function formatMonthDay(isoDate: string): string {
   const match = /^\d{4}-(\d{2})-(\d{2})/.exec(isoDate);
   return match ? `${match[1]}.${match[2]}` : isoDate;
 }
+
+/** Clock time of a timestamp (14:32), in the 24-hour style Korean apps use for "as of" labels. */
+export const formatClock = (timestamp: number) =>
+  new Intl.DateTimeFormat(LOCALES[getCurrentLanguage()], { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(timestamp));

@@ -116,6 +116,10 @@ export const en = {
     loadFailed: "Couldn't load your figures.",
     retry: 'Try again',
     noDeposit: 'None scheduled',
+    asOf: 'As of {{time}}',
+    hideAmounts: 'Hide amounts',
+    showAmounts: 'Show amounts',
+    hiddenAmount: '••••••',
     notifications: 'Notifications',
   },
   menu: {

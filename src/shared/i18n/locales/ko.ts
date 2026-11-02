@@ -119,6 +119,10 @@ export const ko: typeof en = {
     loadFailed: '수치를 불러오지 못했습니다.',
     retry: '다시 시도',
     noDeposit: '예정 없음',
+    asOf: '{{time}} 기준',
+    hideAmounts: '금액 숨기기',
+    showAmounts: '금액 보기',
+    hiddenAmount: '••••••',
     notifications: '알림',
   },
   menu: {
