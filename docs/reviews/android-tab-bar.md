@@ -1,4 +1,6 @@
-# Android 플로팅 탭바 검토 (SDK 58)
+# Android 탭바 검토 (SDK 58)
+
+> **2026-10 변경: 플로팅 바를 없애고 stock Material 3 `NavigationBar`(Compose)로 교체했다.** 아래 "플로팅" 관련 내용은 이전 구현의 검토 기록이다. **이후 Android도 iOS와 같은 `NativeTabs`로 통일했고(`app-tabs.tsx` 하나, 아이콘은 `md`), 아래 Compose `NavigationBar` 구현(`android-tab-bar.tsx`)은 삭제했다.** 하단 인셋/치수 상수/`useTabBarInset`은 삭제했다.
 
 대상: 제공받은 `android-floating-tab-bar.tsx` → `src/core/navigation/app-tabs/ui/android-floating-tab-bar.tsx`
 

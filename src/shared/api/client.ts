@@ -16,18 +16,29 @@ type RequestOptions = {
   signal?: AbortSignal;
 };
 
-const problemSchema = z.looseObject({
+/**
+ * Every server response is `{ code, message, data? }`: success is `code: "SUCCESS"` (HTTP 200, or 202 for "more
+ * authentication needed"), everything else has another HTTP status with the same envelope. `data` carries the extras
+ * (`remainingAttempts`, `retryAfterSeconds`, a maintenance period). The `message` is for logs, never shown.
+ */
+const envelopeSchema = z.looseObject({
+  code: z.string(),
+  message: z.string().optional(),
+  data: z.unknown().optional(),
+});
+
+const errorEnvelopeSchema = z.looseObject({
   code: z.string().optional(),
-  title: z.string().optional(),
-  detail: z.string().optional(),
+  message: z.string().optional(),
+  data: z.record(z.string(), z.unknown()).optional(),
 });
 
 async function toApiError(response: Response): Promise<ApiError> {
   const retryAfter = Number(response.headers.get('Retry-After'));
   const retryExtras = Number.isFinite(retryAfter) && retryAfter > 0 ? { retryAfterSeconds: retryAfter } : {};
 
-  // A proxy or CDN may answer 503 with HTML: treat anything that is not valid problem+json as an unknown error.
-  const parsed = problemSchema.safeParse(await response.json().catch(() => null));
+  // A proxy or CDN may answer 503 with HTML: treat anything that is not the envelope as an unknown error.
+  const parsed = errorEnvelopeSchema.safeParse(await response.json().catch(() => null));
   if (!parsed.success) {
     return new ApiError({
       status: response.status,
@@ -36,12 +47,12 @@ async function toApiError(response: Response): Promise<ApiError> {
     });
   }
 
-  const { code, title, detail, ...rest } = parsed.data;
+  const { code, message, data } = parsed.data;
   return new ApiError({
     status: response.status,
     code: toErrorCode(code),
-    message: detail ?? title,
-    extras: { ...rest, ...retryExtras },
+    message,
+    extras: { ...data, ...retryExtras },
   });
 }
 
@@ -101,6 +112,25 @@ export async function apiFetch(path: string, options: RequestOptions = {}): Prom
   const { response, refreshedToken } = await send(path, options);
   if (refreshedToken) setAccessToken(refreshedToken);
   return response;
+}
+
+/**
+ * `apiFetch` for the `{ code, message, data }` envelope: validates `data` with `dataSchema` and returns the HTTP status
+ * (200 and 202 both mean success but different things), the envelope `code` and the validated `data`. The token header is
+ * applied only after the whole response was accepted, like `apiJson`.
+ */
+export async function apiEnvelope<T>(
+  path: string,
+  dataSchema: z.ZodType<T>,
+  options: RequestOptions = {},
+): Promise<{ status: number; code: string; data: T }> {
+  const { response, refreshedToken } = await send(path, options);
+  const envelope = envelopeSchema.safeParse(await response.json().catch(() => null));
+  if (!envelope.success) throw new ApiError({ status: response.status, code: 'INVALID_RESPONSE' });
+  const data = dataSchema.safeParse(envelope.data.data);
+  if (!data.success) throw new ApiError({ status: response.status, code: 'INVALID_RESPONSE' });
+  if (refreshedToken) setAccessToken(refreshedToken);
+  return { status: response.status, code: envelope.data.code, data: data.data };
 }
 
 /**

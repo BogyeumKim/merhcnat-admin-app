@@ -4,7 +4,6 @@ import { useRef, useState } from 'react';
 import { maintenanceHref } from '@/features/maintenance';
 import { presentationOf } from '@/shared/api/error-presentation';
 import { useTranslation } from '@/shared/i18n';
-import { BrandedFormScreen } from '@/shared/ui/branded-form-screen';
 import { showErrorToast } from '@/shared/ui/toast';
 import { useAnnounce } from '@/shared/ui/use-announce';
 
@@ -30,6 +29,9 @@ export default function SignInScreen() {
       switch (presentationOf(error.code)) {
         case 'maintenance':
           router.push(maintenanceHref(error));
+          return;
+        case 'locked':
+          router.push('/account-locked');
           return;
         case 'toast':
           // Same id per error code: repeated failures update one toast instead of piling up copies.
@@ -57,13 +59,11 @@ export default function SignInScreen() {
   };
 
   return (
-    <BrandedFormScreen>
-      <LoginForm
-        pending={login.isPending}
-        formError={formError}
-        passwordResetKey={passwordResetKey}
-        onSubmit={submit}
-      />
-    </BrandedFormScreen>
+    <LoginForm
+      pending={login.isPending}
+      formError={formError}
+      passwordResetKey={passwordResetKey}
+      onSubmit={submit}
+    />
   );
 }

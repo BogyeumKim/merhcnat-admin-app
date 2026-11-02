@@ -1,8 +1,7 @@
 import { signOutLocally } from '@/features/auth';
 import { useTranslation } from '@/shared/i18n';
-import { AppText } from '@/shared/ui/app-text';
 import { NativeButton } from '@/shared/ui/native-button';
-import { NativeHost } from '@/shared/ui/native-host';
+import { NativeText } from '@/shared/ui/native-text';
 import { TabScreen } from '@/shared/ui/tab-screen';
 
 /** Account actions. More menu entries land here as the WebView screens are added. */
@@ -11,12 +10,8 @@ export default function MenuScreen() {
 
   return (
     <TabScreen>
-      <AppText variant="title" accessibilityRole="header">
-        {t('menu.title')}
-      </AppText>
-      <NativeHost>
-        <NativeButton variant="outlined" label={t('menu.signOut')} onPress={signOutLocally} />
-      </NativeHost>
+      <NativeText variant="title">{t('menu.title')}</NativeText>
+      <NativeButton variant="outlined" label={t('menu.signOut')} onPress={signOutLocally} />
     </TabScreen>
   );
 }

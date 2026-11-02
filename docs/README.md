@@ -34,7 +34,7 @@ docs/
 ├── migration/
 │   └── mms-mobile.md            # 레거시 앱 분석과 Expo 이전 메모
 └── reviews/
-    ├── android-floating-tab-bar.md  # SDK 58 탭바 검토 기록
+    ├── android-tab-bar.md  # SDK 58 탭바 검토 기록
     ├── reference-projects.md        # RNCopilot / onebite-log 검토 기록
     └── skill-compliance.md          # Expo skill 기준 코드 검사 기록
 ```

@@ -53,6 +53,12 @@
             ]
           }
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#ff003a"
+        }
       ]
     ],
     "experiments": {

@@ -4,7 +4,7 @@
 
 ```
 src/        app/ core/ features/ shared/
-assets/     # 이미지, 아이콘(assets/icons/*.xml: Android 벡터 드로어블)
+assets/     # 이미지 (Android 아이콘은 @expo/material-symbols, iOS는 SF Symbols)
 docs/       # SDK 58 요약, 아키텍처, 마이그레이션, 검토 기록
 .claude/    # rules, agents, skills, hooks, settings
 ```

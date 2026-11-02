@@ -35,4 +35,20 @@ paths:
 - Android 전용 Compose 모디파이어는 `*.android.tsx`에만 둔다 (기본 파일은 플랫폼 중립 폴백). `native-form-scroll`, `native-text`(iOS), `native-button`(iOS)이 이 패턴이다.
 - 버튼은 `NativeButton`, 입력창은 `LabeledField`/`NativeField`, 문구는 `NativeText`를 쓴다. `@expo/ui`의 `Button`/`TextInput`/`Text`를 화면에서 직접 쓰지 않는다 (touch target, 라벨, 글꼴 크기 정책이 여기에 모여 있다).
 - 폼 오류 UI: 필드 아래 오류는 `LabeledField error`, 폼 전체의 지속 오류는 `FormAlert`. 규칙은 `.claude/rules/feedback-ux.md`.
+- **iOS 폭 `'100%'` 함정 (58.0.23, 시뮬레이터로 확인)**: universal `ScrollView`(iOS)는 자식을 일반 SwiftUI `VStack`으로 감싸 그 아래 모든 `width: '100%'`가 무시되고 입력창/버튼이 내용 폭으로 줄어든다. 그래서 `native-form-scroll.ios.tsx`는 `@expo/ui/swift-ui`의 `ScrollView`를 직접 쓴다. SwiftUI `Button` 라벨 안의 `Column`도 퍼센트가 풀리지 않으므로 `native-button.ios.tsx`는 `frame({ maxWidth: Infinity })`로 채운다. 새 폼 화면은 반드시 `NativeFormScroll`을 쓰고, 화면에서 universal `ScrollView`를 직접 쓰지 않는다.
+- **스크롤/텍스트도 `@expo/ui`**: 화면 본문은 RN `ScrollView`/`Text`를 쓰지 않는다. `NativeHost` + `NativeFormScroll` + `NativeText`/`NativeButton`을 쓴다 (`TabScreen`, `ErrorScreen`, `BrandedFormScreen`이 이 패턴). 창 크기 분기용 RN `View` 래퍼만 예외.
+- **iOS 둥근 테두리 함정 (시뮬레이터로 확인)**: universal `borderWidth` + `borderRadius`는 직사각형 `border` 뒤에 `clipShape`가 걸려 둥근 모서리 쪽 테두리가 잘려 나간다. `strokeBorder` modifier(둥근 모양을 따라 선을 그림)를 쓴다. iOS `TextInput`은 `modifiers`를 스타일 파생 modifier보다 안쪽에 적용하므로 박스 테두리는 `TextInput`이 아니라 바깥 `Column`에 둬야 한다. 현재 입력창은 박스 없이 밑줄(`field-underline.tsx`)이고 `FormAlert`도 박스가 아니라 아이콘 + 문구라 이 함정을 피한다.
+- 새 `.ios.tsx`/`.android.tsx` 파일을 추가한 직후 Metro가 기본 파일을 계속 쓰면, 그 파일을 import하는 쪽 파일을 한 번 저장(touch)하거나 `npx expo start --clear`.
+
+- **하단 고정 버튼**: `BrandedFormScreen`/`SheetFormScreen`의 `footer`로 넘긴다 (`NativeFormScroll`이 스크롤 영역 + footer를 한 `Host` 안의 `Column`으로 구성하고, 키보드 위에 둔다. Android는 스크롤에 `weight(1)`, 컬럼에 `imePadding()`).
+- 입력창은 `LabeledField`(라벨 + 밑줄 `NativeField` + 오류). 비밀번호 보기/숨기기는 눈 아이콘(`PasswordToggle`: iOS SF Symbols, Android `@expo/material-symbols`)이다. 58.0.23의 iOS `Icon`은 접근성 prop이 없어서 `accessibilityLabel` modifier로 라벨을 준다. 끝에 컨트롤이 필요하면 `trailing`.
+- iOS 아이콘이 `eye`/`eye.slash`처럼 높이가 다르면 토글할 때 행 높이가 바뀐다. 아이콘 컨트롤은 고정 프레임(`PasswordToggle`은 44pt 정사각형)에 넣는다. 버튼 라벨은 `font({ textStyle: 'headline' })`(17pt semibold), 세로 패딩 8pt(버튼 스타일이 약 11pt를 더해 높이 약 49pt).
+- **인증 단계(sheet) 구성**: 각 단계(`DeviceNotice`/`MethodChoice`/`CodeEntry`)가 `SheetFormScreen`(+`footer`)을 직접 그린다. 머리는 `StepHeader`(아이콘 배지 + 제목 + 한 줄). 채널 선택은 `ListItem` 행(+ `FieldUnderline` 구분선, 세로 여백 `Column`), 코드 입력은 큰 숫자·넓은 자간의 단일 `NativeField`(마지막 자리에서 자동 제출, 상태는 "가득 찼는가" 불리언만).
+- **form sheet 배경**: 투명(Liquid Glass)은 iOS 26+에서만. 그 미만 iOS는 투명이면 뒤 화면이 비쳐 보이므로 단색(`colors.background`) (`app/_layout.tsx`의 `SHEET_IS_GLASS`).
+- **Android 실기 확인에서 나온 함정 (에뮬레이터 API 35, 개발 빌드)**:
+  - 자식 없는 `Column`(높이 + 배경만)은 Compose에서 아무것도 그리지 않는다. 구분선/밑줄은 `HorizontalDivider`를 쓴다 (`field-underline.android.tsx`).
+  - Android `Icon`에 `onPress`를 주면 정확히 `size`짜리 `Box`가 되어, 그 `Icon`에 `padding`을 주면 글리프가 점으로 줄어든다. 터치 영역 패딩과 `onPress`는 감싸는 `Column`에 둔다 (`password-toggle.tsx`).
+  - Host의 `seedColor`로 생성되는 Material 색 체계에서는 빨강 seed의 primary가 칙칙한 갈색이 된다. 브랜드 색 버튼은 `colors`를 명시한다 (`native-button.android.tsx`: `containerColor`/`contentColor`).
+  - 고정 크기 아이콘 + 배지는 `Column`의 `padding`(아이콘 크기 + 균등 패딩)으로 만든다. 고정 크기 `Column` 안의 `Icon`은 가운데에 오지 않는다 (`step-header.tsx`).
+  - form sheet에 **부분 높이 detent(0.7 등)를 쓰면 Android는 레이아웃이 전체 높이로 잡혀 하단 `footer`가 화면 밖에 있다.** Android는 `[1]`(전체 높이)로 한다 (`app/_layout.tsx`). 또한 Android에서는 `gestureEnabled: false`가 시트 스와이프 닫기를 막지 못했다 (취소 버튼이 아닌 스와이프로 닫히면 챌린지 토큰이 메모리에 남는다: 5분 뒤 자동 폐기).
 

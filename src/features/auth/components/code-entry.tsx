@@ -1,14 +1,16 @@
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Controller, useForm } from 'react-hook-form';
+import { Row, Spacer } from '@expo/ui';
+import { useState } from 'react';
 
-import { useValidationMessage } from '@/shared/forms/validation';
 import { useTranslation } from '@/shared/i18n';
-import { LabeledField } from '@/shared/ui/labeled-field';
 import { NativeButton } from '@/shared/ui/native-button';
+import { NativeField } from '@/shared/ui/native-field';
 import { NativeText } from '@/shared/ui/native-text';
+import { SheetFormScreen } from '@/shared/ui/sheet-form-screen';
 
+import { CodeExpiry } from './code-expiry';
 import { ResendButton } from './resend-button';
-import { CODE_LENGTH, codeSchema, type CodeValues } from '../model/forms';
+import { StepHeader } from './step-header';
+import { CODE_LENGTH } from '../model/forms';
 
 type CodeEntryProps = {
   /** Masked destination for message codes; `null` for an authenticator-app (TOTP) code. */
@@ -18,74 +20,74 @@ type CodeEntryProps = {
   serverError: string | null;
   onEdit: () => void;
   onSubmit: (code: string) => void;
-  onResend?: () => void;
-  resendPending?: boolean;
+  /** Epoch ms when the sent code expires. Not shown for an authenticator-app code. */
+  expiresAt?: number;
+  /** Message codes only. */
+  resend?: { availableAt: number; pending: boolean; onResend: () => void };
   onCancel: () => void;
 };
 
-export function CodeEntry({
-  destination,
-  pending,
-  serverError,
-  onEdit,
-  onSubmit,
-  onResend,
-  resendPending = false,
-  onCancel,
-}: CodeEntryProps) {
+/**
+ * The code step. One field with large, widely spaced digits (the layout follows the system text size for everything
+ * else). The last digit submits by itself: the iOS number pad has no Return key, and an SMS auto-fill fills all six
+ * at once. React state only knows whether the field is complete, never the digits.
+ */
+export function CodeEntry({ destination, pending, serverError, onEdit, onSubmit, expiresAt, resend, onCancel }: CodeEntryProps) {
   const { t } = useTranslation();
-  const messageOf = useValidationMessage();
+  const [code, setCode] = useState('');
+  const complete = code.length === CODE_LENGTH;
 
-  const { control, handleSubmit } = useForm<CodeValues>({
-    resolver: zodResolver(codeSchema),
-    defaultValues: { code: '' },
-  });
-
-  const submit = handleSubmit(({ code }) => {
-    if (!pending) onSubmit(code);
-  });
+  const submit = (value: string) => {
+    if (!pending && value.length === CODE_LENGTH) onSubmit(value);
+  };
 
   return (
-    <>
-      <NativeText variant="title">{t('auth.verify.codeTitle')}</NativeText>
-      <NativeText tone="secondary">
-        {destination ? t('auth.verify.codeHintSent', { destination }) : t('auth.verify.codeHintTotp')}
-      </NativeText>
-      <Controller
-        control={control}
-        name="code"
-        render={({ field, fieldState }) => (
-          <LabeledField
-            ref={field.ref}
-            label={t('auth.verify.codeLabel')}
-            error={messageOf(fieldState.error) ?? serverError}
-            keyboardType="number-pad"
-            autoComplete="one-time-code"
-            maxLength={CODE_LENGTH}
-            autoCorrect={false}
-            textAlign="center"
-            onBlur={field.onBlur}
-            // The iOS number pad has no Return key, so the last digit (typed or auto-filled from an SMS) submits.
-            onChangeText={(text) => {
-              field.onChange(text);
-              onEdit();
-              if (text.length === CODE_LENGTH) void submit();
-            }}
+    <SheetFormScreen
+      footer={
+        <>
+          <NativeButton
+            testID="otp-submit"
+            label={pending ? t('auth.verify.verifying') : t('auth.verify.verify')}
+            disabled={!complete || pending}
+            onPress={() => submit(code)}
           />
-        )}
+          <NativeButton testID="verify-cancel" label={t('common.cancel')} variant="text" disabled={pending} onPress={onCancel} />
+        </>
+      }>
+      <StepHeader
+        title={t('auth.verify.codeTitle')}
+        body={destination ? t('auth.verify.codeHintSent', { destination }) : t('auth.verify.codeHintTotp')}
       />
-      <NativeButton
-        label={pending ? t('auth.verify.verifying') : t('auth.verify.verify')}
-        disabled={pending}
-        onPress={() => void submit()}
+      <NativeField
+        testID="otp-code"
+        accessibilityLabel={t('auth.verify.codeLabel')}
+        keyboardType="number-pad"
+        autoComplete="one-time-code"
+        autoFocus
+        maxLength={CODE_LENGTH}
+        autoCorrect={false}
+        textAlign="center"
+        textStyle={{ fontSize: 28, fontWeight: '600', letterSpacing: 12 }}
+        invalid={Boolean(serverError)}
+        onChangeText={(text) => {
+          setCode(text);
+          onEdit();
+          submit(text);
+        }}
       />
-      {onResend ? <ResendButton onResend={onResend} pending={resendPending} /> : null}
-      <NativeButton
-        label={t('auth.verify.useAnotherAccount')}
-        variant="text"
-        disabled={pending}
-        onPress={onCancel}
-      />
-    </>
+      {serverError ? <NativeText variant="subhead" tone="danger">{serverError}</NativeText> : null}
+      <Row alignment="center" style={{ width: '100%' }}>
+        {expiresAt ? <CodeExpiry key={expiresAt} expiresAt={expiresAt} /> : null}
+        <Spacer flexible />
+        {resend ? (
+          <ResendButton
+            key={resend.availableAt}
+            availableAt={resend.availableAt}
+            pending={resend.pending}
+            onResend={resend.onResend}
+          />
+        ) : null}
+      </Row>
+    </SheetFormScreen>
   );
 }

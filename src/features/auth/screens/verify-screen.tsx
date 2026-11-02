@@ -1,24 +1,24 @@
-import { router } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 
 import { maintenanceHref } from '@/features/maintenance';
 import { presentationOf } from '@/shared/api/error-presentation';
 import type { ApiError } from '@/shared/api/errors';
 import { useTranslation } from '@/shared/i18n';
-import { SheetFormScreen } from '@/shared/ui/sheet-form-screen';
 import { showErrorToast, showSuccessToast } from '@/shared/ui/toast';
 import { useAnnounce } from '@/shared/ui/use-announce';
 
 import { CodeEntry } from '../components/code-entry';
 import { DeviceNotice } from '../components/device-notice';
 import { MethodChoice } from '../components/method-choice';
-import { useAuthChallenge, useAuthFlowActions } from '../model/auth-flow-store';
-import type { ChallengeRequired } from '../model/schemas';
+import { authFlowActions, useAuthChallenge, useAuthFlowActions, useAuthFlowId } from '../model/auth-flow-store';
+import type { ChallengeMethod, ChallengeRequired } from '../model/schemas';
 import { useIsSignedIn } from '../model/session-store';
 import { useSendCode } from '../mutations/use-send-code';
 import { useVerifyCode } from '../mutations/use-verify-code';
 
-type ChallengeOption = ChallengeRequired['methods'][number];
+/** Where the user is in a message-code flow once a code has been sent. Epoch ms, taken from the server's seconds. */
+type SentCode = { method: ChallengeMethod; destination: string | null; expiresAt: number; resendAt: number };
 
 function leaveVerification() {
   if (router.canGoBack()) router.back();
@@ -27,14 +27,24 @@ function leaveVerification() {
 
 export default function VerifyScreen() {
   const challenge = useAuthChallenge();
+  const flowId = useAuthFlowId();
   const isSignedIn = useIsSignedIn();
+  const navigation = useNavigation();
+
+  // Whatever closes the sheet (Cancel, dragging it down, the Android back gesture, a finished sign-in), the half-finished
+  // challenge goes with it. `removed` fires after the screen unmounted, so this cannot trigger the redirect below; per the
+  // event's docs the unsubscription waits for the next microtask.
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('removed', () => authFlowActions().clear());
+    return () => queueMicrotask(unsubscribe);
+  }, [navigation]);
 
   // Opened without a pending challenge (for example a stale deep link): go back to sign-in.
   useEffect(() => {
     if (!challenge && !isSignedIn) router.replace('/sign-in');
   }, [challenge, isSignedIn]);
 
-  return challenge ? <VerifyFlow key={challenge.challengeId} challenge={challenge} /> : null;
+  return challenge ? <VerifyFlow key={flowId} challenge={challenge} /> : null;
 }
 
 /** Steps: confirm new/changed device -> choose a delivery method (message codes only) -> enter the code. */
@@ -45,30 +55,50 @@ function VerifyFlow({ challenge }: { challenge: ChallengeRequired }) {
   const needsDeviceConfirmation = challenge.deviceState !== 'MATCH';
 
   const [deviceConfirmed, setDeviceConfirmed] = useState(!needsDeviceConfirmation);
-  const [sentTo, setSentTo] = useState<ChallengeOption | null>(null);
+  const [sent, setSent] = useState<SentCode | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // After an expired / used-up code a new code is needed right away, whatever the resend cooldown says.
+  const [resendNow, setResendNow] = useState(false);
   const inFlight = useRef(false);
 
   useAnnounce(errorMessage);
 
+  // The challenge is not cleared here: emptying it before the sheet is gone would trigger the redirect in `VerifyScreen`,
+  // which replaces the route mid-dismissal (the sign-in screen seemed to push in again). The `removed` listener clears it.
   const cancel = () => {
-    clear();
     leaveVerification();
   };
 
   // Where a failure is shown depends on its kind (see shared/api/error-presentation.ts).
   const handleError = (error: ApiError) => {
-    const title = t(`errors.${error.code}`);
+    if (error.code === 'CHALLENGE_EXPIRED') {
+      // The challenge token is gone (expired): the only way forward is to sign in again from the start.
+      showErrorToast({ id: `error:${error.code}`, title: t(`errors.${error.code}`) });
+      cancel();
+      return;
+    }
     switch (presentationOf(error.code)) {
       case 'maintenance':
         router.push(maintenanceHref(error));
         return;
+      case 'locked':
+        // Locked until an administrator unlocks it: nothing to retry, so the flow ends here.
+        clear();
+        router.push('/account-locked');
+        return;
       case 'toast':
-        showErrorToast({ id: `error:${error.code}`, title });
+        showErrorToast({ id: `error:${error.code}`, title: t(`errors.${error.code}`) });
         return;
-      case 'inline':
-        setErrorMessage(title);
+      case 'inline': {
+        const remaining = Number(error.extras.remainingAttempts);
+        setErrorMessage(
+          error.code === 'OTP_INVALID' && Number.isInteger(remaining) && remaining > 0
+            ? t('errors.OTP_INVALID_REMAINING', { count: remaining })
+            : t(`errors.${error.code}`),
+        );
+        if (error.code === 'OTP_EXPIRED') setResendNow(true);
         return;
+      }
     }
   };
 
@@ -84,18 +114,21 @@ function VerifyFlow({ challenge }: { challenge: ChallengeRequired }) {
     });
   };
 
-  const choose = (option: ChallengeOption) =>
+  const choose = (method: ChallengeMethod) =>
     runOnce((done) =>
       sendCode.mutate(
-        { challengeId: challenge.challengeId, method: option.method },
+        { channel: method },
         {
-          onSuccess: () => {
-            setSentTo(option);
-            showSuccessToast({
-              id: 'code-sent',
-              title: t('toast.codeSent'),
-              description: option.destination,
+          onSuccess: (result) => {
+            const now = Date.now();
+            setResendNow(false);
+            setSent({
+              method,
+              destination: result.destination ?? null,
+              expiresAt: now + result.expiresInSeconds * 1000,
+              resendAt: now + result.resendAfterSeconds * 1000,
             });
+            showSuccessToast({ id: 'code-sent', title: t('toast.codeSent'), description: result.destination });
           },
           onSettled: done,
         },
@@ -104,41 +137,44 @@ function VerifyFlow({ challenge }: { challenge: ChallengeRequired }) {
 
   const verify = (code: string) =>
     runOnce((done) =>
-      verifyCode.mutate(
-        { challengeId: challenge.challengeId, code, confirmDevice: needsDeviceConfirmation },
-        { onSettled: done },
-      ),
+      verifyCode.mutate({ channel: sent?.method ?? 'TOTP', code }, { onSettled: done }),
     );
 
   const deviceState = challenge.deviceState;
-  const step = !deviceConfirmed ? 'device' : isTotp || sentTo ? 'code' : 'method';
+  const step = !deviceConfirmed ? 'device' : isTotp || sent ? 'code' : 'method';
 
+  if (step === 'device' && deviceState !== 'MATCH') {
+    return <DeviceNotice state={deviceState} onContinue={() => setDeviceConfirmed(true)} onCancel={cancel} />;
+  }
+  if (step === 'method') {
+    return (
+      <MethodChoice
+        methods={challenge.methods}
+        pending={sendCode.isPending}
+        errorMessage={errorMessage}
+        onChoose={choose}
+        onCancel={cancel}
+      />
+    );
+  }
   return (
-    <SheetFormScreen>
-      {step === 'device' && deviceState !== 'MATCH' ? (
-        <DeviceNotice state={deviceState} onContinue={() => setDeviceConfirmed(true)} onCancel={cancel} />
-      ) : null}
-      {step === 'method' ? (
-        <MethodChoice
-          methods={challenge.methods}
-          pending={sendCode.isPending}
-          errorMessage={errorMessage}
-          onChoose={choose}
-          onCancel={cancel}
-        />
-      ) : null}
-      {step === 'code' ? (
-        <CodeEntry
-          destination={sentTo?.destination ?? null}
-          pending={verifyCode.isPending}
-          serverError={errorMessage}
-          onEdit={() => setErrorMessage(null)}
-          onSubmit={verify}
-          onResend={sentTo ? () => choose(sentTo) : undefined}
-          resendPending={sendCode.isPending}
-          onCancel={cancel}
-        />
-      ) : null}
-    </SheetFormScreen>
+    <CodeEntry
+      destination={sent?.destination ?? null}
+      pending={verifyCode.isPending}
+      serverError={errorMessage}
+      onEdit={() => setErrorMessage(null)}
+      onSubmit={verify}
+      expiresAt={sent?.expiresAt}
+      resend={
+        sent
+          ? {
+              availableAt: resendNow ? 0 : sent.resendAt,
+              pending: sendCode.isPending,
+              onResend: () => choose(sent.method),
+            }
+          : undefined
+      }
+      onCancel={cancel}
+    />
   );
 }

@@ -5,7 +5,9 @@ import type { UseMutationCallback } from '@/shared/api/types';
 
 import { authApi } from '../api/auth-api';
 import { authFlowActions } from '../model/auth-flow-store';
+import { holdChallengeToken } from '../model/challenge-vault';
 import { getDeviceInfo } from '../model/device-info';
+import { registerDevicePush } from '../model/device-push';
 import type { LoginResult } from '../model/schemas';
 import { assertTokenIssued, completeSignIn } from '../model/session-store';
 
@@ -19,15 +21,23 @@ export function useLogin(callbacks?: UseMutationCallback<LoginResult>) {
   return useMutation({
     mutationFn: async ({ userId, password }: LoginInput) => {
       const result = await authApi.login({ userId, password, device: await getDeviceInfo() });
-      if (result.status === 'AUTHENTICATED') assertTokenIssued();
-      return result;
+      if (result.status === 'AUTHENTICATED') {
+        assertTokenIssued();
+        return result;
+      }
+      // The code step uses this token instead of the password (see `challenge-vault`): keep it in memory, briefly.
+      const { challengeToken, ...challenge } = result;
+      holdChallengeToken(challengeToken);
+      return challenge;
     },
-    // The password is a mutation variable: do not keep it in the mutation cache after the call.
+    // The password is a mutation variable: do not keep it in the mutation cache after the call (`gcTime: 0`).
     gcTime: 0,
     onMutate: () => callbacks?.onMutate?.(),
     onSuccess: (result) => {
-      if (result.status === 'AUTHENTICATED') completeSignIn(result.userType);
-      else authFlowActions().start(result);
+      if (result.status === 'AUTHENTICATED') {
+        completeSignIn(result.userType);
+        void registerDevicePush();
+      } else authFlowActions().start(result);
       callbacks?.onSuccess?.(result);
     },
     onError: (error) => callbacks?.onError?.(asApiError(error)),

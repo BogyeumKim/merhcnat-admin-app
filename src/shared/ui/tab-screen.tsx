@@ -1,30 +1,32 @@
 import type { PropsWithChildren } from 'react';
-import { ScrollView } from 'react-native';
+import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useTabBarInset } from '@/shared/lib/tab-bar';
-import { colors, spacing } from '@/shared/theme';
+import { colors } from '@/shared/theme';
+
+import { NativeFormScroll } from './native-form-scroll';
+import { NativeHost } from './native-host';
 
 /**
- * Scrolling body for a tab screen. iOS native tabs and the system inset behavior handle the safe areas
- * (`contentInsetAdjustmentBehavior`); on Android the status bar and the floating tab bar are added as padding.
+ * Body of a tab screen: one native (SwiftUI/Compose) scrolling Host, like the pre-login screens.
+ * Children must be `@expo/ui` components. The status bar inset is padding of the wrapping view. Both tab bars sit in the
+ * normal layout flow (iOS native tabs, Android Compose NavigationBar), so no bottom inset is needed here.
  */
 export function TabScreen({ children }: PropsWithChildren) {
   const insets = useSafeAreaInsets();
-  const tabBarInset = useTabBarInset();
-  const isAndroid = process.env.EXPO_OS === 'android';
 
   return (
-    <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
-      style={{ flex: 1, backgroundColor: colors.background }}
-      contentContainerStyle={{
-        gap: spacing.md,
-        padding: spacing.md,
-        paddingTop: spacing.lg + (isAndroid ? insets.top : 0),
-        paddingBottom: spacing.md + tabBarInset,
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: colors.background,
+        paddingTop: insets.top,
+        paddingLeft: insets.left,
+        paddingRight: insets.right,
       }}>
-      {children}
-    </ScrollView>
+      <NativeHost fill>
+        <NativeFormScroll bottomInset={0}>{children}</NativeFormScroll>
+      </NativeHost>
+    </View>
   );
 }

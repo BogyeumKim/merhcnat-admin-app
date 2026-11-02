@@ -59,12 +59,12 @@
 ## 4. 로고(SVG)
 
 - 기존 앱 로고(`mms-mobile/src/assets/image/korpayLogo.png`: 빨간 둥근 사각형 안의 흰 K, 차콜색 `Kor` + 빨간 `pay`)의 정체성을 유지해 다시 그렸다: **빨간 원 안의 흰 K + 차콜 `Kor` + 빨간 `pay`**. 브랜드 빨강은 레거시 상수 `CustomColor.mainColor`(`#ff003a`)다.
-- `assets/images/korpay-logo.svg`(viewBox `0 0 376 88`)를 `expo-image`로 렌더한다 (`BrandLogo`). 이미 설치돼 있고 SVG를 네이티브 디코더로 그리며 캐시된다.
-- SDK 58 `svgVariables`로 색을 바꾼다: `--korpay-ink`(`Kor`와 다크 모드 대응), `--korpay-brand`(빨강). `var(--x, 기본값)`이라 변수를 안 줘도 기본색으로 그려진다 (Expo 문서).
+- `assets/images/korpay-logo.svg`(viewBox `0 0 168.6 56`: 워드마크 `Korpay`, Poppins SemiBold(SIL OFL 1.1)를 윤곽선으로 변환 + K 전체를 브랜드 빨강으로 칠함)를 `expo-image`로 렌더한다 (`BrandLogo height={…}`). 이미 설치돼 있고 SVG를 네이티브 디코더로 그리며 캐시된다.
+- SDK 58 `svgVariables`로 글자 색만 바꾼다: `--korpay-ink`(다크 모드 대응). K의 빨강은 고정 색. `var(--x, 기본값)`이라 변수를 안 줘도 기본색으로 그려진다 (Expo 문서).
 - 빨강 `#ff003a`는 흰색과 3.95:1이라 **텍스트/버튼 색으로 쓰지 않는다** (로고 같은 그래픽은 대비 규정에서 제외). 버튼/링크는 `action` 색.
-- **iOS 시스템 SVG 디코더 제약**: `A/a`(타원 호) 명령이 일부 깨질 수 있다고 문서가 경고 → 로고는 `M/L/C/V`와 `<circle>`만 쓴다. 호 명령을 추가하지 않는다.
+- **iOS 시스템 SVG 디코더 제약**: `A/a`(타원 호) 명령이 일부 깨질 수 있다고 문서가 경고 → 로고는 `M/L/H/V/C`만 쓴다 (둥근 타일도 `rect rx`가 아니라 C 곡선 path). 호 명령을 추가하지 않는다.
 - Expo의 `react-native-svg` 문서는 SVG를 컴포넌트로 바꿔 쓰는 방식(SVGR)이다. 정적 로고에는 필요 없어 로고에는 쓰지 않았다. (`react-native-svg`는 `sonner-native`의 peer 의존성으로 설치돼 있다.)
-- Android는 `viewBox`를 지우지 않아야 한다 (Expo SVG 문서). 로고를 고치면 `brand-logo.tsx`의 `LOGO_ASPECT_RATIO`(376/88)도 같이 맞춘다.
+- Android는 `viewBox`를 지우지 않아야 한다 (Expo SVG 문서). 로고를 고치면 `brand-logo.tsx`의 `LOGO_ASPECT_RATIO`(168.6/56)도 같이 맞춘다. **XML 주석 안에 `--`(연속 하이픈)를 쓰면 네이티브 SVG 파서가 파일 전체를 거부해 아무것도 안 그려진다** (macOS 미리보기는 통과하므로 앱에서 확인한다).
 - 로컬 미리보기: `qlmanage -t -s 900 -o <dir> assets/images/korpay-logo.svg`.
 
 ## 5. 기기 테스트 체크리스트

@@ -8,8 +8,6 @@ const DEVICE_ID_KEY = 'device.id';
 export type DeviceInfo = {
   /** Install-scoped random UUID. Survives app updates; may or may not survive a reinstall (iOS Keychain only). */
   deviceId: string;
-  /** Android only. The server stores a keyed hash, never the raw value. */
-  androidId?: string;
   platform: 'IOS' | 'ANDROID';
   osVersion?: string;
   deviceModel?: string;
@@ -49,7 +47,6 @@ export async function getDeviceInfo(): Promise<DeviceInfo> {
 
   return {
     deviceId: await getDeviceId(),
-    androidId: isAndroid ? Application.getAndroidId() : undefined,
     platform: isAndroid ? 'ANDROID' : 'IOS',
     osVersion: Device.osVersion ?? undefined,
     deviceModel: Device.modelName ?? undefined,

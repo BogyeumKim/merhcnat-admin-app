@@ -6,7 +6,6 @@
 ## 지침과 일치
 
 - `@expo/ui` 트리는 모두 `Host`로 감싸고 `Host`는 루트(`@expo/ui`)에서 import.
-- Android 전용 `@expo/ui/jetpack-compose`는 `app-tabs.android.tsx`에서만 import. 플랫폼 파일은 `app/` 밖에 있다.
 - 화면은 universal 먼저(로그인 화면), universal에 없는 탭바만 Compose 사용.
 - route 파일은 얇고 컴포넌트/유틸을 `app/`에 두지 않음. `/` 라우트는 `(tabs)/index`.
 - kebab-case 파일명, `@/` 경로 별칭, `React.use` 사용, `react-native-safe-area-context`의 `SafeAreaView`.
@@ -15,7 +14,7 @@
 
 | 지침 | 이전 | 수정 |
 | --- | --- | --- |
-| `process.env.EXPO_OS` (not `Platform.OS`) | `use-tab-bar-inset.ts`가 `Platform.OS` | `process.env.EXPO_OS` |
+| `process.env.EXPO_OS` (not `Platform.OS`) | (삭제됨) 플로팅 탭바용 훅이 `Platform.OS` | `process.env.EXPO_OS` |
 | `Stack`은 `expo-router/stack` | `expo-router` 루트에서 import | `expo-router/stack` |
 | `@react-navigation/*` 대신 `expo-router/react-navigation` | `ThemeProvider` 등을 `expo-router` 루트에서 import | `expo-router/react-navigation` |
 

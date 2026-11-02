@@ -5,7 +5,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router/react-naviga
 import { Stack } from 'expo-router/stack';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { useColorScheme } from 'react-native';
+import { Platform, useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { QueryProvider } from '@/core/providers/query-provider';
@@ -21,17 +21,19 @@ export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
   return <ErrorScreen onRetry={retry} />;
 }
 
+/** A transparent sheet becomes Liquid Glass only on iOS 26+. Earlier iOS versions would show the screen behind through it. */
+const SHEET_IS_GLASS = process.env.EXPO_OS === 'ios' && Number.parseInt(String(Platform.Version), 10) >= 26;
+
 /**
- * `verify` is the second authentication step: a sheet over the sign-in screen. Swiping it away is off so a
- * half-finished challenge is only left through Cancel. iOS 26 draws a transparent sheet as Liquid Glass; Android
- * has no glass, so it gets the solid background.
+ * `verify` is the second authentication step: a sheet over the sign-in screen. It closes like any sheet: drag it down,
+ * tap Cancel, or the Android back gesture; the screen clears the half-finished challenge whenever it is removed.
+ * iOS 26+ draws a transparent sheet as Liquid Glass; every other platform/version gets the solid background.
  */
 const VERIFY_SHEET_OPTIONS: NativeStackNavigationOptions = {
   presentation: 'formSheet',
   sheetGrabberVisible: true,
-  sheetAllowedDetents: [0.7, 1],
-  gestureEnabled: false,
-  contentStyle: { backgroundColor: process.env.EXPO_OS === 'ios' ? 'transparent' : colors.background },
+  sheetAllowedDetents: process.env.EXPO_OS === 'android' ? [1] : [0.7, 1],
+  contentStyle: { backgroundColor: SHEET_IS_GLASS ? 'transparent' : colors.background },
 };
 
 function RootNavigator() {
@@ -47,6 +49,7 @@ function RootNavigator() {
         <Stack.Screen name="verify" options={VERIFY_SHEET_OPTIONS} />
       </Stack.Protected>
       <Stack.Screen name="maintenance" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="account-locked" options={{ presentation: 'modal', gestureEnabled: false }} />
     </Stack>
   );
 }

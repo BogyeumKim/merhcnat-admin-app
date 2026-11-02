@@ -12,3 +12,5 @@
 - 환경 변수는 클라이언트에 노출되는 `EXPO_PUBLIC_*`에 비밀 값을 넣지 않는다.
 - 로컬 Node는 22.13+ / 24.3+ / 26+ 여야 한다. 다른 버전이면 `expo lint` 등 CLI가 경고하므로 사용자에게 알린다.
 - `expo-router`에서 `Tabs`를 import하지 않는다 (deprecated). `expo-router/js-tabs`를 쓴다. NativeTabs는 `expo-router/native-tabs`.
+- SDK 58 React Navigation 이벤트에는 `beforeRemove`가 없다. 화면이 제거된 뒤 정리는 `navigation.addListener('removed', …)`(구독 해제는 다음 마이크로태스크로 미룬다)를 쓴다.
+- 네이티브 모듈(`expo-notifications` 등)은 재빌드 전 빌드에서 import하면 앱이 죽는다. 선택 기능이면 `await import('…')`를 try/catch로 감싸 (`features/auth/model/device-push.ts`).

@@ -1,14 +1,15 @@
 import type { TextInputRef } from '@expo/ui';
 import { zodResolver } from '@hookform/resolvers/zod';
+import * as Application from 'expo-application';
 import { useEffect, useRef } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
 import { useValidationMessage } from '@/shared/forms/validation';
 import { useTranslation } from '@/shared/i18n';
+import { BrandedFormScreen } from '@/shared/ui/branded-form-screen';
 import { FormAlert } from '@/shared/ui/form-alert';
 import { LabeledField } from '@/shared/ui/labeled-field';
 import { NativeButton } from '@/shared/ui/native-button';
-import { NativeText } from '@/shared/ui/native-text';
 
 import { loginSchema, type LoginValues } from '../model/forms';
 
@@ -22,16 +23,24 @@ type LoginFormProps = {
 };
 
 /**
- * Renders inside an `@expo/ui` Host (see `BrandedFormScreen`). react-hook-form owns validation and the submit
- * values; the native fields keep their own text (no `value` prop), so the text is cleared through the field ref.
+ * The whole sign-in screen body: branded layout, fields, and the primary button right under them.
+ * react-hook-form is the single owner of the values and their validity: the button stays gray and disabled until the
+ * schema passes (`isValid`). The native fields keep their own text (no `value` prop), so the text is cleared through the
+ * field ref.
  */
 export function LoginForm({ pending, formError, passwordResetKey, onSubmit }: LoginFormProps) {
   const { t } = useTranslation();
   const messageOf = useValidationMessage();
   const passwordRef = useRef<TextInputRef | null>(null);
 
-  const { control, handleSubmit, resetField } = useForm<LoginValues>({
+  const {
+    control,
+    handleSubmit,
+    resetField,
+    formState: { isValid },
+  } = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
+    mode: 'onChange',
     defaultValues: { userId: '', password: '' },
   });
 
@@ -47,17 +56,19 @@ export function LoginForm({ pending, formError, passwordResetKey, onSubmit }: Lo
     if (!pending) onSubmit(values);
   });
 
+  const canSubmit = isValid && !pending;
+
   return (
-    <>
-      <NativeText variant="title">{t('auth.signInTitle')}</NativeText>
-      <NativeText tone="secondary">{t('auth.signInDescription')}</NativeText>
+    <BrandedFormScreen tagline bottomNote={t('auth.version', { version: Application.nativeApplicationVersion ?? '' })}>
       <Controller
         control={control}
         name="userId"
         render={({ field, fieldState }) => (
           <LabeledField
             ref={field.ref}
+            testID="login-user-id"
             label={t('auth.userId')}
+            placeholder={t('auth.userIdPlaceholder')}
             error={messageOf(fieldState.error)}
             autoComplete="username"
             autoCapitalize="none"
@@ -78,6 +89,7 @@ export function LoginForm({ pending, formError, passwordResetKey, onSubmit }: Lo
               field.ref(instance);
               passwordRef.current = instance;
             }}
+            testID="login-password"
             label={t('auth.password')}
             error={messageOf(fieldState.error)}
             secureTextEntry
@@ -93,10 +105,11 @@ export function LoginForm({ pending, formError, passwordResetKey, onSubmit }: Lo
       />
       {formError ? <FormAlert message={formError} /> : null}
       <NativeButton
+        testID="login-submit"
         label={pending ? t('auth.signingIn') : t('auth.signIn')}
-        disabled={pending}
+        disabled={!canSubmit}
         onPress={() => void submit()}
       />
-    </>
+    </BrandedFormScreen>
   );
 }

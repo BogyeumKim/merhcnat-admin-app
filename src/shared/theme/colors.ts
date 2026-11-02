@@ -53,6 +53,8 @@ const palettes = {
     scheme: 'light',
     brand: '#ff003a',
     action: '#E10033',
+    /** Label on an `action` fill (contrast 4.94 in light, see the notes above). */
+    onAction: '#FFFFFF',
     ink: '#2D3640',
     text: '#191E28',
     secondaryText: '#5A6472',
@@ -65,6 +67,8 @@ const palettes = {
     scheme: 'dark',
     brand: '#ff003a',
     action: '#E51E43',
+    /** Label on an `action` fill (contrast 4.57 in dark, see the notes above). */
+    onAction: '#FFFFFF',
     ink: '#F2F6FF',
     text: '#F2F6FF',
     secondaryText: '#A9B4C8',

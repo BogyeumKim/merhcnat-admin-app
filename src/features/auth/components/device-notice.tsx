@@ -1,7 +1,8 @@
 import { useTranslation } from '@/shared/i18n';
 import { NativeButton } from '@/shared/ui/native-button';
-import { NativeText } from '@/shared/ui/native-text';
+import { SheetFormScreen } from '@/shared/ui/sheet-form-screen';
 
+import { StepHeader } from './step-header';
 import type { DeviceState } from '../model/schemas';
 
 type DeviceNoticeProps = {
@@ -16,15 +17,17 @@ export function DeviceNotice({ state, onContinue, onCancel }: DeviceNoticeProps)
   const isChange = state === 'CHANGED';
 
   return (
-    <>
-      <NativeText variant="title">
-        {isChange ? t('auth.verify.deviceChangedTitle') : t('auth.verify.deviceNewTitle')}
-      </NativeText>
-      <NativeText tone="secondary">
-        {isChange ? t('auth.verify.deviceChangedBody') : t('auth.verify.deviceNewBody')}
-      </NativeText>
-      <NativeButton label={t('common.continue')} onPress={onContinue} />
-      <NativeButton label={t('common.cancel')} variant="text" onPress={onCancel} />
-    </>
+    <SheetFormScreen
+      footer={
+        <>
+          <NativeButton testID="device-continue" label={t('common.continue')} onPress={onContinue} />
+          <NativeButton testID="verify-cancel" label={t('common.cancel')} variant="text" onPress={onCancel} />
+        </>
+      }>
+      <StepHeader
+        title={isChange ? t('auth.verify.deviceChangedTitle') : t('auth.verify.deviceNewTitle')}
+        body={isChange ? t('auth.verify.deviceChangedBody') : t('auth.verify.deviceNewBody')}
+      />
+    </SheetFormScreen>
   );
 }

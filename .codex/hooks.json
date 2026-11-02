@@ -1,0 +1,36 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'/Users/home/orca/projects/expo-project/korpay-merchant-admin/.codex/hooks/block-suppression-comments.sh'"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'/Users/home/orca/projects/expo-project/korpay-merchant-admin/.codex/hooks/block-no-verify.sh'"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "'/Users/home/orca/projects/expo-project/korpay-merchant-admin/.codex/hooks/lint-after-edit.sh'",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -87,14 +87,14 @@ export function useUpdate<Entity>(callbacks?: UseMutationCallback) {
 }
 ```
 
-Screen rules (`expo-native-ui` / `expo-data-fetching` skills): a `ScrollView`/`FlatList` as the first child with `contentInsetAdjustmentBehavior="automatic"`; handle **loading, error (with retry), empty, content**; never show empty while the first load is pending; bottom padding from `useTabBarInset()` (`@/shared/lib/tab-bar`) when the screen sits under the tab bar; all text via `t()`; large lists use `FlatList`/`FlashList`, not `@expo/ui` `List`; UI built with `@expo/ui` first. Toast/navigation reactions are passed to mutation hooks as callbacks **from the screen/component**, never done inside the hook.
+Screen rules (`expo-native-ui` / `expo-data-fetching` skills): a `ScrollView`/`FlatList` as the first child with `contentInsetAdjustmentBehavior="automatic"`; handle **loading, error (with retry), empty, content**; never show empty while the first load is pending; tab screens use `TabScreen` (`@/shared/ui/tab-screen`, native scroll Host; the tab bars are in the layout flow, no extra bottom inset); all text via `t()`; large lists use `FlatList`/`FlashList`, not `@expo/ui` `List`; UI built with `@expo/ui` first. Toast/navigation reactions are passed to mutation hooks as callbacks **from the screen/component**, never done inside the hook.
 
 Never: non-null `!`, `any`, `eslint-disable`, importing another feature's internals (use its `index.ts`), importing `core` or `app` from a feature.
 
 ## 2. Tab wiring (only with `--tab`)
 
 1. Add the entry to `TAB_ITEMS` in `src/core/navigation/app-tabs/config/tabs.ts` (`name` = route file name, `labelKey` = `tabs.<name>`, `sf` symbols).
-2. Add `assets/icons/<name>.xml` (Material Symbols vector drawable) and the `TabIcons` entry in `android-floating-tab-bar.tsx`.
+2. Set the Material Symbols name as `md` in `TAB_ITEMS` (Android icon for `NativeTabs`).
 3. Route file under `src/app/(tabs)/<name>.tsx`.
 4. If tabs depend on user type, gate with capabilities (`.claude/rules/user-types.md`).
 

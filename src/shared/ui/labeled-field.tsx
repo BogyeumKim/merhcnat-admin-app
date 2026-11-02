@@ -1,9 +1,12 @@
 import { Column, type TextInputProps } from '@expo/ui';
+import { useState } from 'react';
 
+import { useTranslation } from '@/shared/i18n';
 import { spacing } from '@/shared/theme';
 
 import { NativeField } from './native-field';
 import { NativeText } from './native-text';
+import { PasswordToggle } from './password-toggle';
 
 type LabeledFieldProps = TextInputProps & {
   label: string;
@@ -12,16 +15,31 @@ type LabeledFieldProps = TextInputProps & {
 };
 
 /**
- * A field with a visible, persistent label and an inline error slot. A placeholder alone disappears while typing and
- * gives Android's screen reader nothing to announce; the placeholder repeats the label so SwiftUI also exposes it.
+ * A field with a visible, persistent label above it and an inline error slot. The placeholder is only an example
+ * value (or none), so the label is also passed as the accessible name. A secure field gets an eye icon at its end.
  */
-export function LabeledField({ label, error, ...props }: LabeledFieldProps) {
+export function LabeledField({ label, error, secureTextEntry, ...props }: LabeledFieldProps) {
+  const { t } = useTranslation();
+  const [revealed, setRevealed] = useState(false);
+
   return (
-    <Column spacing={spacing.xs} style={{ width: '100%' }}>
-      <NativeText variant="subhead" tone="secondary">
-        {label}
-      </NativeText>
-      <NativeField placeholder={label} invalid={Boolean(error)} {...props} />
+    <Column spacing={spacing.xs} style={{ width: '100%', paddingBottom: spacing.sm }}>
+      <NativeText variant="label">{label}</NativeText>
+      <NativeField
+        accessibilityLabel={label}
+        invalid={Boolean(error)}
+        secureTextEntry={secureTextEntry && !revealed}
+        trailing={
+          secureTextEntry ? (
+            <PasswordToggle
+              revealed={revealed}
+              label={revealed ? t('auth.hidePassword') : t('auth.showPassword')}
+              onPress={() => setRevealed((value) => !value)}
+            />
+          ) : undefined
+        }
+        {...props}
+      />
       {error ? <NativeText variant="subhead" tone="danger">{error}</NativeText> : null}
     </Column>
   );

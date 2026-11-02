@@ -28,8 +28,8 @@
 
 **클라이언트가 보내는 신호**
 - `deviceId`: 앱이 처음 만든 랜덤 UUID(v4). `expo-secure-store`에 저장, iOS는 `keychainAccessible: WHEN_UNLOCKED_THIS_DEVICE_ONLY`(백업 복원으로 다른 기기에 따라가지 않음).
-- `androidId`: Android만, `getAndroidId()` 값. **서버가 해시(HMAC)로만 저장**한다 (원본 저장 금지).
-- 서버 판정: `deviceId` 일치 **또는** Android에서 `androidId` 해시 일치 → 같은 기기.
+- `androidId`: 서버가 제거해서 더는 보내지 않는다.
+- 서버 판정: `deviceId` 일치 → 같은 기기.
 - 위조 위험: 보안 벤더 글은 식별자 바인딩이 위조에 약하다고 한다. 다만 `ANDROID_ID`는 앱 서명 키별로 범위가 정해진 값이라 다른 앱이 같은 값을 읽을 수 없고, 공격자가 피해자 기기의 값을 알아야 한다. 루팅된 피해자 기기에서의 추출은 막지 못한다 (이번에 구현하지 않는 항목).
 - 개발 중 주의: 디버그/릴리스 빌드는 서명 키가 달라 `ANDROID_ID`가 다르다. 빌드를 바꾸면 새 기기로 보일 수 있다.
 - **스토어 정책:** `ANDROID_ID` 등 기기 식별자는 Google Play/Apple의 개인정보·사용자 데이터 정책과 앱 개인정보 고지 요건이 있을 수 있다. 이 세션에서는 확인하지 못했다. 출시 전에 확인한다.

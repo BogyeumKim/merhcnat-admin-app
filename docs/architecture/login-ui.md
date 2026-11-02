@@ -11,37 +11,32 @@
 | `/maintenance` | 점검 안내(modal) (기간은 구조화 필드를 앱 언어로 포맷) | `features/maintenance/` |
 | (오류) | 렌더 오류 폴백 | `app/_layout.tsx`의 `ErrorBoundary` → `shared/ui/error-screen.tsx` |
 
+디자인(방향 A): 가운데 정렬 한 열. 워드마크만(심벌 없음) + 한 줄 문구, 그 아래 위쪽 라벨 + 밑줄 입력창, 비밀번호 눈 아이콘, **로그인 버튼은 입력 바로 아래**(입력 전 회색 비활성), 화면 맨 아래에 앱 버전 한 줄. 참고: KREAM·아이엠그라운드·여기어때 같은 로그인 화면의 공통점(워드마크 중심, 단일 주 버튼). 이 앱은 아이디/비밀번호만 지원하므로 소셜 로그인·가입·찾기는 없다. 밑줄은 대비 3:1 이상(`fieldBorder`), 포커스/오류는 2pt로 색에만 의존하지 않는다. 로고는 `korpay-logo.svg`(Poppins SemiBold, SIL OFL 1.1, 윤곽선 변환 + K 전체 브랜드 빨강). 다른 로고로 바꾸려면 파일과 `brand-logo.tsx`의 `LOGO_ASPECT_RATIO`만 바꾼다.
+
 레이아웃/키보드/글꼴은 `shared/ui/branded-layout.tsx`, `branded-form-screen.tsx`, `native-*.tsx` 한 곳에서 정한다 (`responsive-ui.md`).
 
 ## 흐름
 
-1. 로그인: `POST /v1/auth/login` → `AUTHENTICATED`(토큰은 응답 헤더 `Access-Token`, 메모리 보관) 또는 `CHALLENGE_REQUIRED`.
-2. `CHALLENGE_REQUIRED` → `/verify`:
-   - `deviceState`가 `NONE`/`CHANGED`면 먼저 기기 안내 + 계속/취소.
-   - TOTP는 바로 코드 입력. 문자/메일/카카오는 사용자가 수단을 고른 뒤 `send` → 코드 입력(재전송 쿨다운 30초).
-   - `verify`에 `confirmDevice`(= 기기 상태가 `MATCH`가 아닐 때 true) 전송.
-3. 성공 시 `completeSignIn(userType)` → 세션 store 갱신 → `Stack.Protected`가 `(tabs)`로 전환.
-4. 오류는 `ApiError.code`로 분류해 보여준다 (`feedback-ux.md`): 자격 증명 실패/계정 불가는 폼 상단 지속 알림(`FormAlert`), 코드 오류는 필드 아래, 네트워크/타임아웃/429는 토스트(같은 id는 갱신), 점검은 `/maintenance`. 모르는 코드는 `UNKNOWN`(토스트). 입력 검증은 react-hook-form + zod, 메시지는 검증 코드를 번역.
-5. 비밀번호는 로그인 성공 또는 `INVALID_CREDENTIALS` 때 입력창에서 지운다. 로그인 mutation은 `gcTime: 0`이고 호출이 끝나면 `reset()`해서 변수(비밀번호)가 메모리에 남지 않는다. 같은 요청의 중복 제출은 `inFlight` 가드가 막고, 인증 코드는 6번째 숫자를 입력하면 자동 제출된다(iOS 숫자 패드에 Return 키가 없음).
+계약과 오류 표: `docs/backend-contract/app-migration-server-login.md`.
+
+1. 로그인: `POST /api/auth/login`(ID, 비밀번호, 기기 정보). HTTP 200 `SUCCESS`(등록된 기기 + 문자/카카오 계정)이면 `Access-Token` 헤더와 함께 바로 로그인 완료, HTTP 202 `MFA_REQUIRED`면(로그인이 아님) `challengeToken`을 메모리에 두고 `/verify` 시트로 간다. 비밀번호는 여기서 버린다.
+2. `/verify`(form sheet; 일반 시트처럼 아래로 내리거나 취소로 닫고, 닫히면 진행 중이던 챌린지가 함께 지워진다):
+   - `deviceState`가 `NONE`/`CHANGED`면 먼저 새 기기 안내 + 계속/취소.
+   - TOTP는 바로 코드 입력. 카카오/문자는 사용자가 채널을 고른 뒤 `otp/send` → 코드 입력 (서버가 준 `resendAfterSeconds`만큼 재전송 대기, `expiresInSeconds`로 남은 시간 표시).
+   - 코드는 6번째 숫자에서 자동 제출 (iOS 숫자 패드에 Return 없음, SMS 자동 입력 대응). `otp/verify` 성공 시 로그인 완료, 서버가 기기를 등록한다.
+3. 성공 시 `completeSignIn(userType)` → 세션 store 갱신 → `Stack.Protected`가 `(tabs)`로 전환. 로그인이 끝날 때마다 알림 권한을 요청하고 `PUT /api/devices/me`로 서버에 알린다(`device-push.ts`).
+4. 오류는 `ApiError.code`로 분류해 보여준다 (`feedback-ux.md`): 자격 증명 실패는 폼 위 지속 알림(`FormAlert`: 아이콘 + 문구), 코드 오류는 필드 아래(틀린 횟수 안내), 잠금(`ACCOUNT_LOCKED`, 비밀번호+코드 오류 합쳐 5회, 영구)은 `/account-locked` 안내 화면(재시도 없음), 챌린지 토큰 만료는 토스트 + 로그인 화면으로, 네트워크/타임아웃은 토스트, 점검은 `/maintenance`.
+5. 비밀번호는 로그인 호출이 끝나면 입력창에서 지운다(성공/`INVALID_CREDENTIALS`). 로그인 mutation은 `gcTime: 0`이고 끝나면 `reset()`해서 변수(비밀번호)가 메모리에 남지 않는다. 같은 요청의 중복 제출은 `inFlight` 가드가 막는다.
 6. 로그아웃/401: `signOutLocally()` — 메모리 토큰·세션·진행 중 챌린지를 지우고 쿼리 캐시를 비운다.
 
 ## 개발용 mock 시나리오 (`auth-api.mock.ts`, 더미 값만)
 
-아이디를 입력한다. 비밀번호는 `wrong` 외에는 아무거나.
-
-| 아이디 | 결과 |
-| --- | --- |
-| `1234` (비밀번호 `1234`) | 바로 로그인해 탭 화면으로 이동하는 개발용 지름길. 다른 비밀번호는 `INVALID_CREDENTIALS` |
-| `merchant` | OTP 타입 1 + 등록된 기기 → 코드 없이 로그인 (타입 `Mid`) |
-| `newdevice` | 기기 없음(`NONE`) → 기기 안내 → 수단 선택(문자/메일/카카오) → 코드 |
-| `changed` | 다른 기기 등록(`CHANGED`) → 안내 → 수단 선택 → 코드 |
-| `totp` | TOTP, 등록된 기기 → 바로 코드 입력 |
-| `totpnew` | TOTP, 기기 없음 → 안내 → 코드 |
-| `blocked` | 403 `ACCOUNT_TYPE_NOT_ALLOWED` |
-| `maint` | 503 `MAINTENANCE` (기간 포함) → 점검 화면 |
-
-코드 `000000` = 성공, `999999` = 만료, 그 외 = 오류(5회 오류 시 `OTP_LOCKED`).
+아이디를 입력한다. 비밀번호는 `wrong` 외에는 아무거나. 자세한 시나리오(`1234`, `merchant`, `kakao`, `changed`, `totp`, `totpnew`, `nophone`, `lockotp`, `locked`, `blocked`, `maint`)는 `auth-api.mock.ts` 맨 위 주석. 코드 `000000` = 성공, `999999` = 만료, 그 외 = 오류(남은 횟수 안내, 5회 연속이면 일시 잠금).
 mock은 릴리스 번들에서 제거된다 (`__DEV__` 안 `require`; 릴리스 번들에서 `mock-access-token` 문자열 0건으로 확인).
+
+## 서버 연동
+
+개발 기본값은 로컬 서버(`http://localhost:8080`, `EXPO_PUBLIC_API_MOCK=0`)다. 요청/응답 형식과 서버가 맞춰야 할 부분(`Access-Token` 헤더, `userType`)은 `docs/backend-contract/app-migration-server-login.md`. 서버 없이 화면만 보려면 `EXPO_PUBLIC_API_MOCK=1`로 아래 mock 시나리오를 쓴다.
 
 ## 환경 변수
 
