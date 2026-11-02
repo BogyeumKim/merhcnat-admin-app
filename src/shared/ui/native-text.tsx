@@ -2,6 +2,7 @@ import { Text } from '@expo/ui';
 
 import { useNativeColors } from '@/shared/theme';
 
+import { TONE_COLOR } from './native-text-tone';
 import type { NativeTextProps } from './native-text.types';
 
 /** Android (default) sizes. Compose converts `fontSize` to `sp`, so it follows the system font size. */
@@ -21,7 +22,7 @@ const sizes = {
  */
 export function NativeText({ children, variant = 'body', tone = 'default', center }: NativeTextProps) {
   const colors = useNativeColors();
-  const color = tone === 'danger' ? colors.danger : tone === 'secondary' ? colors.secondaryText : colors.text;
+  const color = TONE_COLOR[tone](colors);
 
   return <Text textStyle={{ ...sizes[variant], color, textAlign: center ? 'center' : 'left' }}>{children}</Text>;
 }

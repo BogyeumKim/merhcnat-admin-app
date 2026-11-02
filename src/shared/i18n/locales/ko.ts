@@ -123,6 +123,8 @@ export const ko: typeof en = {
     hideAmounts: '금액 숨기기',
     showAmounts: '금액 보기',
     hiddenAmount: '••••••',
+    benefitTitle: "이번 달 무이자 혜택",
+    benefitHint: "카드사별 무이자 할부 혜택을 확인하세요",
     notifications: '알림',
   },
   menu: {
@@ -147,6 +149,7 @@ export const ko: typeof en = {
       vatReport: { title: '부가세신고자료' },
       preferredBusiness: { title: '우대사업자 조회' },
       notices: { title: '공지사항' },
+      benefits: { title: '무이자 혜택' },
       faq: { title: 'FAQ' },
       settings: { title: '설정' },
     },

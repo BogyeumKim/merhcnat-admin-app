@@ -120,6 +120,8 @@ export const en = {
     hideAmounts: 'Hide amounts',
     showAmounts: 'Show amounts',
     hiddenAmount: '••••••',
+    benefitTitle: "This month's interest-free offers",
+    benefitHint: "See the installment offers by card company",
     notifications: 'Notifications',
   },
   menu: {
@@ -144,6 +146,7 @@ export const en = {
       vatReport: { title: 'VAT report' },
       preferredBusiness: { title: 'Preferred business' },
       notices: { title: 'Notices' },
+      benefits: { title: 'Interest-free benefits' },
       faq: { title: 'FAQ' },
       settings: { title: 'Settings' },
     },

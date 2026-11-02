@@ -6,6 +6,7 @@ import { useTranslation } from '@/shared/i18n';
 import { AppHeader } from '@/shared/ui/app-header';
 import { TabScreen } from '@/shared/ui/tab-screen';
 
+import { BenefitBanner } from '../components/benefit-banner';
 import { MonthCard } from '../components/month-card';
 import { PrepayBanner } from '../components/prepay-banner';
 import { StoreCard } from '../components/store-card';
@@ -49,6 +50,7 @@ export default function HomeScreen() {
             onDeposits={() => openMenuItem('deposits')}
           />
           <MonthCard monthSales={summary.monthSales} onDetail={() => router.navigate('/transactions')} />
+          <BenefitBanner />
           <PrepayBanner available={summary.prepayAvailable} />
         </>
       ) : (

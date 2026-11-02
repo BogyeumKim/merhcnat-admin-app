@@ -16,6 +16,7 @@ export type MenuItemId =
   | 'preferredBusiness'
   | 'notices'
   | 'faq'
+  | 'benefits'
   | 'settings';
 
 export type MenuCategoryId = 'payment' | 'lookup' | 'settlement' | 'support' | 'account';
@@ -46,7 +47,7 @@ export const MENU_CATALOG: readonly MenuCategorySpec[] = [
     ],
   },
   { id: 'settlement', items: [{ id: 'deposits' }, { id: 'vatReport' }] },
-  { id: 'support', items: [{ id: 'notices' }, { id: 'faq' }] },
+  { id: 'support', items: [{ id: 'notices' }, { id: 'benefits' }, { id: 'faq' }] },
   { id: 'account', items: [{ id: 'settings' }] },
 ];
 
