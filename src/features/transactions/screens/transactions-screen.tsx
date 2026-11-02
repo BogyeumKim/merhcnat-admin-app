@@ -9,7 +9,6 @@ export default function TransactionsScreen() {
   return (
     <TabScreen>
       <NativeText variant="title">{t('menu.items.transactions.title')}</NativeText>
-      <NativeText tone="secondary">{t('menu.items.transactions.hint')}</NativeText>
       <NativeText tone="secondary">{t('menu.preparing')}</NativeText>
     </TabScreen>
   );

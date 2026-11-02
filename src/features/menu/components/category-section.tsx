@@ -17,13 +17,15 @@ export function CategorySection({
   onPress: (id: MenuItemId) => void;
 }) {
   return (
-    <Column spacing={spacing.xs} style={{ width: '100%' }}>
+    <Column spacing={0} style={{ width: '100%' }}>
       <NativeText variant="label" tone="secondary">
         {title}
       </NativeText>
-      {items.map((item) => (
-        <MenuRow key={item} id={item} onPress={onPress} />
-      ))}
+      <Column spacing={0} style={{ width: '100%', paddingTop: spacing.xs }}>
+        {items.map((item) => (
+          <MenuRow key={item} id={item} onPress={onPress} />
+        ))}
+      </Column>
     </Column>
   );
 }

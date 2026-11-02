@@ -1,24 +1,41 @@
-import { useCapabilities } from '@/features/auth';
-import { CategorySection, openMenuItem, shortcutItems } from '@/features/menu';
+import NotificationsIcon from '@expo/material-symbols/notifications.xml';
+import { router } from 'expo-router';
+
+import { openMenuItem } from '@/features/menu';
 import { useTranslation } from '@/shared/i18n';
+import { AppHeader } from '@/shared/ui/app-header';
 import { NativeText } from '@/shared/ui/native-text';
 import { TabScreen } from '@/shared/ui/tab-screen';
 
+import { RecentTransactions } from '../components/recent-transactions';
 import { TodaySummary } from '../components/today-summary';
 
 /**
- * Home: today at a glance (sales, approvals, next payout; sample data until the server provides it) and shortcuts to the entries this account uses most.
- * Everything else lives under the categories of the Menu tab, so this screen stays short instead of listing everything.
+ * Home: the brand bar (logo, notifications), today's numbers for the store and the latest transactions. Everything else
+ * lives under the Menu tab's categories. Numbers are sample data until the server (or the WebView) provides them.
  */
 export default function HomeScreen() {
   const { t } = useTranslation();
-  const shortcuts = shortcutItems(useCapabilities());
 
   return (
-    <TabScreen>
-      <NativeText variant="title">{t('home.title')}</NativeText>
+    <TabScreen
+      header={
+        <AppHeader
+          actions={[
+            {
+              icon: { ios: 'bell', android: NotificationsIcon },
+              label: t('home.notifications'),
+              testID: 'home-notifications',
+              onPress: () => openMenuItem('notices'),
+            },
+          ]}
+        />
+      }>
       <TodaySummary />
-      <CategorySection title={t('home.shortcuts')} items={shortcuts} onPress={openMenuItem} />
+      <RecentTransactions onViewAll={() => router.navigate('/transactions')} />
+      <NativeText variant="caption" tone="secondary">
+        {t('home.sampleNotice')}
+      </NativeText>
     </TabScreen>
   );
 }

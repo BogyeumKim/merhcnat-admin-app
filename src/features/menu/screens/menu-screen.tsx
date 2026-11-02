@@ -1,5 +1,8 @@
+import NotificationsIcon from '@expo/material-symbols/notifications.xml';
+
 import { signOutLocally, useCapabilities } from '@/features/auth';
 import { useTranslation } from '@/shared/i18n';
+import { AppHeader } from '@/shared/ui/app-header';
 import { NativeButton } from '@/shared/ui/native-button';
 import { NativeText } from '@/shared/ui/native-text';
 import { TabScreen } from '@/shared/ui/tab-screen';
@@ -14,7 +17,19 @@ export default function MenuScreen() {
   const categories = visibleCatalog(useCapabilities());
 
   return (
-    <TabScreen>
+    <TabScreen
+      header={
+        <AppHeader
+          actions={[
+            {
+              icon: { ios: 'bell', android: NotificationsIcon },
+              label: t('home.notifications'),
+              testID: 'menu-notifications',
+              onPress: () => openMenuItem('notices'),
+            },
+          ]}
+        />
+      }>
       <NativeText variant="title">{t('menu.title')}</NativeText>
       {categories.map((category) => (
         <CategorySection
@@ -24,7 +39,7 @@ export default function MenuScreen() {
           onPress={openMenuItem}
         />
       ))}
-      <NativeButton variant="outlined" label={t('menu.signOut')} onPress={signOutLocally} />
+      <NativeButton variant="text" label={t('menu.signOut')} onPress={signOutLocally} />
     </TabScreen>
   );
 }
