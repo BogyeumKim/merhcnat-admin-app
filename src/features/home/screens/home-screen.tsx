@@ -1,31 +1,29 @@
 import NotificationsIcon from '@expo/material-symbols/notifications.xml';
-import { Row, Spacer } from '@expo/ui';
 import { router } from 'expo-router';
 
-import { useCapabilities } from '@/features/auth';
 import { openMenuItem } from '@/features/menu';
 import { useTranslation } from '@/shared/i18n';
-import { spacing } from '@/shared/theme';
 import { AppHeader } from '@/shared/ui/app-header';
 import { NativeText } from '@/shared/ui/native-text';
 import { TabScreen } from '@/shared/ui/tab-screen';
 
-import { NoticeList } from '../components/notice-list';
-import { PaymentMix } from '../components/payment-mix';
-import { SalesTrend } from '../components/sales-trend';
-import { StoreRanking } from '../components/store-ranking';
-import { TodaySummary } from '../components/today-summary';
+import { MonthCard } from '../components/month-card';
+import { NoticeBanner } from '../components/notice-banner';
+import { ShortcutGrid } from '../components/shortcut-grid';
+import { StoreCard } from '../components/store-card';
 
 /**
- * Home: the brand bar (logo, notifications), the store and today's sales, the next payout and month, and the latest notices. Everything else
- * lives under the Menu tab's categories. Numbers are sample data until the server (or the WebView) provides them.
+ * Home, built like the home screens of Toss, Shinhan and Travel Wallet: white cards on a tinted page, each with a bold
+ * title, figures with a small tonal button, and no charts. Order: store (today's sales, next payout), the month, an
+ * icon grid of the entries the account uses, the latest notice. Everything else is in the Menu tab. Numbers are sample
+ * data until the server (or the WebView) provides them.
  */
 export default function HomeScreen() {
   const { t } = useTranslation();
-  const { showHierarchyFilter } = useCapabilities();
 
   return (
     <TabScreen
+      canvas
       header={
         <AppHeader
           actions={[
@@ -38,17 +36,14 @@ export default function HomeScreen() {
           ]}
         />
       }>
-      <TodaySummary onStorePress={() => router.navigate('/stores')} />
-      <SalesTrend />
-      <PaymentMix />
-      {showHierarchyFilter ? <StoreRanking /> : null}
-      <NoticeList onViewAll={() => openMenuItem('notices')} />
-      <Row testID="home-help" alignment="center" onPress={() => openMenuItem('faq')} style={{ width: '100%', paddingVertical: spacing.sm }}>
-        <NativeText variant="subhead" tone="secondary">
-          {t('home.help')}
-        </NativeText>
-        <Spacer flexible />
-      </Row>
+      <StoreCard
+        onStore={() => router.navigate('/stores')}
+        onTransactions={() => router.navigate('/transactions')}
+        onDeposits={() => openMenuItem('deposits')}
+      />
+      <MonthCard onDetail={() => router.navigate('/transactions')} />
+      <ShortcutGrid />
+      <NoticeBanner onPress={() => openMenuItem('notices')} />
       <NativeText variant="caption" tone="secondary">
         {t('home.sampleNotice')}
       </NativeText>

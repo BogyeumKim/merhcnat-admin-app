@@ -59,3 +59,8 @@ export function visibleCatalog(capabilities: Capabilities): VisibleCategory[] {
     items: category.items.filter((item) => item.requires === undefined || capabilities[item.requires]),
   })).filter((category) => category.items.length > 0);
 }
+
+/** Ids of every entry the account may use (for screens that pick a few of them, such as the home grid). */
+export function visibleItemIds(capabilities: Capabilities): MenuItemId[] {
+  return visibleCatalog(capabilities).flatMap((category) => category.items.map((item) => item.id));
+}

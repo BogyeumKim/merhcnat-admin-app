@@ -61,6 +61,10 @@ const palettes = {
     danger: '#B42318',
     dangerSurface: '#FEF3F2',
     field: '#F1F4F6',
+    /** Page background behind white cards (home), the card surface, and a button fill on a card. */
+    canvas: '#F2F4F8',
+    card: '#FFFFFF',
+    tonal: '#EEF1F6',
     fieldBorder: '#8A94A6',
   }),
   dark: Object.freeze({
@@ -75,6 +79,9 @@ const palettes = {
     danger: '#FF8A80',
     dangerSurface: '#2A1512',
     field: '#1D2433',
+    canvas: '#0B0F19',
+    card: '#1D2433',
+    tonal: '#2A3347',
     fieldBorder: '#6B7690',
   }),
 } as const;
