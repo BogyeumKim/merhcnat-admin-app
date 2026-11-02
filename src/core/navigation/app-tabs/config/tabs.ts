@@ -6,6 +6,8 @@ import type { SFSymbol } from 'expo-symbols';
  */
 export const TAB_ITEMS = [
   { name: 'index', labelKey: 'tabs.home', sf: { default: 'house', selected: 'house.fill' }, md: 'home' },
+  { name: 'transactions', labelKey: 'tabs.transactions', sf: { default: 'doc.text', selected: 'doc.text.fill' }, md: 'receipt_long' },
+  { name: 'stores', labelKey: 'tabs.stores', sf: { default: 'storefront', selected: 'storefront.fill' }, md: 'storefront' },
   { name: 'menu', labelKey: 'tabs.menu', sf: { default: 'line.3.horizontal', selected: 'line.3.horizontal' }, md: 'menu' },
 ] as const satisfies readonly {
   name: string;

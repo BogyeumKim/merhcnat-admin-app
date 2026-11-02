@@ -7,6 +7,8 @@ export const en = {
   },
   tabs: {
     home: 'Home',
+    transactions: 'Transactions',
+    stores: 'Stores',
     menu: 'Menu',
   },
   validation: {
@@ -100,9 +102,35 @@ export const en = {
     title: 'Home',
     body: 'Your merchant overview will appear here.',
     preparing: 'Coming soon.',
+    summaryTitle: 'Today',
+    shortcuts: 'Shortcuts',
   },
   menu: {
     title: 'Menu',
     signOut: 'Sign out',
+    preparing: 'This screen is coming soon.',
+    categories: {
+      payment: 'Payments',
+      lookup: 'Lookup',
+      settlement: 'Settlement',
+      support: 'Support',
+    },
+    items: {
+      manualPay: { title: 'Manual payment', hint: 'Enter card details to take a payment' },
+      smsPay: { title: 'SMS payment', hint: 'Send a payment link by text message' },
+      prepay: { title: 'Prepay request', hint: 'Request your settlement in advance' },
+      transactions: { title: 'Transactions', hint: 'Approvals and cancellations' },
+      failedTransactions: { title: 'Failed transactions', hint: 'Payments that did not go through' },
+      stores: { title: 'Stores', hint: 'Store details and status' },
+      deposits: { title: 'Deposit report', hint: 'What was paid out and when' },
+      vatReport: { title: 'VAT report', hint: 'Data for your VAT filing' },
+      preferredBusiness: { title: 'Preferred business', hint: 'Check preferred-business status' },
+      notices: { title: 'Notices', hint: 'News and service updates' },
+      faq: { title: 'FAQ', hint: 'Answers to common questions' },
+    },
+  },
+  stores: {
+    detailHint: 'Details and status of your store.',
+    listHint: 'The stores below your account.',
   },
 };

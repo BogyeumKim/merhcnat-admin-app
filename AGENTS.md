@@ -40,6 +40,7 @@ npx expo install --fix       # 호환되지 않는 버전 수정
 - `ios/`, `android/`는 CNG로 생성됨. 직접 만들거나 수정하지 않는다. `app.json`과 config plugin으로 설정한다.
 - **개발은 로컬 prebuild 기준**: `npx expo prebuild` → `npx expo run:ios` / `run:android`. EAS development build는 쓰지 않는다. `ios/`, `android/`는 gitignore 대상이며 생성물이다.
 - (배경) SDK 58용 스토어 Expo Go는 2026-10 현재 출시 전(체인지로그: "within a few weeks")이고, 출시 후에도 SDK 58만 지원하며 운영 앱 개발 환경으로 권장되지 않는다.
+- 홈/전체메뉴: 카테고리 카탈로그(`features/menu`)와 계정 타입별 capability. `docs/architecture/home-menu.md`
 - 하단 탭: iOS/Android 모두 `NativeTabs`(iOS Liquid Glass, Android Material 3). 규칙은 `.claude/rules/bottom-tabs.md`.
 
 ## 자동 강제 (hooks, lint)

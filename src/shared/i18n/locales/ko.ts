@@ -10,6 +10,8 @@ export const ko: typeof en = {
   },
   tabs: {
     home: '홈',
+    transactions: '거래내역',
+    stores: '가맹점',
     menu: '전체메뉴',
   },
   validation: {
@@ -103,9 +105,35 @@ export const ko: typeof en = {
     title: '홈',
     body: '가맹점 현황이 이곳에 표시됩니다.',
     preparing: '준비 중입니다.',
+    summaryTitle: '오늘',
+    shortcuts: '바로가기',
   },
   menu: {
     title: '전체메뉴',
     signOut: '로그아웃',
+    preparing: '이 화면은 준비 중입니다.',
+    categories: {
+      payment: '결제',
+      lookup: '조회',
+      settlement: '정산',
+      support: '고객지원',
+    },
+    items: {
+      manualPay: { title: '수기결제', hint: '카드 정보를 직접 입력해 결제합니다' },
+      smsPay: { title: 'SMS결제', hint: '결제 링크를 문자로 보냅니다' },
+      prepay: { title: '선지급 신청', hint: '정산금을 먼저 받을 수 있게 신청합니다' },
+      transactions: { title: '거래내역', hint: '승인과 취소 내역을 확인합니다' },
+      failedTransactions: { title: '거래실패내역', hint: '승인되지 않은 거래를 확인합니다' },
+      stores: { title: '가맹점정보', hint: '가맹점 정보와 상태를 확인합니다' },
+      deposits: { title: '입금보고서', hint: '입금 내역과 일정을 확인합니다' },
+      vatReport: { title: '부가세신고자료', hint: '부가세 신고에 필요한 자료입니다' },
+      preferredBusiness: { title: '우대사업자 조회', hint: '우대사업자 여부를 조회합니다' },
+      notices: { title: '공지사항', hint: '서비스 소식과 안내입니다' },
+      faq: { title: 'FAQ', hint: '자주 묻는 질문입니다' },
+    },
+  },
+  stores: {
+    detailHint: '내 가맹점의 정보와 상태입니다.',
+    listHint: '내 계정 아래 가맹점 목록입니다.',
   },
 };
