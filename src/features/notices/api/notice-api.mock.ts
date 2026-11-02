@@ -1,12 +1,12 @@
 import type { NoticePopup } from '../model/schemas';
 
-/** Development fixtures (`EXPO_PUBLIC_NOTICE_MOCK=1`): one notice with an image, one text-only. */
+/** Development fixtures (`EXPO_PUBLIC_NOTICE_MOCK=1`): a picture alone (text inside the picture), text only, picture + text. */
 export const mockPopupNotices: NoticePopup[] = [
   {
     id: 'mock-1',
     title: '서비스 점검 안내',
-    body: '더 안정적인 서비스를 위해 정기 점검을 진행합니다.\n점검 시간 동안에는 일부 기능을 이용할 수 없습니다.',
-    image: { url: 'https://picsum.photos/seed/korpay-notice/800/500', width: 800, height: 500, alt: '점검 안내 이미지' },
+    body: '',
+    image: { url: 'https://placehold.co/800x600/E10033/FFFFFF/png?text=Service+maintenance+notice', width: 800, height: 600, alt: '서비스 점검 안내' },
   },
   {
     id: 'mock-2',
@@ -17,6 +17,6 @@ export const mockPopupNotices: NoticePopup[] = [
     id: 'mock-3',
     title: '앱 업데이트 안내',
     body: '더 빠르고 안정적인 새 버전이 준비되었습니다. 스토어에서 최신 버전으로 업데이트해 주세요.',
-    image: { url: 'https://picsum.photos/seed/korpay-update/800/500', width: 800, height: 500, alt: '업데이트 안내 이미지' },
+    image: { url: 'https://placehold.co/800x400/2D3640/FFFFFF/png?text=New+version', width: 800, height: 400, alt: '업데이트 안내 이미지' },
   },
 ];
