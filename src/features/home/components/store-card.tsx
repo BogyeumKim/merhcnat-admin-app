@@ -1,13 +1,11 @@
-import Event from '@expo/material-symbols/event.xml';
-import CreditScore from '@expo/material-symbols/payments.xml';
+import ChevronRight from '@expo/material-symbols/chevron_right.xml';
 import Refresh from '@expo/material-symbols/refresh.xml';
 import { Column, Icon, Row, Spacer } from '@expo/ui';
 
 import { useTranslation } from '@/shared/i18n';
-import { spacing, useNativeColors } from '@/shared/theme';
+import { radius, spacing, useNativeColors } from '@/shared/theme';
 import { NativeText } from '@/shared/ui/native-text';
 
-import { AmountRow } from './amount-row';
 import { HomeCard } from './home-card';
 import { formatAmount, formatClock, formatMonthDay } from '../model/format';
 import { useAmountsHidden, useSetAmountsHidden } from '../model/hide-amounts-store';
@@ -24,8 +22,8 @@ type Props = {
 };
 
 /**
- * The store card: store name (to the Stores tab), today's sales and the next payout as figure rows with a small button
- * each, the approval/cancellation counts, and a footer with the as-of time (refresh) and "hide amounts".
+ * The store card, built like the "Today" block of Stripe's dashboard: today's sales as the one big figure (tap for the
+ * list) with the approval/cancellation counts under it, the next payout on a tonal row, and a footer with the as-of time (refresh) and "hide amounts".
  */
 export function StoreCard({ summary, updatedAt, onRefresh, onStore, onTransactions, onDeposits }: Props) {
   const { t } = useTranslation();
@@ -37,25 +35,34 @@ export function StoreCard({ summary, updatedAt, onRefresh, onStore, onTransactio
 
   return (
     <HomeCard title={summary.storeName} onTitlePress={onStore} testID="home-store">
-      <AmountRow
+      <Column
         testID="home-sales-detail"
-        icon={{ ios: 'wonsign.circle.fill', android: CreditScore }}
-        label={t('home.todaySales')}
-        amount={money(summary.todaySales)}
-        action={t('home.detail')}
-        onAction={onTransactions}
-      />
-      <AmountRow
+        spacing={spacing.xs}
+        onPress={onTransactions}
+        style={{ width: '100%', paddingTop: spacing.xs }}>
+        <NativeText variant="subhead" tone="secondary">
+          {t('home.todaySales')}
+        </NativeText>
+        <NativeText variant="largeTitle">{money(summary.todaySales)}</NativeText>
+        <NativeText variant="subhead" tone="secondary">
+          {t('home.counts', { approvals: summary.approvalCount, cancellations: summary.cancellationCount })}
+        </NativeText>
+      </Column>
+      <Row
         testID="home-deposit-detail"
-        icon={{ ios: 'calendar', android: Event }}
-        label={nextDepositDate ? `${t('home.nextDeposit')} · ${formatMonthDay(nextDepositDate)}` : t('home.nextDeposit')}
-        amount={nextDepositAmount == null ? t('home.noDeposit') : money(nextDepositAmount)}
-        action={t('home.lookUp')}
-        onAction={onDeposits}
-      />
-      <NativeText variant="subhead" tone="secondary">
-        {t('home.counts', { approvals: summary.approvalCount, cancellations: summary.cancellationCount })}
-      </NativeText>
+        alignment="center"
+        spacing={spacing.md}
+        onPress={onDeposits}
+        style={{ width: '100%', padding: spacing.md, borderRadius: radius.lg, backgroundColor: colors.tonal }}>
+        <Column spacing={2}>
+          <NativeText variant="subhead" tone="secondary">
+            {nextDepositDate ? `${t('home.nextDeposit')} · ${formatMonthDay(nextDepositDate)}` : t('home.nextDeposit')}
+          </NativeText>
+          <NativeText variant="headline">{nextDepositAmount == null ? t('home.noDeposit') : money(nextDepositAmount)}</NativeText>
+        </Column>
+        <Spacer flexible />
+        <Icon name={{ ios: 'chevron.right', android: ChevronRight }} size={16} color={colors.secondaryText} />
+      </Row>
       <Row alignment="center" style={{ width: '100%', paddingTop: spacing.xs }}>
         <Row testID="home-refresh" alignment="center" spacing={spacing.xs} onPress={onRefresh} style={{ paddingVertical: spacing.xs }}>
           <NativeText variant="caption" tone="secondary">
