@@ -93,7 +93,7 @@ export const en = {
     period: 'Maintenance period',
     from: 'From {{date}}',
     until: 'Until {{date}}',
-    back: 'Back to sign in',
+    reopen: 'Reopen the app after the maintenance ends.',
   },
   home: {
     title: 'Home',

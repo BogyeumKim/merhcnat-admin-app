@@ -13,7 +13,7 @@ import { useSendCode } from '../mutations/use-send-code';
 import { useVerifyCode } from '../mutations/use-verify-code';
 
 /** Sheet heights per step: the choice steps never fill the screen; the code step grows with the keyboard. */
-const CHOICE_DETENTS = [0.6];
+const CHOICE_DETENTS = [0.72];
 const CODE_DETENTS = process.env.EXPO_OS === 'android' ? [1] : [0.7, 1];
 
 /** Where the user is in a message-code flow once a code has been sent. Epoch ms, taken from the server's seconds. */

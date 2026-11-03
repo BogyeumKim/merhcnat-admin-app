@@ -1,8 +1,9 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useEffect } from 'react';
+import { BackHandler } from 'react-native';
 
 import { getCurrentLanguage, useTranslation } from '@/shared/i18n';
 import { BrandedFormScreen } from '@/shared/ui/branded-form-screen';
-import { NativeButton } from '@/shared/ui/native-button';
 import { NativeText } from '@/shared/ui/native-text';
 
 function formatDate(value: string | undefined): string | null {
@@ -12,17 +13,18 @@ function formatDate(value: string | undefined): string | null {
   return new Intl.DateTimeFormat(getCurrentLanguage(), { dateStyle: 'medium', timeStyle: 'short' }).format(date);
 }
 
-/** Shows the maintenance window from structured fields, formatted in the app language (never a server sentence). */
+/** Blocks the app while the server is under maintenance. Shows the window from structured fields, formatted in the app language (never a server sentence). */
 export default function MaintenanceScreen() {
   const { t } = useTranslation();
   const { startAt, endAt } = useLocalSearchParams<{ startAt?: string; endAt?: string }>();
   const from = formatDate(startAt);
   const until = formatDate(endAt);
 
-  const back = () => {
-    if (router.canGoBack()) router.back();
-    else router.replace('/sign-in');
-  };
+  // Nothing on this screen leads anywhere: the Android back button is swallowed and the route has no swipe-to-dismiss.
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => true);
+    return () => subscription.remove();
+  }, []);
 
   return (
     <BrandedFormScreen>
@@ -35,7 +37,7 @@ export default function MaintenanceScreen() {
           {until ? <NativeText>{t('maintenance.until', { date: until })}</NativeText> : null}
         </>
       ) : null}
-      <NativeButton label={t('maintenance.back')} onPress={back} />
+      <NativeText tone="secondary">{t('maintenance.reopen')}</NativeText>
     </BrandedFormScreen>
   );
 }

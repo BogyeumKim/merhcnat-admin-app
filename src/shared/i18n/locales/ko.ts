@@ -96,7 +96,7 @@ export const ko: typeof en = {
     period: '점검 시간',
     from: '{{date}}부터',
     until: '{{date}}까지',
-    back: '로그인 화면으로',
+    reopen: '점검이 끝나면 앱을 다시 실행해 주세요.',
   },
   home: {
     title: '홈',

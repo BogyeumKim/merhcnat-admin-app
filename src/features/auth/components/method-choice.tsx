@@ -88,7 +88,7 @@ export function MethodChoice({ methods, pending, errorMessage, onChoose, onCance
         ))}
       </Column>
       {pending ? <NativeText tone="secondary">{t('auth.verify.sending')}</NativeText> : null}
-      {errorMessage ? <FormAlert message={errorMessage} /> : null}
+      {errorMessage ? <FormAlert boxed message={errorMessage} /> : null}
     </SheetFormScreen>
   );
 }
