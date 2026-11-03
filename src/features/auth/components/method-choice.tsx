@@ -38,11 +38,13 @@ function ChannelIcon({ method }: { method: ChallengeMethod }) {
 
   if (method === 'KAKAO' || method === 'SMS') {
     return (
-      <RNHostView matchContents>
-        <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={{ width: ICON_SIZE, height: ICON_SIZE }}>
-          <Image source={BRAND_ICONS[method]} style={{ width: ICON_SIZE, height: ICON_SIZE }} />
-        </View>
-      </RNHostView>
+      <Column style={{ width: ICON_SIZE, height: ICON_SIZE }}>
+        <RNHostView>
+          <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={{ width: ICON_SIZE, height: ICON_SIZE }}>
+            <Image source={BRAND_ICONS[method]} style={{ width: ICON_SIZE, height: ICON_SIZE }} />
+          </View>
+        </RNHostView>
+      </Column>
     );
   }
   return (

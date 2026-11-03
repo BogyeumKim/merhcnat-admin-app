@@ -17,6 +17,10 @@ import { useIsSignedIn } from '../model/session-store';
 import { useSendCode } from '../mutations/use-send-code';
 import { useVerifyCode } from '../mutations/use-verify-code';
 
+/** Sheet heights per step: the choice steps never fill the screen; the code step keeps the route default. */
+const CHOICE_DETENTS = [0.6];
+const CODE_DETENTS = process.env.EXPO_OS === 'android' ? [1] : [0.7, 1];
+
 /** Where the user is in a message-code flow once a code has been sent. Epoch ms, taken from the server's seconds. */
 type SentCode = { method: ChallengeMethod; destination: string | null; expiresAt: number; resendAt: number };
 
@@ -141,6 +145,14 @@ function VerifyFlow({ challenge }: { challenge: ChallengeRequired }) {
 
   const deviceState = challenge.deviceState;
   const step = !deviceConfirmed ? 'device' : isTotp || sent ? 'code' : 'method';
+
+  // The choice steps are short, so the sheet stays partial height; the code step grows with the keyboard (route options in
+  // `app/_layout.tsx`). Each step sets its own detents.
+  const navigation = useNavigation();
+  const detents = step === 'code' ? CODE_DETENTS : CHOICE_DETENTS;
+  useEffect(() => {
+    navigation.setOptions({ sheetAllowedDetents: detents });
+  }, [navigation, detents]);
 
   if (step === 'device' && deviceState !== 'MATCH') {
     return <DeviceNotice state={deviceState} onContinue={() => setDeviceConfirmed(true)} onCancel={cancel} />;

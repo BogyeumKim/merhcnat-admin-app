@@ -32,7 +32,7 @@ const SHEET_IS_GLASS = process.env.EXPO_OS === 'ios' && Number.parseInt(String(P
 const VERIFY_SHEET_OPTIONS: NativeStackNavigationOptions = {
   presentation: 'formSheet',
   sheetGrabberVisible: true,
-  sheetAllowedDetents: process.env.EXPO_OS === 'android' ? [1] : [0.7, 1],
+  sheetAllowedDetents: process.env.EXPO_OS === 'android' ? [0.6] : [0.7, 1],
   contentStyle: { backgroundColor: SHEET_IS_GLASS ? 'transparent' : colors.background },
 };
 
