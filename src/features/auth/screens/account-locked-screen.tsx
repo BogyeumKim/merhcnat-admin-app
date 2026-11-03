@@ -1,9 +1,10 @@
+import Lock from '@expo/material-symbols/lock.xml';
 import { router } from 'expo-router';
 
 import { useTranslation } from '@/shared/i18n';
 import { BrandedFormScreen } from '@/shared/ui/branded-form-screen';
 import { NativeButton } from '@/shared/ui/native-button';
-import { NativeText } from '@/shared/ui/native-text';
+import { StatusHeader } from '@/shared/ui/status-header';
 
 import { authFlowActions } from '../model/auth-flow-store';
 
@@ -22,8 +23,7 @@ export default function AccountLockedScreen() {
 
   return (
     <BrandedFormScreen footer={<NativeButton label={t('locked.back')} onPress={back} />}>
-      <NativeText variant="title">{t('locked.title')}</NativeText>
-      <NativeText tone="secondary">{t('locked.body')}</NativeText>
+      <StatusHeader icon={{ ios: 'lock', android: Lock }} title={t('locked.title')} body={t('locked.body')} />
     </BrandedFormScreen>
   );
 }

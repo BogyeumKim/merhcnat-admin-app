@@ -1,3 +1,4 @@
+import Build from '@expo/material-symbols/build.xml';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
 import { BackHandler } from 'react-native';
@@ -5,6 +6,7 @@ import { BackHandler } from 'react-native';
 import { getCurrentLanguage, useTranslation } from '@/shared/i18n';
 import { BrandedFormScreen } from '@/shared/ui/branded-form-screen';
 import { NativeText } from '@/shared/ui/native-text';
+import { StatusHeader } from '@/shared/ui/status-header';
 
 function formatDate(value: string | undefined): string | null {
   if (!value) return null;
@@ -28,8 +30,7 @@ export default function MaintenanceScreen() {
 
   return (
     <BrandedFormScreen>
-      <NativeText variant="title">{t('maintenance.title')}</NativeText>
-      <NativeText tone="secondary">{t('maintenance.body')}</NativeText>
+      <StatusHeader icon={{ ios: 'wrench.and.screwdriver', android: Build }} title={t('maintenance.title')} body={t('maintenance.body')} />
       {from || until ? (
         <>
           <NativeText variant="headline">{t('maintenance.period')}</NativeText>

@@ -43,7 +43,7 @@ export const en = {
   },
   auth: {
     version: 'Version {{version}}',
-    tagline: 'Run your business from anywhere',
+    tagline: 'Sales and payouts,\nall in one place',
     userId: 'ID',
     password: 'Password',
     userIdPlaceholder: 'e.g. merchant-0001',
@@ -64,9 +64,10 @@ export const en = {
       deviceChangedTitle: 'Signing in on a new device',
       deviceChangedBody:
         'Your account is registered to another device. If you continue, this device replaces it after verification.',
-      chooseMethodTitle: 'Choose how to verify',
-      chooseMethodBody: 'We will send a one-time code.',
-      codeTitle: 'Enter the code',
+      chooseMethodTitle: 'Register this device\nChoose where to get the code',
+      chooseMethodBody: 'Verify once, then sign in with just your ID and password.',
+      step: 'Step {{current}} of {{total}}',
+      codeTitle: 'Enter the\n6-digit code',
       codeHintTotp: 'Enter the 6-digit code from your authenticator app.',
       codeHintSent: 'Enter the 6-digit code we sent to {{destination}}.',
       codeLabel: 'Verification code',
@@ -120,6 +121,8 @@ export const en = {
     benefitTitle: "This month's interest-free offers",
     benefitHint: "See the installment offers by card company",
     notifications: 'Notifications',
+    benefitTag: 'Perk',
+    noticeTag: 'Notice',
   },
   menu: {
     title: 'Menu',

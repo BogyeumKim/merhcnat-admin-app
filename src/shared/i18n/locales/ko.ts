@@ -46,7 +46,7 @@ export const ko: typeof en = {
   },
   auth: {
     version: '버전 {{version}}',
-    tagline: '가맹점 관리, 어디서나 간편하게',
+    tagline: '매출과 정산을\n한곳에서 확인하세요',
     userId: '아이디',
     password: '비밀번호',
     userIdPlaceholder: '예) merchant-0001',
@@ -67,9 +67,10 @@ export const ko: typeof en = {
       deviceChangedTitle: '새 기기에서 로그인합니다',
       deviceChangedBody:
         '계정이 다른 기기에 등록되어 있습니다. 계속하면 본인 확인 후 이 기기로 변경됩니다.',
-      chooseMethodTitle: '인증 방법을 선택하세요',
-      chooseMethodBody: '일회용 인증번호를 보내드립니다.',
-      codeTitle: '인증번호를 입력하세요',
+      chooseMethodTitle: '이 기기를 등록할게요\n인증번호 받을 곳을 골라 주세요',
+      chooseMethodBody: '처음 한 번만 인증하면 다음부터는 아이디·비밀번호만으로 로그인돼요.',
+      step: '{{current}} / {{total}}단계',
+      codeTitle: '인증번호 6자리를\n입력해 주세요',
       codeHintTotp: '인증 앱에 표시된 6자리 코드를 입력하세요.',
       codeHintSent: '{{destination}}(으)로 보낸 6자리 인증번호를 입력하세요.',
       codeLabel: '인증번호',
@@ -123,6 +124,8 @@ export const ko: typeof en = {
     benefitTitle: "이번 달 무이자 혜택",
     benefitHint: "카드사별 무이자 할부 혜택을 확인하세요",
     notifications: '알림',
+    benefitTag: '혜택',
+    noticeTag: '공지',
   },
   menu: {
     title: '전체메뉴',

@@ -68,21 +68,12 @@ export function BrandedLayout({
       }}>
       {showLogo ? (
         tagline ? (
-          // Sign-in hero: the wordmark centered, with one quiet line of copy under it.
-          <View
-            style={{
-              alignItems: 'center',
-              gap: spacing.md,
-              paddingTop: spacing.xl,
-              paddingBottom: spacing.xl,
-              paddingHorizontal: spacing.md,
-            }}>
-            <BrandLogo height={48} />
+          // Sign-in hero (Korpay design): the wordmark and a two-line title, both left-aligned like the form under them.
+          <View style={{ alignItems: 'flex-start', gap: spacing.md, paddingTop: spacing.xl, paddingBottom: spacing.lg, paddingHorizontal: spacing.lg }}>
+            <BrandLogo height={36} />
             <NativeHost>
-              <Column alignment="center" style={{ width: '100%' }}>
-                <NativeText tone="secondary" center>
-                  {t('auth.tagline')}
-                </NativeText>
+              <Column style={{ width: '100%' }}>
+                <NativeText variant="title">{t('auth.tagline')}</NativeText>
               </Column>
             </NativeHost>
           </View>

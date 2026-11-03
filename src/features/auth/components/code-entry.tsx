@@ -55,6 +55,8 @@ export function CodeEntry({ destination, pending, serverError, onEdit, onSubmit,
         </>
       }>
       <StepHeader
+        badge={false}
+        step={{ current: 2, total: 2 }}
         title={t('auth.verify.codeTitle')}
         body={destination ? t('auth.verify.codeHintSent', { destination }) : t('auth.verify.codeHintTotp')}
       />

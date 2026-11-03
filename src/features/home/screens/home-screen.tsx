@@ -7,7 +7,6 @@ import { AppHeader } from '@/shared/ui/app-header';
 import { TabScreen } from '@/shared/ui/tab-screen';
 
 import { BenefitBanner } from '../components/benefit-banner';
-import { MonthCard } from '../components/month-card';
 import { PrepayBanner } from '../components/prepay-banner';
 import { StoreCard } from '../components/store-card';
 import { SummaryStatus } from '../components/summary-status';
@@ -29,6 +28,7 @@ export default function HomeScreen() {
       canvas
       header={
         <AppHeader
+          title={summary?.storeName}
           actions={[
             {
               icon: { ios: 'bell', android: NotificationsIcon },
@@ -45,10 +45,8 @@ export default function HomeScreen() {
             summary={summary}
             updatedAt={dataUpdatedAt}
             onRefresh={() => void refetch()}
-            onStore={() => router.navigate('/stores')}
             onTransactions={() => router.navigate('/transactions')}
           />
-          <MonthCard monthSales={summary.monthSales} onDetail={() => router.navigate('/transactions')} />
           <BenefitBanner />
           <PrepayBanner available={summary.prepayAvailable} />
         </>

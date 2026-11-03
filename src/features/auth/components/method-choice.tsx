@@ -63,7 +63,7 @@ export function MethodChoice({ methods, pending, errorMessage, onChoose, onCance
   return (
     <SheetFormScreen
       footer={<NativeButton testID="verify-cancel" label={t('common.cancel')} variant="text" disabled={pending} onPress={onCancel} />}>
-      <StepHeader title={t('auth.verify.chooseMethodTitle')} body={t('auth.verify.chooseMethodBody')} badge={false} />
+      <StepHeader title={t('auth.verify.chooseMethodTitle')} body={t('auth.verify.chooseMethodBody')} badge={false} step={{ current: 1, total: 2 }} />
       <Column spacing={spacing.sm} style={{ width: '100%' }}>
         {methods.map(({ method }) => (
           <Row
@@ -74,7 +74,7 @@ export function MethodChoice({ methods, pending, errorMessage, onChoose, onCance
             onPress={() => {
               if (!pending) onChoose(method);
             }}
-            style={{ width: '100%', padding: spacing.md, borderRadius: radius.lg, backgroundColor: colors.tonal }}>
+            style={{ width: '100%', padding: spacing.md, borderRadius: radius.lg, borderWidth: 2, borderColor: colors.tonal, backgroundColor: colors.card }}>
             <ChannelIcon method={method} />
             <Column spacing={2}>
               <NativeText variant="headline">{t(`auth.method.${method}`)}</NativeText>
