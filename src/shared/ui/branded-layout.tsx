@@ -68,8 +68,9 @@ export function BrandedLayout({
         paddingLeft: insets.left,
         paddingRight: insets.right,
       }}>
-      {showLogo ? (
-        tagline && !keyboardVisible ? (
+      {/* While the keyboard is up, the sign-in hero gives its room to the fields (the logo and title come back when it closes). */}
+      {showLogo && !(tagline && keyboardVisible) ? (
+        tagline ? (
           // Sign-in hero (Korpay design): the wordmark and a two-line title, both left-aligned like the form under them.
           <View style={{ alignItems: 'flex-start', gap: spacing.md, paddingTop: spacing.xl, paddingBottom: spacing.lg, paddingHorizontal: spacing.lg }}>
             <BrandLogo height={36} />
@@ -80,8 +81,8 @@ export function BrandedLayout({
             </NativeHost>
           </View>
         ) : (
-          <View style={{ alignItems: 'flex-start', paddingTop: tagline ? spacing.md : spacing.xl, paddingBottom: spacing.md, paddingHorizontal: spacing.lg }}>
-            <BrandLogo height={tagline ? 28 : 44} />
+          <View style={{ alignItems: 'flex-start', paddingTop: spacing.xl, paddingBottom: spacing.md, paddingHorizontal: spacing.lg }}>
+            <BrandLogo height={44} />
           </View>
         )
       ) : null}

@@ -1,5 +1,5 @@
 import Cancel from '@expo/material-symbols/cancel.xml';
-import { Column, Icon, Row, Spacer, type TextInputRef } from '@expo/ui';
+import { Column, Icon, Row, Spacer, useNativeState, type TextInputRef } from '@expo/ui';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -14,7 +14,9 @@ import { LinkText } from '@/shared/ui/link-text';
 import { NativeButton } from '@/shared/ui/native-button';
 
 import { LoginNotice } from './login-notice';
+import { RememberCheckbox } from './remember-checkbox';
 import { loginSchema, type LoginValues } from '../model/forms';
+import { loadSavedUserId } from '../model/saved-user-id';
 
 type LoginFormProps = {
   pending: boolean;
@@ -22,7 +24,7 @@ type LoginFormProps = {
   formError: string | null;
   /** Bump to clear the password field (after a rejected login). */
   passwordResetKey: number;
-  onSubmit: (input: LoginValues) => void;
+  onSubmit: (input: LoginValues, remember: boolean) => void;
 };
 
 /**
@@ -39,17 +41,35 @@ export function LoginForm({ pending, formError, passwordResetKey, onSubmit }: Lo
   const userIdRef = useRef<TextInputRef | null>(null);
   const passwordRef = useRef<TextInputRef | null>(null);
   const [hasUserId, setHasUserId] = useState(false);
+  const [remember, setRemember] = useState(true);
+  // The ID field's text is a native state so a saved ID can be put into it; its text is never copied to React state.
+  const userIdText = useNativeState('');
 
   const {
     control,
     handleSubmit,
     resetField,
+    setValue,
     formState: { isValid },
   } = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     mode: 'onChange',
     defaultValues: { userId: '', password: '' },
   });
+
+  // "아이디 저장": put the saved ID into the field once it has been read from the secure store.
+  useEffect(() => {
+    let active = true;
+    void loadSavedUserId().then((saved) => {
+      if (!active || !saved) return;
+      userIdText.set(saved);
+      setValue('userId', saved, { shouldValidate: true });
+      setHasUserId(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, [setValue, userIdText]);
 
   useEffect(() => {
     if (passwordResetKey > 0) {
@@ -60,11 +80,12 @@ export function LoginForm({ pending, formError, passwordResetKey, onSubmit }: Lo
   }, [passwordResetKey, resetField]);
 
   const submit = handleSubmit((values) => {
-    if (!pending) onSubmit(values);
+    if (!pending) onSubmit(values, remember);
   });
 
   const clearUserId = () => {
     userIdRef.current?.clear();
+    userIdText.set('');
     resetField('userId');
     setHasUserId(false);
   };
@@ -93,6 +114,7 @@ export function LoginForm({ pending, formError, passwordResetKey, onSubmit }: Lo
               userIdRef.current = instance;
             }}
             testID="login-user-id"
+            value={userIdText}
             label={t('auth.userId')}
             placeholder={t('auth.userIdPlaceholder')}
             error={messageOf(fieldState.error)}
@@ -141,6 +163,7 @@ export function LoginForm({ pending, formError, passwordResetKey, onSubmit }: Lo
         )}
       />
       <Row alignment="center" style={{ width: '100%' }}>
+        <RememberCheckbox testID="login-remember" value={remember} onValueChange={setRemember} label={t('auth.rememberId')} />
         <Spacer flexible />
         <LinkText testID="login-help" onPress={() => router.push('/login-help')}>
           {t('auth.loginHelp')}

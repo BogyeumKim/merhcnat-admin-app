@@ -8,10 +8,12 @@ import { authFlowActions } from '../model/auth-flow-store';
 import { holdChallengeToken } from '../model/challenge-vault';
 import { getDeviceInfo } from '../model/device-info';
 import { registerDevicePush } from '../model/device-push';
+import { rememberUserId } from '../model/saved-user-id';
 import type { LoginResult } from '../model/schemas';
 import { assertTokenIssued, completeSignIn } from '../model/session-store';
 
-type LoginInput = { userId: string; password: string };
+/** `remember` is the "아이디 저장" box. It is acted on here, not in the screen: the sign-in screen is gone by the time the call returns. */
+type LoginInput = { userId: string; password: string; remember: boolean };
 
 /**
  * Service side of sign-in: calls the API and records the outcome (signed in, or a pending challenge).
@@ -33,7 +35,9 @@ export function useLogin(callbacks?: UseMutationCallback<LoginResult>) {
     // The password is a mutation variable: do not keep it in the mutation cache after the call (`gcTime: 0`).
     gcTime: 0,
     onMutate: () => callbacks?.onMutate?.(),
-    onSuccess: (result) => {
+    onSuccess: (result, { userId, remember }) => {
+      // The password was accepted (signed in, or a code is still needed): the ID is worth keeping, or forgetting.
+      void rememberUserId(userId, remember);
       if (result.status === 'AUTHENTICATED') {
         completeSignIn(result.userType, result);
         void registerDevicePush();

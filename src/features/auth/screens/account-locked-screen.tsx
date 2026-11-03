@@ -24,14 +24,14 @@ export default function AccountLockedScreen() {
     else router.replace('/sign-in');
   };
   const call = () => {
-    if (SUPPORT.phone) void Linking.openURL(`tel:${SUPPORT.phone}`);
+    void Linking.openURL(`tel:${SUPPORT.phone}`);
   };
 
   return (
     <BrandedFormScreen
       footer={
         <>
-          <NativeButton testID="locked-call" label={t('locked.call')} disabled={SUPPORT.phone === null} onPress={call} />
+          <NativeButton testID="locked-call" label={t('locked.call')} onPress={call} />
           <NativeButton testID="locked-back" variant="tonal" label={t('locked.back')} onPress={back} />
         </>
       }>

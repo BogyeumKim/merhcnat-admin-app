@@ -20,7 +20,7 @@ export function LoginNotice() {
         style={{ width: '100%', padding: spacing.md - 2, borderRadius: radius.lg, backgroundColor: colors.infoSurface }}>
         <Icon name={{ ios: 'info.circle', android: Info }} size={18} color={colors.secondaryText} />
         <NativeText variant="caption" tone="secondary">
-          {t('auth.loginNotice', { phone: SUPPORT.display ?? t('auth.supportPhone') })}
+          {t('auth.loginNotice', { phone: SUPPORT.display })}
         </NativeText>
       </Row>
       <Column alignment="center" style={{ width: '100%' }}>

@@ -60,8 +60,9 @@ export const en = {
     signOut: 'Sign out',
     loginHelp: "Can't sign in?",
     loginNotice: 'Your ID and password are issued with your merchant contract.\nFor a lost or locked account, call support {{phone}}.',
-    supportPhone: '[Support number]',
-    supportHours: 'Weekdays [hours]',
+    supportPhone: 'Support {{phone}}',
+    supportHours: 'Weekdays {{open}}–{{close}}',
+    rememberId: 'Remember ID',
     help: {
       title: "Can't sign in?",
       subtitle: 'Tap the one that fits.',

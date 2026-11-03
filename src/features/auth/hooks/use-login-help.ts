@@ -18,10 +18,8 @@ export function useLoginHelp() {
     open,
     toggle: (id: HelpItemId) => setOpen((current) => (current === id ? null : id)),
     close: () => (router.canGoBack() ? router.back() : router.replace('/sign-in')),
-    /** Without a configured number the button has nothing to dial. */
-    canCall: SUPPORT.phone !== null,
     call: () => {
-      if (SUPPORT.phone) void Linking.openURL(`tel:${SUPPORT.phone}`);
+      void Linking.openURL(`tel:${SUPPORT.phone}`);
     },
   };
 }

@@ -63,8 +63,9 @@ export const ko: typeof en = {
     signOut: '로그아웃',
     loginHelp: '로그인이 안 되나요?',
     loginNotice: '아이디와 비밀번호는 가맹 계약 시 발급돼요.\n분실·잠금은 고객센터 {{phone}}로 문의해 주세요.',
-    supportPhone: '[고객센터 번호]',
-    supportHours: '평일 [운영 시간]',
+    supportPhone: '고객센터 {{phone}}',
+    supportHours: '평일 {{open}}~{{close}}',
+    rememberId: '아이디 저장',
     help: {
       title: '로그인이 안 되나요?',
       subtitle: '해당하는 상황을 눌러 주세요',

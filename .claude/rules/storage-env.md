@@ -17,6 +17,7 @@ paths:
 | 앱 설정(언어 등 작은 값), 렌더 전에 읽어야 하는 값 | `expo-sqlite/kv-store` (동기 API) | `shared/lib/storage` — 키는 `STORAGE_KEYS`에만 추가 |
 | 구조화/대량/오프라인 데이터 | `expo-sqlite` (필요해질 때) | 해당 feature의 `api/` |
 
+- **"아이디 저장"**: 사용자가 체크했을 때 **계정 ID만** `expo-secure-store`(`features/auth/model/saved-user-id.ts`, 키 `login.savedUserId`)에 저장한다. 비밀번호는 저장하지 않는다. 체크를 풀고 로그인하면 지운다. 비밀번호 저장은 OS 비밀번호 관리자(Google/Samsung Pass/iCloud 키체인)의 몫이며, 앱은 `autoComplete`(`username`/`current-password`/`new-password`)만 지정하고 로그인 성공 전에 비밀번호 칸을 비우지 않는다.
 - 로그인 토큰은 어디에도 영속 저장하지 않는다. 토큰이나 개인정보를 `shared/lib/storage`(암호화되지 않음)에 저장하지 않는다.
 - **TanStack Query 캐시를 디스크에 persist하지 않는다** (결제/정산 데이터가 평문으로 남음). 필요하면 `shouldDehydrateQuery`로 비민감 쿼리만 골라 별도 결정 후 도입한다.
 

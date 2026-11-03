@@ -17,7 +17,10 @@ import { ToastHost } from '@/shared/ui/toast-host';
 SplashScreen.preventAutoHideAsync();
 
 /** The sign-in sheet is deliberately presented over the sign-in screen; Expo Router warns about it while the sign-in group is the stack's first screen. */
-LogBox.ignoreLogs(['uses presentation "formSheet" but is the first screen in its native stack']);
+LogBox.ignoreLogs([
+  'uses presentation "formSheet" but is the first screen in its native stack',
+  'Sending `onAnimatedValueUpdate` with no listeners registered',
+]);
 
 /** Last-resort screen for errors thrown while rendering any route (Expo Router wraps the layout with it). */
 export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
