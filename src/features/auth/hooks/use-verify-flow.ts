@@ -8,7 +8,6 @@ import { showErrorToast } from '@/shared/ui/toast';
 import { useAnnounce } from '@/shared/ui/use-announce';
 
 import { useAuthErrorPresenter } from './use-auth-error-presenter';
-import { useAuthFlowActions } from '../model/auth-flow-store';
 import type { ChallengeMethod, ChallengeRequired } from '../model/schemas';
 import { useSendCode } from '../mutations/use-send-code';
 import { useVerifyCode } from '../mutations/use-verify-code';
@@ -33,7 +32,6 @@ function leaveVerification() {
  */
 export function useVerifyFlow(challenge: ChallengeRequired) {
   const { t } = useTranslation();
-  const { clear } = useAuthFlowActions();
   const navigation = useNavigation();
   const runOnce = useRunOnce();
   const isTotp = challenge.methods.some((option) => option.method === 'TOTP');
@@ -59,7 +57,6 @@ export function useVerifyFlow(challenge: ChallengeRequired) {
   const cancel = leaveVerification;
 
   const presentError = useAuthErrorPresenter({
-    onLocked: clear,
     onInline: (error) => {
       const remaining = Number(error.extras.remainingAttempts);
       setErrorMessage(

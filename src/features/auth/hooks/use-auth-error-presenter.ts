@@ -9,8 +9,6 @@ import { showErrorToast } from '@/shared/ui/toast';
 type AuthErrorHandlers = {
   /** A persistent error shown inside the screen (form alert, field error). */
   onInline: (error: ApiError) => void;
-  /** The account is locked until an administrator unlocks it: the flow ends, so the screen can clean up first. */
-  onLocked?: () => void;
 };
 
 /**
@@ -18,7 +16,7 @@ type AuthErrorHandlers = {
  * accounts have their own screens, transient errors are toasts (one id per code, so repeats update one toast), the rest
  * stays inline. Screens only say what "inline" means for them.
  */
-export function useAuthErrorPresenter({ onInline, onLocked }: AuthErrorHandlers) {
+export function useAuthErrorPresenter({ onInline }: AuthErrorHandlers) {
   const { t } = useTranslation();
 
   return (error: ApiError) => {
@@ -27,7 +25,6 @@ export function useAuthErrorPresenter({ onInline, onLocked }: AuthErrorHandlers)
         router.push(maintenanceHref(error));
         return;
       case 'locked':
-        onLocked?.();
         router.push('/account-locked');
         return;
       case 'toast':

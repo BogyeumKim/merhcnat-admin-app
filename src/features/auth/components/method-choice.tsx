@@ -40,7 +40,7 @@ function ChannelIcon({ method }: { method: ChallengeMethod }) {
   if (method === 'KAKAO' || method === 'SMS') {
     return (
       <Column style={{ width: ICON_SIZE, height: ICON_SIZE }}>
-        <RNHostView>
+        <RNHostView matchContents>
           <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={{ width: ICON_SIZE, height: ICON_SIZE }}>
             <Image source={BRAND_ICONS[method]} style={{ width: ICON_SIZE, height: ICON_SIZE }} />
           </View>
@@ -71,7 +71,9 @@ export function MethodChoice({ methods, pending, errorMessage, onChoose, onCance
             testID={`channel-${method}`}
             alignment="center"
             spacing={spacing.md}
-            onPress={pending ? undefined : () => onChoose(method)}
+            onPress={() => {
+              if (!pending) onChoose(method);
+            }}
             style={{ width: '100%', padding: spacing.md, borderRadius: radius.lg, backgroundColor: colors.tonal }}>
             <ChannelIcon method={method} />
             <Column spacing={2}>
