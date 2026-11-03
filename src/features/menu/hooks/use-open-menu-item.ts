@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 
-import type { MenuItemId } from './catalog';
+import type { MenuItemId } from '../model/catalog';
 
 /** Settings has its own screen; every other entry opens the placeholder route until its screen exists (the id picks the title). */
 export function openMenuItem(id: MenuItemId) {

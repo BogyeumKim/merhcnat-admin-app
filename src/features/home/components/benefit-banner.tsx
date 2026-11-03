@@ -3,7 +3,7 @@ import { Column, Icon, Row, Spacer } from '@expo/ui';
 
 import { openMenuItem } from '@/features/menu';
 import { useTranslation } from '@/shared/i18n';
-import { spacing, useNativeColors } from '@/shared/theme';
+import { radius, spacing, useNativeColors } from '@/shared/theme';
 import { NativeText } from '@/shared/ui/native-text';
 
 /**
@@ -19,7 +19,7 @@ export function BenefitBanner() {
       testID="home-benefits"
       alignment="center"
       onPress={() => openMenuItem('benefits')}
-      style={{ width: '100%', padding: spacing.lg, borderRadius: 24, backgroundColor: colors.action }}>
+      style={{ width: '100%', padding: spacing.lg, borderRadius: radius.xl, backgroundColor: colors.action }}>
       <Column spacing={2}>
         <NativeText variant="headline" tone="onAction">
           {t('home.benefitTitle')}

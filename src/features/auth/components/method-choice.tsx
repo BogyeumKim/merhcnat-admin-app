@@ -32,6 +32,7 @@ const GLYPHS = {
   TOTP: { ios: 'lock.shield', android: Sms },
 } as const;
 const ICON_SIZE = 44;
+const GLYPH_SIZE = 24;
 
 function ChannelIcon({ method }: { method: ChallengeMethod }) {
   const colors = useNativeColors();
@@ -48,8 +49,8 @@ function ChannelIcon({ method }: { method: ChallengeMethod }) {
     );
   }
   return (
-    <Column style={{ padding: 10, borderRadius: ICON_SIZE / 2, backgroundColor: colors.card }}>
-      <Icon name={GLYPHS[method]} size={24} color={colors.text} />
+    <Column style={{ padding: (ICON_SIZE - GLYPH_SIZE) / 2, borderRadius: ICON_SIZE / 2, backgroundColor: colors.card }}>
+      <Icon name={GLYPHS[method]} size={GLYPH_SIZE} color={colors.text} />
     </Column>
   );
 }

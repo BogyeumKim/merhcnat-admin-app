@@ -1,7 +1,7 @@
 import { router, usePathname } from 'expo-router';
 import { useEffect, useRef } from 'react';
 
-import { isHiddenToday } from './hidden-today';
+import { isHiddenToday } from '../model/hidden-today';
 import { usePopupNoticesData } from '../queries/use-popup-notices-data';
 
 const POPUP_PATH = '/notice-popup';

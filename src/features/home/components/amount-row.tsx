@@ -1,18 +1,21 @@
 import { Column, Icon, Row, Spacer } from '@expo/ui';
 import type { ComponentProps } from 'react';
 
-import { spacing, useNativeColors } from '@/shared/theme';
+import { radius, spacing, useNativeColors } from '@/shared/theme';
 import { NativeText } from '@/shared/ui/native-text';
 
 type IconName = ComponentProps<typeof Icon>['name'];
+
+const BADGE_ICON = 24;
+const BADGE_PADDING = spacing.sm + spacing.xs / 2;
 
 /** Tonal circle with a glyph: the leading badge of a row. The padding sits on the `Column` (see `.claude/rules/expo-ui.md`). */
 export function IconBadge({ icon }: { icon: IconName }) {
   const colors = useNativeColors();
 
   return (
-    <Column style={{ padding: 10, borderRadius: 22, backgroundColor: colors.tonal }}>
-      <Icon name={icon} size={24} color={colors.action} />
+    <Column style={{ padding: BADGE_PADDING, borderRadius: (BADGE_ICON + 2 * BADGE_PADDING) / 2, backgroundColor: colors.tonal }}>
+      <Icon name={icon} size={BADGE_ICON} color={colors.action} />
     </Column>
   );
 }
@@ -51,7 +54,7 @@ export function AmountRow({
       <Column
         testID={testID}
         onPress={onAction}
-        style={{ paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderRadius: 12, backgroundColor: colors.tonal }}>
+        style={{ paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderRadius: radius.md, backgroundColor: colors.tonal }}>
         <NativeText variant="subhead">{action}</NativeText>
       </Column>
     </Row>

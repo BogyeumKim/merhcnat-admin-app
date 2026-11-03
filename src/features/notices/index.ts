@@ -1,2 +1,2 @@
 export { default as NoticePopupScreen } from './screens/notice-popup-screen';
-export { useNoticePopupLauncher } from './model/use-notice-popup-launcher';
+export { useNoticePopupLauncher } from './hooks/use-notice-popup-launcher';

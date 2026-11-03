@@ -1,7 +1,7 @@
 import { useTranslation } from '@/shared/i18n';
 import { NativeButton } from '@/shared/ui/native-button';
 
-import { useSecondsLeft } from '../model/use-seconds-left';
+import { useSecondsLeft } from '../hooks/use-seconds-left';
 
 type ResendButtonProps = {
   /** Epoch ms when a new code may be requested (the server's `resendAfterSeconds` from the last send). */

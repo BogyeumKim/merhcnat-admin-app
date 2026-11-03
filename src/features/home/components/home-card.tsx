@@ -2,7 +2,7 @@ import ChevronRight from '@expo/material-symbols/chevron_right.xml';
 import { Column, Icon, Row, Spacer } from '@expo/ui';
 import type { PropsWithChildren } from 'react';
 
-import { spacing, useNativeColors } from '@/shared/theme';
+import { radius, spacing, useNativeColors } from '@/shared/theme';
 import { NativeText } from '@/shared/ui/native-text';
 
 /**
@@ -13,7 +13,7 @@ export function HomeCard({ title, onTitlePress, testID, children }: PropsWithChi
   const colors = useNativeColors();
 
   return (
-    <Column spacing={spacing.sm} style={{ width: '100%', padding: spacing.lg, borderRadius: 24, backgroundColor: colors.card }}>
+    <Column spacing={spacing.sm} style={{ width: '100%', padding: spacing.lg, borderRadius: radius.xl, backgroundColor: colors.card }}>
       {title ? (
         <Row testID={testID} alignment="center" onPress={onTitlePress} style={{ width: '100%' }}>
           <NativeText variant="headline">{title}</NativeText>

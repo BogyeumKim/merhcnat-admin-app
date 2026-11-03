@@ -8,8 +8,8 @@ import { NativeText } from '@/shared/ui/native-text';
 import { TabScreen } from '@/shared/ui/tab-screen';
 
 import { CategorySection } from '../components/category-section';
+import { openMenuItem } from '../hooks/use-open-menu-item';
 import { visibleCatalog } from '../model/catalog';
-import { openMenuItem } from '../model/use-open-menu-item';
 
 /** Every feature, grouped by category, plus the account actions. */
 export default function MenuScreen() {

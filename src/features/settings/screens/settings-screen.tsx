@@ -9,7 +9,7 @@ import { NativeButton } from '@/shared/ui/native-button';
 import { NativeText } from '@/shared/ui/native-text';
 import { TabScreen } from '@/shared/ui/tab-screen';
 
-import { usePushPermission } from '../model/use-push-permission';
+import { usePushPermission } from '../hooks/use-push-permission';
 
 /** Each language is shown in its own language, whatever the current UI language is. */
 const LANGUAGE_NAMES = { ko: '한국어', en: 'English' } as const;

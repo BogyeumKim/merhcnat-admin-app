@@ -1,7 +1,7 @@
 import { Column, Row, Spacer } from '@expo/ui';
 
 import { useTranslation } from '@/shared/i18n';
-import { spacing, useNativeColors } from '@/shared/theme';
+import { radius, spacing, useNativeColors } from '@/shared/theme';
 import { NativeText } from '@/shared/ui/native-text';
 
 import { HomeCard } from './home-card';
@@ -28,7 +28,7 @@ export function MonthCard({ monthSales, onDetail }: { monthSales: number; onDeta
         <Column
           testID="home-month-detail"
           onPress={onDetail}
-          style={{ paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderRadius: 12, backgroundColor: colors.tonal }}>
+          style={{ paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderRadius: radius.md, backgroundColor: colors.tonal }}>
           <NativeText variant="subhead">{t('home.detail')}</NativeText>
         </Column>
       </Row>
