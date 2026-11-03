@@ -1,7 +1,8 @@
-import ChatBubble from '@expo/material-symbols/chat_bubble.xml';
 import ChevronRight from '@expo/material-symbols/chevron_right.xml';
 import Sms from '@expo/material-symbols/sms.xml';
-import { Column, Icon, Row, Spacer } from '@expo/ui';
+import { Column, Icon, RNHostView, Row, Spacer } from '@expo/ui';
+import { Image } from 'expo-image';
+import { View } from 'react-native';
 
 import { useTranslation } from '@/shared/i18n';
 import { radius, spacing, useNativeColors } from '@/shared/theme';
@@ -21,12 +22,35 @@ type MethodChoiceProps = {
   onCancel: () => void;
 };
 
-const ICONS = {
-  KAKAO: { ios: 'bubble.left.fill', android: ChatBubble },
-  SMS: { ios: 'message.fill', android: Sms },
+/** The two common channels use the apps' own marks (KakaoTalk's yellow bubble, the green messages icon); the rest a plain glyph. */
+const BRAND_ICONS = {
+  KAKAO: require('@/assets/images/channel-kakao.svg'),
+  SMS: require('@/assets/images/channel-sms.svg'),
+} as const;
+const GLYPHS = {
   EMAIL: { ios: 'envelope.fill', android: Sms },
   TOTP: { ios: 'lock.shield', android: Sms },
 } as const;
+const ICON_SIZE = 44;
+
+function ChannelIcon({ method }: { method: ChallengeMethod }) {
+  const colors = useNativeColors();
+
+  if (method === 'KAKAO' || method === 'SMS') {
+    return (
+      <RNHostView matchContents>
+        <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={{ width: ICON_SIZE, height: ICON_SIZE }}>
+          <Image source={BRAND_ICONS[method]} style={{ width: ICON_SIZE, height: ICON_SIZE }} />
+        </View>
+      </RNHostView>
+    );
+  }
+  return (
+    <Column style={{ padding: 10, borderRadius: ICON_SIZE / 2, backgroundColor: colors.card }}>
+      <Icon name={GLYPHS[method]} size={24} color={colors.text} />
+    </Column>
+  );
+}
 
 /** The user picks how the one-time code is delivered. Only the methods the server offers are shown. */
 export function MethodChoice({ methods, pending, errorMessage, onChoose, onCancel }: MethodChoiceProps) {
@@ -46,9 +70,7 @@ export function MethodChoice({ methods, pending, errorMessage, onChoose, onCance
             spacing={spacing.md}
             onPress={pending ? undefined : () => onChoose(method)}
             style={{ width: '100%', padding: spacing.md, borderRadius: radius.lg, backgroundColor: colors.tonal }}>
-            <Column style={{ padding: 12, borderRadius: 24, backgroundColor: colors.card }}>
-              <Icon name={ICONS[method]} size={24} color={colors.action} />
-            </Column>
+            <ChannelIcon method={method} />
             <Column spacing={2}>
               <NativeText variant="headline">{t(`auth.method.${method}`)}</NativeText>
               <NativeText variant="subhead" tone="secondary">
