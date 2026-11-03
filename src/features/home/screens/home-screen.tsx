@@ -47,7 +47,6 @@ export default function HomeScreen() {
             onRefresh={() => void refetch()}
             onStore={() => router.navigate('/stores')}
             onTransactions={() => router.navigate('/transactions')}
-            onDeposits={() => openMenuItem('deposits')}
           />
           <MonthCard monthSales={summary.monthSales} onDetail={() => router.navigate('/transactions')} />
           <BenefitBanner />

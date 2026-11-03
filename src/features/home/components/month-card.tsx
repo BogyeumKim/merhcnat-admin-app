@@ -1,32 +1,27 @@
-import ChevronRight from '@expo/material-symbols/chevron_right.xml';
-import { Column, Icon, Row, Spacer } from '@expo/ui';
+import CalendarMonth from '@expo/material-symbols/calendar_month.xml';
 
 import { useTranslation } from '@/shared/i18n';
-import { useNativeColors } from '@/shared/theme';
-import { NativeText } from '@/shared/ui/native-text';
 
+import { AmountRow } from './amount-row';
 import { HomeCard } from './home-card';
 import { formatAmount } from '../model/format';
 import { useAmountsHidden } from '../model/hide-amounts-store';
 
-/** This month's sales as one tappable row (label, figure, chevron), the same pattern as the next-payout row in the store card. */
+/** This month's sales: badge, label, figure and a "detail" button, the same row as today's sales in the store card. */
 export function MonthCard({ monthSales, onDetail }: { monthSales: number; onDetail: () => void }) {
   const { t } = useTranslation();
-  const colors = useNativeColors();
   const hidden = useAmountsHidden();
 
   return (
     <HomeCard>
-      <Row testID="home-month-detail" alignment="center" onPress={onDetail} style={{ width: '100%' }}>
-        <Column spacing={2}>
-          <NativeText variant="subhead" tone="secondary">
-            {t('home.monthSales')}
-          </NativeText>
-          <NativeText variant="title">{hidden ? t('home.hiddenAmount') : t('home.amount', { amount: formatAmount(monthSales) })}</NativeText>
-        </Column>
-        <Spacer flexible />
-        <Icon name={{ ios: 'chevron.right', android: ChevronRight }} size={18} color={colors.secondaryText} />
-      </Row>
+      <AmountRow
+        icon={{ ios: 'calendar', android: CalendarMonth }}
+        label={t('home.monthSales')}
+        amount={hidden ? t('home.hiddenAmount') : t('home.amount', { amount: formatAmount(monthSales) })}
+        action={t('home.detail')}
+        onAction={onDetail}
+        testID="home-month-detail"
+      />
     </HomeCard>
   );
 }

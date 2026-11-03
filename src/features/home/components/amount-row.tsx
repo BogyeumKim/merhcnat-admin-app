@@ -28,6 +28,8 @@ export function AmountRow({
   icon,
   label,
   amount,
+  note,
+  large = false,
   action,
   onAction,
   testID,
@@ -35,6 +37,9 @@ export function AmountRow({
   icon: IconName;
   label: string;
   amount: string;
+  note?: string;
+  /** The hero figure (today's sales) is set larger; other rows keep the headline size so long amounts stay on one line. */
+  large?: boolean;
   action: string;
   onAction: () => void;
   testID: string;
@@ -48,7 +53,12 @@ export function AmountRow({
         <NativeText variant="subhead" tone="secondary">
           {label}
         </NativeText>
-        <NativeText variant="headline">{amount}</NativeText>
+        <NativeText variant={large ? 'title' : 'headline'}>{amount}</NativeText>
+        {note ? (
+          <NativeText variant="caption" tone="secondary">
+            {note}
+          </NativeText>
+        ) : null}
       </Column>
       <Spacer flexible />
       <Column
