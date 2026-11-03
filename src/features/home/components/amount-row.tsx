@@ -6,7 +6,7 @@ import { NativeText } from '@/shared/ui/native-text';
 
 type IconName = ComponentProps<typeof Icon>['name'];
 
-const BADGE_ICON = 24;
+const BADGE_ICON = 26;
 const BADGE_PADDING = spacing.sm + spacing.xs / 2;
 
 /** Tonal circle with a glyph: the leading badge of a row. The padding sits on the `Column` (see `.claude/rules/expo-ui.md`). */
@@ -15,7 +15,7 @@ export function IconBadge({ icon }: { icon: IconName }) {
 
   return (
     <Column style={{ padding: BADGE_PADDING, borderRadius: (BADGE_ICON + 2 * BADGE_PADDING) / 2, backgroundColor: colors.tonal }}>
-      <Icon name={icon} size={BADGE_ICON} color={colors.action} />
+      <Icon name={icon} size={BADGE_ICON} color={colors.ink} />
     </Column>
   );
 }
