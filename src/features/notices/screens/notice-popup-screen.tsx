@@ -1,14 +1,10 @@
-import { Column } from '@expo/ui';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { FlatList, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useTranslation } from '@/shared/i18n';
-import { spacing } from '@/shared/theme';
-import { NativeButton } from '@/shared/ui/native-button';
-import { NativeHost } from '@/shared/ui/native-host';
 
+import { NoticeActions } from '../components/notice-actions';
 import { NoticePage } from '../components/notice-page';
 import { PageDots } from '../components/page-dots';
 import { hideToday, isHiddenToday } from '../model/hidden-today';
@@ -25,7 +21,6 @@ const MAX_IMAGE_SHARE = 0.45;
  * sign-in). The list is fixed when the sheet opens, so hiding does not reshuffle pages.
  */
 export default function NoticePopupScreen() {
-  const { t } = useTranslation();
   const { data } = usePopupNoticesData();
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -55,12 +50,7 @@ export default function NoticePopupScreen() {
         />
       </View>
       {notices.length > 1 ? <PageDots count={notices.length} index={index} label={`${index + 1} / ${notices.length}`} /> : null}
-      <NativeHost>
-        <Column spacing={spacing.sm} style={{ width: '100%', padding: spacing.md, paddingBottom: insets.bottom + spacing.md }}>
-          <NativeButton testID="notice-hide-today" variant="outlined" label={t('notices.hideToday')} onPress={hideAndClose} />
-          <NativeButton testID="notice-close" label={t('notices.close')} onPress={() => router.back()} />
-        </Column>
-      </NativeHost>
+      <NoticeActions onHideToday={hideAndClose} onClose={() => router.back()} bottomInset={insets.bottom} />
     </View>
   );
 }

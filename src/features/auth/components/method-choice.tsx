@@ -1,11 +1,10 @@
 import ChatBubble from '@expo/material-symbols/chat_bubble.xml';
 import ChevronRight from '@expo/material-symbols/chevron_right.xml';
 import Sms from '@expo/material-symbols/sms.xml';
-import { Column, Icon, ListItem } from '@expo/ui';
+import { Column, Icon, Row, Spacer } from '@expo/ui';
 
 import { useTranslation } from '@/shared/i18n';
-import { spacing, useNativeColors } from '@/shared/theme';
-import { FieldUnderline } from '@/shared/ui/field-underline';
+import { radius, spacing, useNativeColors } from '@/shared/theme';
 import { FormAlert } from '@/shared/ui/form-alert';
 import { NativeButton } from '@/shared/ui/native-button';
 import { NativeText } from '@/shared/ui/native-text';
@@ -37,28 +36,28 @@ export function MethodChoice({ methods, pending, errorMessage, onChoose, onCance
   return (
     <SheetFormScreen
       footer={<NativeButton testID="verify-cancel" label={t('common.cancel')} variant="text" disabled={pending} onPress={onCancel} />}>
-      <StepHeader title={t('auth.verify.chooseMethodTitle')} body={t('auth.verify.chooseMethodBody')} />
-      <Column style={{ width: '100%' }}>
+      <StepHeader title={t('auth.verify.chooseMethodTitle')} body={t('auth.verify.chooseMethodBody')} badge={false} />
+      <Column spacing={spacing.sm} style={{ width: '100%' }}>
         {methods.map(({ method }) => (
-          <Column key={method} style={{ width: '100%' }}>
-            <Column style={{ width: '100%', paddingVertical: spacing.xs }}>
-              <ListItem
-                testID={`channel-${method}`}
-                leading={<Icon name={ICONS[method]} size={22} color={colors.text} />}
-                trailing={
-                  <Icon name={{ ios: 'chevron.right', android: ChevronRight }} size={16} color={colors.secondaryText} />
-                }
-                supportingText={
-                  <NativeText variant="subhead" tone="secondary">
-                    {t(`auth.verify.channel${method === 'KAKAO' ? 'KAKAO' : 'SMS'}Hint`)}
-                  </NativeText>
-                }
-                onPress={pending ? undefined : () => onChoose(method)}>
-                <NativeText variant="headline">{t(`auth.method.${method}`)}</NativeText>
-              </ListItem>
+          <Row
+            key={method}
+            testID={`channel-${method}`}
+            alignment="center"
+            spacing={spacing.md}
+            onPress={pending ? undefined : () => onChoose(method)}
+            style={{ width: '100%', padding: spacing.md, borderRadius: radius.lg, backgroundColor: colors.tonal }}>
+            <Column style={{ padding: 12, borderRadius: 24, backgroundColor: colors.card }}>
+              <Icon name={ICONS[method]} size={24} color={colors.action} />
             </Column>
-            <FieldUnderline invalid={false} focused={false} />
-          </Column>
+            <Column spacing={2}>
+              <NativeText variant="headline">{t(`auth.method.${method}`)}</NativeText>
+              <NativeText variant="subhead" tone="secondary">
+                {t(`auth.verify.channel${method === 'KAKAO' ? 'KAKAO' : 'SMS'}Hint`)}
+              </NativeText>
+            </Column>
+            <Spacer flexible />
+            <Icon name={{ ios: 'chevron.right', android: ChevronRight }} size={16} color={colors.secondaryText} />
+          </Row>
         ))}
       </Column>
       {pending ? <NativeText tone="secondary">{t('auth.verify.sending')}</NativeText> : null}

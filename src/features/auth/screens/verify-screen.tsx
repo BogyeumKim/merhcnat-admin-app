@@ -5,7 +5,7 @@ import { maintenanceHref } from '@/features/maintenance';
 import { presentationOf } from '@/shared/api/error-presentation';
 import type { ApiError } from '@/shared/api/errors';
 import { useTranslation } from '@/shared/i18n';
-import { showErrorToast, showSuccessToast } from '@/shared/ui/toast';
+import { showErrorToast } from '@/shared/ui/toast';
 import { useAnnounce } from '@/shared/ui/use-announce';
 
 import { CodeEntry } from '../components/code-entry';
@@ -128,7 +128,6 @@ function VerifyFlow({ challenge }: { challenge: ChallengeRequired }) {
               expiresAt: now + result.expiresInSeconds * 1000,
               resendAt: now + result.resendAfterSeconds * 1000,
             });
-            showSuccessToast({ id: 'code-sent', title: t('toast.codeSent'), description: result.destination });
           },
           onSettled: done,
         },

@@ -16,9 +16,6 @@ export const en = {
     PASSWORD_REQUIRED: 'Enter your password.',
     CODE_INVALID_FORMAT: 'Enter all 6 digits.',
   },
-  toast: {
-    codeSent: 'We sent you a code',
-  },
   errors: {
     screenTitle: 'Something went wrong',
     UNKNOWN: 'An unexpected error occurred. Please try again.',

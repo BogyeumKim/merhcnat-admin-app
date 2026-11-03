@@ -19,9 +19,6 @@ export const ko: typeof en = {
     PASSWORD_REQUIRED: '비밀번호를 입력해 주세요.',
     CODE_INVALID_FORMAT: '6자리를 모두 입력해 주세요.',
   },
-  toast: {
-    codeSent: '인증번호를 보냈습니다',
-  },
   errors: {
     screenTitle: '문제가 발생했습니다',
     UNKNOWN: '예기치 않은 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
