@@ -78,7 +78,7 @@ export function BrandedLayout({
             </NativeHost>
           </View>
         ) : (
-          <View style={{ alignItems: 'center', paddingTop: spacing.xl, paddingBottom: spacing.md }}>
+          <View style={{ alignItems: 'flex-start', paddingTop: spacing.xl, paddingBottom: spacing.md, paddingHorizontal: spacing.lg }}>
             <BrandLogo height={44} />
           </View>
         )

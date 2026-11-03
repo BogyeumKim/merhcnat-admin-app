@@ -5,7 +5,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router/react-naviga
 import { Stack } from 'expo-router/stack';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { Platform, useColorScheme } from 'react-native';
+import { LogBox, Platform, useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { QueryProvider } from '@/core/providers/query-provider';
@@ -15,6 +15,9 @@ import { ErrorScreen } from '@/shared/ui/error-screen';
 import { ToastHost } from '@/shared/ui/toast-host';
 
 SplashScreen.preventAutoHideAsync();
+
+/** The sign-in sheet is deliberately presented over the sign-in screen; Expo Router warns about it while the sign-in group is the stack's first screen. */
+LogBox.ignoreLogs(['uses presentation "formSheet" but is the first screen in its native stack']);
 
 /** Last-resort screen for errors thrown while rendering any route (Expo Router wraps the layout with it). */
 export function ErrorBoundary({ retry }: ErrorBoundaryProps) {

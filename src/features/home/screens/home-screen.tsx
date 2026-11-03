@@ -6,11 +6,16 @@ import { useTranslation } from '@/shared/i18n';
 import { AppHeader } from '@/shared/ui/app-header';
 import { TabScreen } from '@/shared/ui/tab-screen';
 
-import { BenefitBanner } from '../components/benefit-banner';
+import { FailedRow } from '../components/failed-row';
+import { LegalFooter } from '../components/legal-footer';
+import { NoticeCard } from '../components/notice-card';
 import { PrepayBanner } from '../components/prepay-banner';
+import { RecentCard } from '../components/recent-card';
 import { StoreCard } from '../components/store-card';
+import { StoreInfoCard } from '../components/store-info-card';
 import { SummaryStatus } from '../components/summary-status';
 import { SupportCard } from '../components/support-card';
+import { WeekCard } from '../components/week-card';
 import { useHomeSummaryData } from '../queries/use-home-summary-data';
 
 /**
@@ -47,13 +52,20 @@ export default function HomeScreen() {
             onRefresh={() => void refetch()}
             onTransactions={() => router.navigate('/transactions')}
           />
-          <BenefitBanner />
+          {summary.failedCount ? <FailedRow count={summary.failedCount} onPress={() => openMenuItem('failedTransactions')} /> : null}
           <PrepayBanner available={summary.prepayAvailable} />
+          {summary.weeklySales?.length ? <WeekCard days={summary.weeklySales} /> : null}
+          {summary.recentTransactions?.length ? (
+            <RecentCard items={summary.recentTransactions} onMore={() => router.navigate('/transactions')} />
+          ) : null}
+          {summary.store ? <StoreInfoCard store={summary.store} onMore={() => router.navigate('/stores')} /> : null}
         </>
       ) : (
         <SummaryStatus failed={isError} onRetry={() => void refetch()} />
       )}
-      <SupportCard latestNoticeTitle={summary?.latestNotice?.title} />
+      <NoticeCard latestNoticeTitle={summary?.latestNotice?.title} />
+      <SupportCard />
+      <LegalFooter />
     </TabScreen>
   );
 }

@@ -2,6 +2,8 @@ import Constants from 'expo-constants';
 import { randomUUID } from 'expo-crypto';
 import type * as NotificationsModule from 'expo-notifications';
 
+import { env } from '@/shared/config/env';
+
 import { updateDevice } from '../api/device-api';
 
 type Notifications = typeof NotificationsModule;
@@ -49,6 +51,8 @@ function placeholderPushToken(): string {
  * Best effort: it never blocks or fails the sign-in.
  */
 export async function registerDevicePush(): Promise<void> {
+  // The in-app mock server (development only) has no push service, and the OS permission prompt would cover the screen.
+  if (__DEV__ && env.apiMock) return;
   try {
     const Notifications = await loadNotifications();
     if (!Notifications) return;

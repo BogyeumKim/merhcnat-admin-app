@@ -8,8 +8,8 @@ import { NativeText } from '@/shared/ui/native-text';
 
 import { HomeCard } from './home-card';
 
-/** One row of the notice card: a small tag chip ("혜택"), the line and a chevron (the 공지/혜택 rows of the Korpay design). */
-export function TagRow({ tag, text, testID, onPress }: { tag: string; text: string; testID: string; onPress: () => void }) {
+/** One row of the notice card: a small tag chip, the line and a chevron (the 공지/혜택 rows of the Korpay design). */
+function TagRow({ tag, text, testID, onPress }: { tag: string; text: string; testID: string; onPress: () => void }) {
   const colors = useNativeColors();
 
   return (
@@ -24,12 +24,15 @@ export function TagRow({ tag, text, testID, onPress }: { tag: string; text: stri
   );
 }
 
-/** This month's card-installment benefits as a quiet row on a white card (it used to be a red banner, which outweighed the figures). */
-export function BenefitBanner() {
+/** The latest notice and this month's card-installment benefit, one tag row each on one white card. */
+export function NoticeCard({ latestNoticeTitle }: { latestNoticeTitle?: string }) {
   const { t } = useTranslation();
 
   return (
     <HomeCard>
+      {latestNoticeTitle ? (
+        <TagRow tag={t('home.noticeTag')} text={latestNoticeTitle} testID="home-notices" onPress={() => openMenuItem('notices')} />
+      ) : null}
       <TagRow tag={t('home.benefitTag')} text={t('home.benefitTitle')} testID="home-benefits" onPress={() => openMenuItem('benefits')} />
     </HomeCard>
   );
