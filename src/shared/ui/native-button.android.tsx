@@ -1,12 +1,12 @@
-import { Button, OutlinedButton, Text, TextButton } from '@expo/ui/jetpack-compose';
+import { Button, FilledTonalButton, OutlinedButton, Text, TextButton } from '@expo/ui/jetpack-compose';
 import { fillMaxWidth, height, testID as testIDModifier } from '@expo/ui/jetpack-compose/modifiers';
 
 import { useNativeColors } from '@/shared/theme';
 
 import type { NativeButtonProps } from './native-button.types';
 
-/** 48dp: the Material minimum touch target, and about the height of the iOS button. */
-const FULL_WIDTH = [fillMaxWidth(), height(48)];
+/** 56dp: the height of the Korpay design's pill buttons (above the 48dp Material minimum touch target). */
+const FULL_WIDTH = [fillMaxWidth(), height(56)];
 
 /**
  * Material 3 button (Android) with the brand `action` color set explicitly. The universal `Button` takes its colors from
@@ -19,6 +19,13 @@ export function NativeButton({ label, onPress, variant = 'filled', disabled, tes
   const common = { onClick: disabled ? undefined : onPress, enabled: !disabled, modifiers };
   const content = <Text>{label}</Text>;
 
+  if (variant === 'tonal') {
+    return (
+      <FilledTonalButton {...common} colors={{ containerColor: colors.tonal, contentColor: colors.text }}>
+        {content}
+      </FilledTonalButton>
+    );
+  }
   if (variant === 'outlined') {
     return (
       <OutlinedButton {...common} colors={{ contentColor: colors.action }}>

@@ -10,7 +10,7 @@ export function FormFooter({ children, bottomPadding }: PropsWithChildren<{ bott
       spacing={spacing.sm}
       style={{
         width: '100%',
-        paddingHorizontal: spacing.md,
+        paddingHorizontal: spacing.lg,
         paddingTop: spacing.sm,
         paddingBottom: bottomPadding,
       }}>

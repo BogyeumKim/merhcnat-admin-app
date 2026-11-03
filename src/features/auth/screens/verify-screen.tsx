@@ -15,8 +15,8 @@ function VerifyFlow({ challenge }: { challenge: ChallengeRequired }) {
   const flow = useVerifyFlow(challenge);
   const { sent } = flow;
 
-  if (flow.step === 'device' && challenge.deviceState !== 'MATCH') {
-    return <DeviceNotice state={challenge.deviceState} onContinue={flow.confirmDevice} onCancel={flow.cancel} />;
+  if (flow.step === 'device') {
+    return <DeviceNotice onContinue={flow.confirmDevice} onCancel={flow.cancel} />;
   }
   if (flow.step === 'method') {
     return (
@@ -31,6 +31,8 @@ function VerifyFlow({ challenge }: { challenge: ChallengeRequired }) {
   }
   return (
     <CodeEntry
+      method={sent?.method ?? 'TOTP'}
+      expired={flow.expired}
       destination={sent?.destination ?? null}
       pending={flow.verifying}
       serverError={flow.errorMessage}
@@ -46,6 +48,7 @@ function VerifyFlow({ challenge }: { challenge: ChallengeRequired }) {
             }
           : undefined
       }
+      onBack={sent ? flow.backToMethod : undefined}
       onCancel={flow.cancel}
     />
   );

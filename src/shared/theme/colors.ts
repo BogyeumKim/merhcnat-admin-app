@@ -66,6 +66,11 @@ const palettes = {
     card: '#FFFFFF',
     tonal: '#EEF1F6',
     fieldBorder: '#8A94A6',
+    /** Hairline of an unselected card (the Korpay design's #E3E7EE), the quiet info panel fill, and the success pair. */
+    hairline: '#E3E7EE',
+    infoSurface: '#F6F7FA',
+    success: '#0B6B3A',
+    successSurface: '#E8F5EE',
   }),
   dark: Object.freeze({
     scheme: 'dark',
@@ -83,6 +88,10 @@ const palettes = {
     card: '#1D2433',
     tonal: '#2A3347',
     fieldBorder: '#6B7690',
+    hairline: '#2A3347',
+    infoSurface: '#151B29',
+    success: '#7DD3A0',
+    successSurface: '#12261B',
   }),
 } as const;
 

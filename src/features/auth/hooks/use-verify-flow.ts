@@ -36,9 +36,12 @@ export function useVerifyFlow(challenge: ChallengeRequired) {
   const runOnce = useRunOnce();
   const isTotp = challenge.methods.some((option) => option.method === 'TOTP');
 
-  const [deviceConfirmed, setDeviceConfirmed] = useState(challenge.deviceState === 'MATCH');
+  // A new device (`NONE`) goes straight to choosing where to get the code (the Korpay design); only a device that replaces
+  // another one (`CHANGED`) is asked first.
+  const [deviceConfirmed, setDeviceConfirmed] = useState(challenge.deviceState !== 'CHANGED');
   const [sent, setSent] = useState<SentCode | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   // After an expired / used-up code a new code is needed right away, whatever the resend cooldown says.
   const [resendNow, setResendNow] = useState(false);
 
@@ -59,9 +62,10 @@ export function useVerifyFlow(challenge: ChallengeRequired) {
   const presentError = useAuthErrorPresenter({
     onInline: (error) => {
       const remaining = Number(error.extras.remainingAttempts);
+      setErrorCode(error.code);
       setErrorMessage(
         error.code === 'OTP_INVALID' && Number.isInteger(remaining) && remaining > 0
-          ? t('errors.OTP_INVALID_REMAINING', { count: remaining })
+          ? t(isTotp ? 'errors.TOTP_INVALID_REMAINING' : 'errors.OTP_INVALID_REMAINING', { count: remaining })
           : t(`errors.${error.code}`),
       );
       if (error.code === 'OTP_EXPIRED') setResendNow(true);
@@ -78,8 +82,12 @@ export function useVerifyFlow(challenge: ChallengeRequired) {
     presentError(error);
   };
 
-  const sendCode = useSendCode({ onMutate: () => setErrorMessage(null), onError: handleError });
-  const verifyCode = useVerifyCode({ onMutate: () => setErrorMessage(null), onError: handleError });
+  const clearError = () => {
+    setErrorMessage(null);
+    setErrorCode(null);
+  };
+  const sendCode = useSendCode({ onMutate: clearError, onError: handleError });
+  const verifyCode = useVerifyCode({ onMutate: clearError, onError: handleError });
 
   const choose = (method: ChallengeMethod) =>
     runOnce((done) =>
@@ -102,7 +110,17 @@ export function useVerifyFlow(challenge: ChallengeRequired) {
     );
 
   const verify = (code: string) =>
-    runOnce((done) => verifyCode.mutate({ channel: sent?.method ?? 'TOTP', code }, { onSettled: done }));
+    runOnce((done) =>
+      verifyCode.mutate(
+        { channel: sent?.method ?? 'TOTP', code },
+        {
+          onSuccess: (result) => {
+            if (result.passwordChangeRequired) router.replace('/password-change');
+          },
+          onSettled: done,
+        },
+      ),
+    );
 
   return {
     step,
@@ -115,6 +133,14 @@ export function useVerifyFlow(challenge: ChallengeRequired) {
     verify,
     cancel,
     confirmDevice: () => setDeviceConfirmed(true),
-    clearError: () => setErrorMessage(null),
+    clearError,
+    isTotp,
+    /** The code ran out of time (or tries): a new one has to be requested. */
+    expired: errorCode === 'OTP_EXPIRED',
+    /** Back to choosing where to get the code (message codes only). */
+    backToMethod: () => {
+      setSent(null);
+      clearError();
+    },
   };
 }

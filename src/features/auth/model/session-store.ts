@@ -8,9 +8,11 @@ import { getAccessToken, setAccessToken, setUnauthorizedHandler } from '@/shared
 import { authFlowActions } from './auth-flow-store';
 import type { UserType } from './user-type';
 
-type State = { userType: UserType | null };
+type PasswordChange = { required: boolean; skippable: boolean };
+type State = { userType: UserType | null; passwordChange: PasswordChange };
 
-const initialState: State = { userType: null };
+const noPasswordChange: PasswordChange = { required: false, skippable: false };
+const initialState: State = { userType: null, passwordChange: noPasswordChange };
 
 /**
  * Signed-in state. The access token itself is NOT here: it lives in memory in `shared/api/session-token`
@@ -19,8 +21,9 @@ const initialState: State = { userType: null };
 const useSessionStore = create(
   combine(initialState, (set) => ({
     actions: {
-      signIn: (userType: UserType) => set({ userType }),
-      clear: () => set({ userType: null }),
+      signIn: (userType: UserType, passwordChange: PasswordChange) => set({ userType, passwordChange }),
+      passwordChanged: () => set({ passwordChange: noPasswordChange }),
+      clear: () => set({ userType: null, passwordChange: noPasswordChange }),
     },
   })),
 );
@@ -33,6 +36,15 @@ export function useSession() {
 }
 
 export const useIsSignedIn = () => useSessionStore((store) => store.userType !== null);
+
+/** Signed in, but the server wants the password changed first (older than 90 days). */
+export const useMustChangePassword = () =>
+  useSessionStore((store) => store.userType !== null && store.passwordChange.required);
+
+export const usePasswordChangeSkippable = () => useSessionStore((store) => store.passwordChange.skippable);
+
+/** The password was changed (or the screen was skipped where that is allowed): the main screens may open. */
+export const markPasswordChanged = () => useSessionStore.getState().actions.passwordChanged();
 
 const signOutHandlers = new Set<() => void>();
 
@@ -48,9 +60,14 @@ export function assertTokenIssued() {
 }
 
 /** Called once authentication fully succeeded (the token is already in memory). */
-export function completeSignIn(userType: UserType) {
+export function completeSignIn(
+  userType: UserType,
+  password: { passwordChangeRequired: boolean; passwordChangeSkippable: boolean } = { passwordChangeRequired: false, passwordChangeSkippable: false },
+) {
   authFlowActions().clear();
-  useSessionStore.getState().actions.signIn(userType);
+  useSessionStore
+    .getState()
+    .actions.signIn(userType, { required: password.passwordChangeRequired, skippable: password.passwordChangeSkippable });
 }
 
 /** Local sign-out: drop the token, the session and any pending challenge, then let handlers clean up. */

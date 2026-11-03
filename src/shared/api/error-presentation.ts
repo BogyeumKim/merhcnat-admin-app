@@ -28,6 +28,9 @@ const presentation: Record<ErrorCode, ErrorPresentation> = {
   DEVICE_INVALID: 'toast',
   PUSH_TOKEN_INVALID: 'toast',
   DEVICE_NOT_FOUND: 'toast',
+  CURRENT_PASSWORD_INVALID: 'inline',
+  PASSWORD_POLICY_VIOLATION: 'inline',
+  PASSWORD_REUSED: 'inline',
   TOO_MANY_REQUESTS: 'inline', // the user has to wait before retrying: a 6-second toast would be gone before they know for how long
   TOKEN_EXPIRED: 'inline',
   NETWORK_ERROR: 'toast',

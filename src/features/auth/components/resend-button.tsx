@@ -1,5 +1,6 @@
 import { useTranslation } from '@/shared/i18n';
-import { NativeButton } from '@/shared/ui/native-button';
+import { LinkText } from '@/shared/ui/link-text';
+import { NativeText } from '@/shared/ui/native-text';
 
 import { useSecondsLeft } from '../hooks/use-seconds-left';
 
@@ -11,21 +12,23 @@ type ResendButtonProps = {
 };
 
 /**
- * "Resend code" with a cooldown, so the server's resend limit is rarely hit. Render it with `key={availableAt}`
- * so a new cooldown starts from a fresh count.
+ * "Resend code": a quiet "27초 후 다시 받기" while the cooldown runs (so the server's resend limit is rarely hit), then a
+ * dark underlined link. Render it with `key={availableAt}` so a new cooldown starts from a fresh count.
  */
 export function ResendButton({ availableAt, pending, onResend }: ResendButtonProps) {
   const { t } = useTranslation();
   const secondsLeft = useSecondsLeft(availableAt);
-  const waiting = secondsLeft > 0;
 
+  if (secondsLeft > 0 || pending) {
+    return (
+      <NativeText variant="subhead" tone="secondary">
+        {t('auth.verify.resendIn', { seconds: secondsLeft })}
+      </NativeText>
+    );
+  }
   return (
-    <NativeButton
-      compact
-      variant="text"
-      disabled={waiting || pending}
-      label={waiting ? t('auth.verify.resendIn', { seconds: secondsLeft }) : t('auth.verify.resend')}
-      onPress={onResend}
-    />
+    <LinkText testID="otp-resend" tone="strong" onPress={onResend}>
+      {t('auth.verify.resend')}
+    </LinkText>
   );
 }

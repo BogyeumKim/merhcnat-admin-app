@@ -19,6 +19,10 @@ export const ERROR_CODES = [
   'DEVICE_INVALID',
   'PUSH_TOKEN_INVALID',
   'DEVICE_NOT_FOUND',
+  /** Password change: the current password was wrong (counts toward the 5-try lock), the new one broke a rule, or it was used recently. */
+  'CURRENT_PASSWORD_INVALID',
+  'PASSWORD_POLICY_VIOLATION',
+  'PASSWORD_REUSED',
   'TOO_MANY_REQUESTS',
   'TOKEN_EXPIRED',
   'NETWORK_ERROR',

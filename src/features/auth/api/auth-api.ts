@@ -31,7 +31,14 @@ const realAuthApi: AuthApi = {
       body: { userId, password, device },
     });
 
-    if (status === 200 && code === 'SUCCESS') return { status: 'AUTHENTICATED', userType: data.userType };
+    if (status === 200 && code === 'SUCCESS') {
+      return {
+        status: 'AUTHENTICATED',
+        userType: data.userType,
+        passwordChangeRequired: data.passwordChangeRequired ?? false,
+        passwordChangeSkippable: data.passwordChangeSkippable ?? false,
+      };
+    }
 
     if (status === 202 && code === 'MFA_REQUIRED') {
       const channels = data.channels ?? [];
@@ -67,7 +74,12 @@ const realAuthApi: AuthApi = {
       body: { challengeToken, channel, otp },
     });
     if (status !== 200 || code !== 'SUCCESS') throw invalidResponse(status);
-    return { status: 'AUTHENTICATED' as const, userType: data.userType };
+    return {
+      status: 'AUTHENTICATED' as const,
+      userType: data.userType,
+      passwordChangeRequired: data.passwordChangeRequired ?? false,
+      passwordChangeSkippable: data.passwordChangeSkippable ?? false,
+    };
   },
 
   logout: async () => {

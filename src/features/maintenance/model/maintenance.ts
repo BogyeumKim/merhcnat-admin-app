@@ -20,3 +20,16 @@ export function maintenanceHref(error: ApiError) {
     },
   };
 }
+
+type Translate = (key: 'maintenance.remainingHoursMinutes' | 'maintenance.remainingMinutes', options: { hours?: number; minutes: number }) => string;
+
+/** "약 1시간 20분" until the end of the window, or `null` when the end is unknown or already past. */
+export function formatRemaining(endAt: string | undefined, t: Translate, now = Date.now()): string | null {
+  const end = isoDate.safeParse(endAt);
+  if (!end.success) return null;
+  const totalMinutes = Math.ceil((new Date(end.data).getTime() - now) / 60_000);
+  if (totalMinutes <= 0) return null;
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return hours > 0 ? t('maintenance.remainingHoursMinutes', { hours, minutes }) : t('maintenance.remainingMinutes', { minutes });
+}

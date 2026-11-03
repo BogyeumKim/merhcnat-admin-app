@@ -7,7 +7,7 @@ export function NativeButton({ label, onPress, variant = 'filled', disabled, tes
   return (
     <Button
       label={label}
-      variant={variant}
+      variant={variant === 'tonal' ? 'filled' : variant}
       disabled={disabled}
       onPress={onPress}
       testID={testID}

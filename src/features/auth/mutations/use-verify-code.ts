@@ -24,7 +24,7 @@ export function useVerifyCode(callbacks?: UseMutationCallback<Authenticated>) {
     gcTime: 0,
     onMutate: () => callbacks?.onMutate?.(),
     onSuccess: (result) => {
-      completeSignIn(result.userType);
+      completeSignIn(result.userType, result);
       void registerDevicePush();
       callbacks?.onSuccess?.(result);
     },

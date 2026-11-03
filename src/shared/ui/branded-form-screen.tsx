@@ -10,8 +10,8 @@ type BrandedFormScreenProps = PropsWithChildren<{
   footer?: ReactNode;
   /** Show the brand tagline under the logo. */
   tagline?: boolean;
-  /** A quiet line at the very bottom of the screen (for example the app version). */
-  bottomNote?: string;
+  /** `@expo/ui` content at the very bottom of the screen, under the scroll (for example the notice card and the app version). */
+  bottomNote?: ReactNode;
 }>;
 
 /**

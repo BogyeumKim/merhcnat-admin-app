@@ -32,6 +32,8 @@ export function useSignIn() {
     onSuccess: (result) => {
       setPasswordResetKey((key) => key + 1);
       if (result.status === 'CHALLENGE_REQUIRED') router.push('/verify');
+      // Signing in swaps the route groups; the password-change screen has to be named, or the stack lands on whichever route is always reachable.
+      else if (result.passwordChangeRequired) router.replace('/password-change');
     },
     onError: presentError,
   });

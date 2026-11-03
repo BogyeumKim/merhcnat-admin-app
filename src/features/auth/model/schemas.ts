@@ -11,7 +11,17 @@ const userTypeSchema = z.custom<UserType>(isUserType, { message: 'Unsupported us
 export const authenticatedSchema = z.object({
   status: z.literal('AUTHENTICATED'),
   userType: userTypeSchema,
+  /** The password is older than the server's limit (90 days): it has to be changed before anything else. */
+  passwordChangeRequired: z.boolean(),
+  /** Whether "later" is allowed. The server says no for now; the app reads the field so a policy change needs no release. */
+  passwordChangeSkippable: z.boolean(),
 });
+
+/** The password-age fields a completed login adds (absent = no change needed). */
+const passwordAgeFields = {
+  passwordChangeRequired: z.boolean().optional(),
+  passwordChangeSkippable: z.boolean().optional(),
+};
 
 /**
  * The password was accepted, but a one-time code is still needed. There is no token yet.
@@ -36,6 +46,7 @@ export const serverLoginDataSchema = z.looseObject({
   deviceState: deviceStateSchema,
   channels: z.array(challengeMethodSchema).optional(),
   challengeToken: z.string().min(1).optional(),
+  ...passwordAgeFields,
 });
 
 /** `data` of `POST /api/auth/otp/send`. The masked phone is the only destination the app ever sees. */
@@ -49,7 +60,7 @@ export const serverSendCodeDataSchema = z.looseObject({
  * `data` of `POST /api/auth/otp/verify`. Only `userType` is read. The access token is NOT in the body: it comes in the
  * `Access-Token` response header (see `shared/api/client.ts`).
  */
-export const serverVerifyDataSchema = z.looseObject({ userType: userTypeSchema });
+export const serverVerifyDataSchema = z.looseObject({ userType: userTypeSchema, ...passwordAgeFields });
 
 export type ChallengeMethod = z.infer<typeof challengeMethodSchema>;
 export type DeviceState = z.infer<typeof deviceStateSchema>;

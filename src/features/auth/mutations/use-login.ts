@@ -35,7 +35,7 @@ export function useLogin(callbacks?: UseMutationCallback<LoginResult>) {
     onMutate: () => callbacks?.onMutate?.(),
     onSuccess: (result) => {
       if (result.status === 'AUTHENTICATED') {
-        completeSignIn(result.userType);
+        completeSignIn(result.userType, result);
         void registerDevicePush();
       } else authFlowActions().start(result);
       callbacks?.onSuccess?.(result);

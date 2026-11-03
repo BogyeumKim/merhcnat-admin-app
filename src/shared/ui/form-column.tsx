@@ -13,7 +13,7 @@ export function FormColumn({ children, bottomPadding }: PropsWithChildren<{ bott
       spacing={spacing.md}
       style={{
         width: '100%',
-        paddingHorizontal: spacing.md,
+        paddingHorizontal: spacing.lg,
         paddingTop: spacing.md,
         paddingBottom: bottomPadding,
       }}>

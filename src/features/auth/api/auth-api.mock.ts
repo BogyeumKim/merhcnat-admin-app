@@ -13,6 +13,7 @@ import { UserType } from '../model/user-type';
  * Scenarios (type the ID):
  *   1234       ID 1234 + password 1234 -> signs in directly (registered device, no code)
  *   merchant   type 1, registered device -> signs in directly
+ *   pwchange   signs in directly, but the password is older than 90 days -> the password-change screen first
  *   kakao      type 1, new device -> device notice, choose KAKAO / SMS, then code
  *   changed    type 1, other device -> device-change notice, choose method, then code
  *   totp       type 0 (authenticator app), registered device -> code (type 0 always needs the code)
@@ -65,7 +66,13 @@ export const mockAuthApi: AuthApi = {
     if (id === '1234') {
       if (password !== '1234') throw invalidCredentials();
       setAccessToken(MOCK_TOKEN);
-      return { status: 'AUTHENTICATED', userType: UserType.Mid };
+      return { status: 'AUTHENTICATED', userType: UserType.Mid, passwordChangeRequired: false, passwordChangeSkippable: false };
+    }
+
+    // The password is past its 90 days: signed in, but the password-change screen comes first.
+    if (id === 'pwchange') {
+      setAccessToken(MOCK_TOKEN);
+      return { status: 'AUTHENTICATED', userType: UserType.Mid, passwordChangeRequired: true, passwordChangeSkippable: false };
     }
 
     switch (id) {
@@ -84,7 +91,7 @@ export const mockAuthApi: AuthApi = {
       }
       case 'merchant':
         setAccessToken(MOCK_TOKEN);
-        return { status: 'AUTHENTICATED', userType: UserType.Mid };
+        return { status: 'AUTHENTICATED', userType: UserType.Mid, passwordChangeRequired: false, passwordChangeSkippable: false };
     }
 
     const account = ACCOUNTS[id];
@@ -93,7 +100,7 @@ export const mockAuthApi: AuthApi = {
     // A registered device with a message-code account needs no code (the server decides; the mock mirrors it).
     if (account.loginType === 1 && account.deviceState === 'MATCH' && id !== 'nophone' && id !== 'lockotp') {
       setAccessToken(MOCK_TOKEN);
-      return { status: 'AUTHENTICATED', userType: account.userType };
+      return { status: 'AUTHENTICATED', userType: account.userType, passwordChangeRequired: false, passwordChangeSkippable: false };
     }
 
     const challengeToken = `mock-challenge-${Date.now()}-${challenges.size}`;
@@ -139,7 +146,7 @@ export const mockAuthApi: AuthApi = {
     wrongInARow.set(challenge.userId, 0);
     challenges.delete(challengeToken);
     setAccessToken(MOCK_TOKEN);
-    return { status: 'AUTHENTICATED', userType: challenge.account.userType };
+    return { status: 'AUTHENTICATED', userType: challenge.account.userType, passwordChangeRequired: false, passwordChangeSkippable: false };
   },
 
   async logout() {

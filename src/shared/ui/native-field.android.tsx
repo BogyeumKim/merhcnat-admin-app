@@ -1,11 +1,11 @@
 import { defaultMinSize, semantics, weight } from '@expo/ui/jetpack-compose/modifiers';
 
-import { FIELD_ROW_HEIGHT, NativeFieldBase } from './native-field-base';
+import { NativeFieldBase } from './native-field-base';
 import type { NativeFieldProps } from './native-field.types';
 
 /** Weighted so the Compose text field takes the row width left over by `trailing`. */
 const FILL_ROW = weight(1);
-const MIN_ROW = [defaultMinSize({ minHeight: FIELD_ROW_HEIGHT })];
+const MIN_ROW = [defaultMinSize({ minHeight: 53 })];
 
 /** Underlined text field (Android). TalkBack reads the label through `contentDescription`. */
 export function NativeField({ accessibilityLabel, ...props }: NativeFieldProps) {

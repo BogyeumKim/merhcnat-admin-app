@@ -11,6 +11,7 @@ const sizes = {
   title: { fontSize: 24, fontWeight: '700' },
   headline: { fontSize: 17, fontWeight: '600' },
   label: { fontSize: 15, fontWeight: '600' },
+  fieldLabel: { fontSize: 13, fontWeight: '700' },
   body: { fontSize: 16, fontWeight: '400' },
   subhead: { fontSize: 14, fontWeight: '400' },
   caption: { fontSize: 12, fontWeight: '400' },

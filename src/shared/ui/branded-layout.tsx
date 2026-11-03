@@ -1,9 +1,10 @@
 import { Column, RNHostView, Spacer } from '@expo/ui';
-import type { PropsWithChildren } from 'react';
+import type { PropsWithChildren, ReactNode } from 'react';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTranslation } from '@/shared/i18n';
+import { useKeyboardVisible } from '@/shared/lib/use-keyboard-visible';
 import { colors, spacing, useWindowLayout } from '@/shared/theme';
 
 import { BrandLogo } from './brand-logo';
@@ -23,10 +24,11 @@ export function BrandedLayout({
   children,
   tagline = false,
   bottomNote,
-}: PropsWithChildren<{ tagline?: boolean; bottomNote?: string }>) {
+}: PropsWithChildren<{ tagline?: boolean; bottomNote?: ReactNode }>) {
   const insets = useSafeAreaInsets();
   const { isTwoPane, isShort, fontScale } = useWindowLayout();
   const { t } = useTranslation();
+  const keyboardVisible = useKeyboardVisible();
 
   if (isTwoPane) {
     return (
@@ -67,7 +69,7 @@ export function BrandedLayout({
         paddingRight: insets.right,
       }}>
       {showLogo ? (
-        tagline ? (
+        tagline && !keyboardVisible ? (
           // Sign-in hero (Korpay design): the wordmark and a two-line title, both left-aligned like the form under them.
           <View style={{ alignItems: 'flex-start', gap: spacing.md, paddingTop: spacing.xl, paddingBottom: spacing.lg, paddingHorizontal: spacing.lg }}>
             <BrandLogo height={36} />
@@ -78,8 +80,8 @@ export function BrandedLayout({
             </NativeHost>
           </View>
         ) : (
-          <View style={{ alignItems: 'flex-start', paddingTop: spacing.xl, paddingBottom: spacing.md, paddingHorizontal: spacing.lg }}>
-            <BrandLogo height={44} />
+          <View style={{ alignItems: 'flex-start', paddingTop: tagline ? spacing.md : spacing.xl, paddingBottom: spacing.md, paddingHorizontal: spacing.lg }}>
+            <BrandLogo height={tagline ? 28 : 44} />
           </View>
         )
       ) : null}
@@ -87,13 +89,7 @@ export function BrandedLayout({
       {bottomNote ? (
         // Under the form, outside its keyboard-aware scroll: the keyboard simply covers it.
         <View style={{ paddingBottom: insets.bottom + spacing.md }}>
-          <NativeHost>
-            <Column alignment="center" style={{ width: '100%' }}>
-              <NativeText variant="caption" tone="secondary" center>
-                {bottomNote}
-              </NativeText>
-            </Column>
-          </NativeHost>
+          <NativeHost>{bottomNote}</NativeHost>
         </View>
       ) : null}
     </View>

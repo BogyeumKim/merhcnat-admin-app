@@ -12,6 +12,7 @@ const textStyles = {
   title: font({ textStyle: 'title2', weight: 'bold' }),
   headline: font({ textStyle: 'headline' }),
   label: font({ textStyle: 'subheadline', weight: 'semibold' }),
+  fieldLabel: font({ textStyle: 'footnote', weight: 'bold' }),
   body: font({ textStyle: 'body' }),
   subhead: font({ textStyle: 'subheadline' }),
   caption: font({ textStyle: 'caption' }),
