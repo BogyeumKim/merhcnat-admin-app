@@ -16,9 +16,8 @@ paths:
   - 셸 밖에서 `@expo/ui` 컬럼을 직접 만들면 `useContentWidthModifiers()`(`shared/ui/content-width`)를 `modifiers`로 주고, 부모 `Column`에 `alignment="center"`.
   - RN `View` 래퍼는 `{ width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' }`.
   - 범용 `@expo/ui` `style`에는 maxWidth가 없다. iOS는 `frame({ maxWidth })`, Android는 `width(CONTENT_MAX_WIDTH)`(Compose에 widthIn 미노출, `width`는 부모 제약 안으로 맞춰져 좁은 부모에서는 부모 폭) — `content-width.*`에 이미 있다. 최대 폭 modifier와 패딩은 다른 `Column` 층에 둔다(`ContentColumn`): Android는 `style` 패딩이 사용자 modifier보다 바깥이라 같은 층이면 528 + 패딩이 된다.
-- **로그인 셸(`BrandedLayout`)은 `isSplit`(넓고 가로·정사각형에 가까운 창: 펼친 Duo 가로, 펼친 Fold)에서 좌우 분할**한다(Korpay 리디자인 PDF). 왼쪽 `canvas`에 로고·문구, 오른쪽에 폼, 정확히 반씩 나눠 접히는 선을 넘는 요소가 없게 한다. 세로로 긴 넓은 창은 한 컬럼 가운데 정렬.
-  - 반반은 두 영역에 `width: '50%'`로 준다. 패딩이 있는 영역끼리 `flex: 1`로 나누지 않는다: Yoga는 flex-basis 0을 영역의 패딩 합 이상으로 올려 잡아, 패딩이 큰 쪽이 그만큼 넓어진다(펼친 Fold 실측 왼쪽 54%, 816dp 중 440dp). safe area·여백은 50% 영역 **안쪽** View에만 준다(좌우 인셋이 달라도 경계는 창 가운데에 남는다).
-  - 탭 화면 상단 바(`AppHeader`) 같은 셸 밖 RN 행도 본문과 같은 `CONTENT_MAX_WIDTH`로 가운데 둔다(창 끝까지 늘리지 않는다). 다른 화면도 접히는 선(화면 가운데)을 가로지르는 입력·버튼을 만들지 않는다.
+- **모든 화면은 창 크기와 상관없이 같은 한 컬럼**이다(로그인·차단 화면 포함, 2026-11 확정). 좌우 분할이나 폴더블 전용 레이아웃을 만들지 않는다(Apple iPhone Duo HIG, Android 적응형 가이드, Expo "Supporting iPhone Duo"). 넓은 창은 같은 컬럼을 `CONTENT_MAX_WIDTH`로 가운데 두고 위 여백만 늘린다(`useHeroTopSpacing()`).
+  - 탭 화면 상단 바(`AppHeader`) 같은 셸 밖 RN 행도 본문과 같은 `CONTENT_MAX_WIDTH`로 가운데 둔다(창 끝까지 늘리지 않는다).
 - 막대처럼 남는 폭을 채우는 요소는 폭을 계산하지 말고 유연한 `Spacer`(iOS `Spacer`, Android `weight(1)`)로 둔다(`StepBars`: 라벨·버튼이 자연 폭을 먼저 받는다). 같은 칸을 나란히 늘어놓는 행(OTP 6칸)도 칸 폭을 창 폭으로 계산하지 않는다: 칸마다 `FILL_ROW`(iOS `frame(maxWidth: .infinity)`, Android `weight(1)`)를 줘 부모 콘텐츠 폭을 똑같이 나눈다(창보다 좁은 폼 시트에서 계산이 어긋난다). 겹치는 입력란도 같은 유연 크기로 채운다.
 - **탭 바**: Android `NativeTabs`(expo-router 58, react-native-screens 4.30)는 Material `BottomNavigationView`만 쓴다. 내비게이션 레일/adaptive navigation suite 옵션이 없다(iOS만 `sidebarAdaptable`/`preferredPlacement`). 넓은 창에서도 하단 탭을 그대로 두고, JS 레일/커스텀 탭 바를 만들지 않는다(`bottom-tabs.md`).
 - **헤더 없는 전체 화면의 위쪽 여백은 `useScreenTopInset()`**(`shared/lib`)을 쓴다. 창 모드에서는 왼쪽 위 창 컨트롤(●●●)이 safe area top만으로는 로고/제목과 겹친다.
@@ -44,7 +43,7 @@ paths:
 | 시나리오 | 확인 |
 | --- | --- |
 | 접힌 폰 / 320dp 좁은 창 | 잘림·가로 스크롤 없음 |
-| 펼친 iPhone Duo·Galaxy Fold(세로/가로) | 콘텐츠가 가운데 최대 폭, 한쪽 쏠림 없음, 로고/제목 표시 |
+| 펼친 iPhone Duo·Galaxy Fold(세로/가로) | 폰과 같은 한 컬럼이 가운데 최대 폭, 한쪽 쏠림 없음, 로고/제목 표시 |
 | 폼 시트를 펼친 상태에서 열기 | 시트 안 내용 가운데(본문·푸터 같은 축), 버튼이 시트 폭을 넘지 않음. Android는 시트가 640dp 가운데 카드. 시트 위 끝이 창 맨 위에 붙지 않음(56/72dp) |
 | 폼 시트 + 글꼴 최대(iOS AX5, Android 2.0) | 위 여백 없음, 하단 버튼이 스크롤 맨 끝(고정 아님), 나란한 버튼은 세로로 쌓임, 잘린 글자 없음 |
 | iOS 27 창 모드, 창 크기 조절 | 창 컨트롤과 겹침 없음, 크기 바꿔도 입력값 유지 |

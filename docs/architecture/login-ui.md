@@ -11,9 +11,9 @@
 | `/maintenance` | 점검 안내(modal, 디자인 1-10): 제목·설명은 i18n, 카드에는 시작·종료 예정 시각(`startedAt`/`endsAt`를 앱 언어로 포맷, 없으면 행 숨김)만. 남은 시간·영향 범위·서버 문구는 표시하지 않음. [로그인 화면으로](iOS·Android 공통, 기본 채움 버튼)는 기기 시각과 무관하게 항상 로그인으로(교체 또는 로그인까지 닫기, 뒤로가기 아님). 점검이 계속되면 다음 요청이 503 `MAINTENANCE`로 다시 이 화면을 띄움 | `features/maintenance/` |
 | (오류) | 렌더 오류 폴백 | `app/_layout.tsx`의 `ErrorBoundary`(스택은 `core/navigation/root-stack.tsx`) → `shared/ui/error-screen.tsx` |
 
-디자인(방향 A): 가운데 정렬 한 열. 워드마크만(심벌 없음) + 한 줄 문구, 그 아래 위쪽 라벨 + 밑줄 입력창, 비밀번호 눈 아이콘, **로그인 버튼은 입력 바로 아래**(입력 전 회색 비활성), 화면 맨 아래에 앱 버전 한 줄. 참고: KREAM·아이엠그라운드·여기어때 같은 로그인 화면의 공통점(워드마크 중심, 단일 주 버튼). 이 앱은 아이디/비밀번호만 지원하므로 소셜 로그인·가입·찾기는 없다. 밑줄은 대비 3:1 이상(`fieldBorder`), 포커스는 2pt. 오류는 테두리 색이 아니라 칸 아래 문구로 알린다. 화면에 들어와도 아이디 칸에 자동 포커스하지 않는다(키보드는 사용자가 입력란을 누를 때만 올라온다). 로고는 `korpay-logo.svg`(Poppins SemiBold, SIL OFL 1.1, 윤곽선 변환 + K 전체 브랜드 빨강). 다른 로고로 바꾸려면 파일과 `brand-logo.tsx`의 `LOGO_ASPECT_RATIO`만 바꾼다.
+디자인(방향 A): 가운데 정렬 한 열. 워드마크만(심벌 없음) + 한 줄 문구, 그 아래 위쪽 라벨 + 밑줄 입력창, 비밀번호 눈 아이콘, **로그인 버튼은 항상 하단 고정**(`footer`, 키보드 위. 입력 전 회색 비활성, 손쉬운 사용 글꼴에서는 스크롤 맨 끝), **"로그인이 안 되나요?" 링크는 비밀번호 칸(과 그 아래 오류 문구) 바로 아래 오른쪽**(Baymard: 도움말은 비밀번호 칸 근처 오른쪽/아래). 앱 버전 줄은 없다(설정 화면에서 본다). 폰·펼친 폴더블·태블릿·창 모드 모두 같은 배치이고 좌우 분할은 없다(넓은 창은 `CONTENT_MAX_WIDTH`로 가운데). 참고: KREAM·아이엠그라운드·여기어때 같은 로그인 화면의 공통점(워드마크 중심, 단일 주 버튼). 이 앱은 아이디/비밀번호만 지원하므로 소셜 로그인·가입·찾기는 없다. 밑줄은 대비 3:1 이상(`fieldBorder`), 포커스는 2pt. 오류는 테두리 색이 아니라 칸 아래 문구로 알린다. 화면에 들어와도 아이디 칸에 자동 포커스하지 않는다(키보드는 사용자가 입력란을 누를 때만 올라온다). 로고는 `korpay-logo.svg`(Poppins SemiBold, SIL OFL 1.1, 윤곽선 변환 + K 전체 브랜드 빨강). 다른 로고로 바꾸려면 파일과 `brand-logo.tsx`의 `LOGO_ASPECT_RATIO`만 바꾼다.
 
-레이아웃/키보드/글꼴은 `shared/ui/branded-layout.tsx`, `branded-form-screen.tsx`, `native-*.tsx` 한 곳에서 정한다 (`responsive-ui.md`).
+레이아웃/키보드/글꼴은 `shared/ui/branded-form-screen.tsx`(배경 + safe area + `NativeFormScroll`, 첫 요소 `BrandHero`), `brand-hero.tsx`, `native-*.tsx`에서 정한다 (`responsive-ui.md`). 로그인 폼(`login-form.tsx`)은 창 크기로 분기하지 않는다.
 
 ## 흐름
 
@@ -31,7 +31,7 @@
 3. 성공 시 `completeSignIn(userType)` → 세션 store 갱신 → `Stack.Protected`가 `(tabs)`로 전환. 로그인이 끝날 때마다 알림 권한을 요청하고 `PUT /api/devices/me`로 서버에 알린다(`device-push.ts`).
 4. 오류는 `ApiError.code`로 분류해 보여준다 (`feedback-ux.md`). **남은 시도 횟수는 어디에도 표시하지 않는다**(서버가 보내도 무시).
    - 자격 증명 실패: 아이디·비밀번호 칸에 빨간 테두리 없이 비밀번호 칸 아래 문구, 비밀번호만 비움.
-   - 차단 화면(잠김 `ACCOUNT_LOCKED`·정지·점검·필수 업데이트·보안 위험 기기·세션 종료)은 모두 `BlockingScreenLayout`이고 Android 뒤로가기는 앱 종료(`useBlockBackButton(true, 'exit')`). 고객센터 연락은 `SupportContactButtons`(`openSupportChat`/`openSupportPhone`).
+   - 차단 화면(잠김 `ACCOUNT_LOCKED`·정지·점검·필수 업데이트·보안 위험 기기·세션 종료)은 모두 `BlockingScreenLayout`이고(모든 창에서 한 컬럼: 로고·상태 헤더·상세가 스크롤 안, 버튼은 아래 고정, 폴더블 좌우 분할 없음. 로고 숨김·위 여백은 로그인 히어로와 같은 규칙) Android 뒤로가기는 앱 종료(`useBlockBackButton(true, 'exit')`). 고객센터 연락은 `SupportContactButtons`(`openSupportChat`/`openSupportPhone`).
    - 네트워크 오류·타임아웃(요청 10초, `shared/api/client.ts`)은 입력값을 유지하고 일반 오류 토스트(`showErrorToast`, id `error:<code>`, 자동으로 사라짐, `errors.NETWORK_ERROR`/`errors.TIMEOUT` 문구)를 띄운다. 재시도 버튼은 없고 사용자가 [로그인]을 다시 누른다. 챌린지 토큰 만료·발송 한도는 토스트 + 시트 닫기.
    - Android 뒤로가기: 로그인 폼이 보일 때만 두 번 눌러 종료(`useDoubleBackToExit`), 세션 종료 안내가 보이는 동안은 꺼져 한 번에 종료한다.
    - "로그인이 안 되나요?" 도움말 시트(`login-help-screen.tsx`): 한 번에 하나만 펼치는 아코디언 + 스크롤되지 않는 하단 [카카오톡 상담] [전화 상담].

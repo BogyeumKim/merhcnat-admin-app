@@ -42,7 +42,7 @@ npx expo install --fix       # 호환되지 않는 버전 수정
 - **개발은 로컬 prebuild 기준**: `npx expo prebuild` → `npx expo run:ios` / `run:android`. EAS development build는 쓰지 않는다. `ios/`, `android/`는 gitignore 대상이며 생성물이다.
 - (배경) SDK 58용 스토어 Expo Go는 2026-10 현재 출시 전(체인지로그: "within a few weeks")이고, 출시 후에도 SDK 58만 지원하며 운영 앱 개발 환경으로 권장되지 않는다.
 - 홈/전체메뉴: 카테고리 카탈로그(`features/menu`)와 계정 타입별 capability. `docs/architecture/home-menu.md`
-- **폴더블·넓은 창**: 모든 화면은 펼친 iPhone Duo/Galaxy Fold, 태블릿, 창 모드에서 정상이어야 한다. 콘텐츠는 `CONTENT_MAX_WIDTH`로 가운데 정렬(`FormColumn`), 로그인은 펼친 폴더블(넓고 가로·정사각형 창)에서 좌우 분할(`isSplit`, 접히는 선 기준 반반), 그 외 한 컬럼, 헤더 없는 화면 위쪽은 `useScreenTopInset()`. 규칙 `.claude/rules/adaptive-layout.md`, 훅 `check-adaptive-layout.sh`가 금지 패턴을 차단.
+- **폴더블·넓은 창**: 모든 화면은 펼친 iPhone Duo/Galaxy Fold, 태블릿, 창 모드에서 정상이어야 한다. 콘텐츠는 `CONTENT_MAX_WIDTH`로 가운데 정렬(`FormColumn`), 로그인·차단 화면 포함 모든 화면이 폰·폴더블·태블릿에서 같은 한 컬럼(좌우 분할·폴더블 전용 레이아웃 없음), 헤더 없는 화면 위쪽은 `useScreenTopInset()`. 규칙 `.claude/rules/adaptive-layout.md`, 훅 `check-adaptive-layout.sh`가 금지 패턴을 차단.
 - 하단 탭: iOS/Android 모두 항상 `NativeTabs`(iOS Liquid Glass, Android Material 3). JS 탭/커스텀 탭 바 금지. 규칙은 `.claude/rules/bottom-tabs.md`.
 
 ## 자동 강제 (hooks, lint)
