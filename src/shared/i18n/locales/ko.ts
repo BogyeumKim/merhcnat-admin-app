@@ -73,7 +73,6 @@ export const ko: typeof en = {
     INVALID_RESPONSE: '서버에서 예상하지 못한 응답을 받았습니다.',
   },
   auth: {
-    version: '버전 {{version}}',
     tagline: '매출과 정산을\n한곳에서 확인하세요',
     userId: '아이디',
     password: '비밀번호',

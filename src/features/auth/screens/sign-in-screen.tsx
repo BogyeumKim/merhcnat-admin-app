@@ -4,7 +4,7 @@ import { LoginForm } from '../components/login-form';
 import { SessionEndedNotice } from '../components/session-ended-notice';
 import { useSignIn } from '../hooks/use-sign-in';
 
-/** 로그인 화면. 서버가 세션을 종료한 뒤에는 먼저 로그아웃 안내를 보여주고, 그 버튼이 폼을 드러낸다. 넓은 창(펼친 폴더블) 배치는 `BrandedLayout`이 맡는다. */
+/** 로그인 화면. 서버가 세션을 종료한 뒤에는 먼저 로그아웃 안내를 보여주고, 그 버튼이 폼을 드러낸다. 모든 창 크기에서 같은 한 컬럼(`BrandedFormScreen`). */
 export default function SignInScreen() {
   const { pending, formError, passwordResetKey, sessionEnded, submit, dismissFormError, acknowledgeSessionEnded } = useSignIn();
   // 자동 포커스 없음: 화면에 들어와도 키보드를 올리지 않는다. 사용자가 입력란을 눌러 시작한다.

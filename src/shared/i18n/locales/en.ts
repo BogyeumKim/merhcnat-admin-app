@@ -70,7 +70,6 @@ export const en = {
     INVALID_RESPONSE: 'Received an unexpected response from the server.',
   },
   auth: {
-    version: 'Version {{version}}',
     tagline: 'Sales and payouts,\nall in one place',
     userId: 'ID',
     password: 'Password',

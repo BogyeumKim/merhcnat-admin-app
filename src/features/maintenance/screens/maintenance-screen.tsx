@@ -12,7 +12,7 @@ import { useMaintenance } from '../hooks/use-maintenance';
  * 서버 점검 중 앱을 막는다(디자인 1-10). 제목·설명은 앱 문구(i18n)만 쓰고, 카드에는 시작·종료 예정 시각만 보여준다
  * (서버가 주지 않은 행은 숨김). 서버 `message`나 점검 사유는 표시하지 않는다. 닫을 수 없고 Android 뒤로가기는 앱 종료.
  * 아래 버튼은 iOS/Android 모두 [로그인 화면으로](항상 로그인으로 이동).
- * 분할 창은 `BlockingScreenLayout`이 왼쪽(로고·아이콘·제목·설명) / 오른쪽(카드·버튼)으로 나눈다. 동작은 `useMaintenance`.
+ * 배치는 `BlockingScreenLayout`(모든 창 한 컬럼, 버튼 아래 고정). 동작은 `useMaintenance`.
  */
 export default function MaintenanceScreen() {
   const { t } = useTranslation();

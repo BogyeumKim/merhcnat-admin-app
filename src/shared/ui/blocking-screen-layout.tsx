@@ -1,12 +1,13 @@
-import type { Icon } from '@expo/ui';
+import { Column, type Icon } from '@expo/ui';
 import type { ComponentProps, ReactNode } from 'react';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useScreenTopInset } from '@/shared/lib/use-screen-top-inset';
-import { CONTENT_MAX_WIDTH, spacing, useNativeColors, useWindowLayout } from '@/shared/theme';
+import { spacing, useNativeColors, useWindowLayout } from '@/shared/theme';
 
-import { BrandLogo } from './brand-logo';
+import { useHeroTopSpacing } from './brand-hero';
+import { BrandLogoHost } from './brand-logo';
 import { NativeFormScroll } from './native-form-scroll';
 import { NativeHost } from './native-host';
 import { StatusHeader, type StatusTone } from './status-header';
@@ -29,61 +30,18 @@ type BlockingScreenLayoutProps = {
 const LOGO_HEIGHT = 32;
 
 /**
- * 차단 화면(점검·계정 잠김·필수 업데이트·보안 위험 기기·자동 로그아웃) 공용 셸 (PDF p33~42).
- *  - 분할 창(`isSplit`: 펼친 iPhone Duo 가로·Galaxy Fold): 접히는 선 기준 정확히 반반. 왼쪽 `canvas`에 로고 + 상태 배지 + 제목 + 설명,
- *    오른쪽에 상세 카드(배지 높이에서 시작) + 아래 고정 버튼. 반반은 `width: '50%'`, 여백은 안쪽 View에만 준다(`BrandedLayout`과 같은 이유).
- *  - 그 외(폰·세로로 긴 넓은 창): 한 컬럼. 로고 아래 배지·제목·설명·상세가 스크롤되고 버튼은 아래 고정, `CONTENT_MAX_WIDTH`로 가운데.
- *  큰 글꼴·낮은 창에서도 잘리지 않게 양쪽 모두 네이티브 스크롤(`NativeFormScroll`)이다. 뒤로가기 차단은 화면이 `useBlockBackButton(true, 'exit')`로 한다.
+ * 차단 화면(점검·계정 잠김·정지·필수 업데이트·보안 위험 기기·자동 로그아웃) 공용 셸 (PDF p33~42).
+ *  모든 창에서 한 컬럼이다(폴더블 좌우 분할 없음, `CONTENT_MAX_WIDTH`로 가운데는 `FormColumn`이 맡음).
+ *  로그인과 같은 구조: 로고 + 상태 헤더(배지·제목·설명) + 상세가 스크롤 **안**에 있고, 버튼(`actions`)은 아래 고정 푸터.
+ *  손쉬운 사용 글꼴에서는 푸터가 스크롤 맨 끝으로 옮겨진다(`NativeFormScroll`). 뒤로가기 차단은 화면이 `useBlockBackButton(true, 'exit')`로 한다.
  */
 export function BlockingScreenLayout({ icon, tone, title, description, details, actions }: BlockingScreenLayoutProps) {
   const insets = useSafeAreaInsets();
   const topInset = useScreenTopInset();
   const native = useNativeColors();
-  const { isSplit, isShort, fontScale, height } = useWindowLayout();
-  const showLogo = fontScale <= 1.5 && !(isShort && !isSplit);
-  const header = (
-    <StatusHeader
-      icon={icon}
-      tone={tone}
-      title={title}
-      body={description}
-    />
-  );
-
-  if (isSplit) {
-    const splitTop = Math.max(spacing.xl, Math.round(height * 0.08));
-    // 오른쪽 상세 카드는 왼쪽 배지와 같은 높이에서 시작한다(디자인). 왼쪽: 로고 + 간격 + (FormColumn 위 패딩) + 배지.
-    const detailsTop = showLogo ? LOGO_HEIGHT + spacing.lg : 0;
-    return (
-      <View style={{ flex: 1, flexDirection: 'row', backgroundColor: native.background }}>
-        <View style={{ width: '50%', backgroundColor: native.canvas }}>
-          <View style={{ flex: 1, paddingTop: topInset + splitTop, paddingLeft: insets.left }}>
-            {showLogo ? (
-              <View style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.lg }}>
-                <BrandLogo height={LOGO_HEIGHT} />
-              </View>
-            ) : null}
-            <NativeHost fill>
-              <NativeFormScroll bottomInset={insets.bottom}>{header}</NativeFormScroll>
-            </NativeHost>
-          </View>
-        </View>
-        <View style={{ width: '50%' }}>
-          <View style={{ flex: 1, paddingTop: topInset + splitTop + detailsTop, paddingRight: insets.right }}>
-            <NativeHost fill>
-              <NativeFormScroll
-                bottomInset={insets.bottom}
-                footer={actions}>
-                {details}
-              </NativeFormScroll>
-            </NativeHost>
-          </View>
-        </View>
-      </View>
-    );
-  }
-
-  const column = { width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' } as const;
+  const { isShort, isLargeText } = useWindowLayout();
+  // 로그인 히어로와 같은 규칙: 기본 글꼴의 낮은 창(가로 폰·분할 화면)에서만 뺀다. 큰 글꼴은 어차피 스크롤하므로 보인다.
+  const showLogo = !isShort || isLargeText;
 
   return (
     <View
@@ -94,19 +52,32 @@ export function BlockingScreenLayout({ icon, tone, title, description, details, 
         paddingLeft: insets.left,
         paddingRight: insets.right,
       }}>
-      {showLogo ? (
-        <View style={[column, { alignItems: 'flex-start', paddingTop: spacing.xl, paddingBottom: spacing.sm, paddingHorizontal: spacing.lg }]}>
-          <BrandLogo height={LOGO_HEIGHT} />
-        </View>
-      ) : null}
       <NativeHost fill>
         <NativeFormScroll
           bottomInset={insets.bottom}
           footer={actions}>
-          {header}
+          {showLogo ? <BlockingLogo /> : null}
+          <StatusHeader
+            icon={icon}
+            tone={tone}
+            title={title}
+            body={description}
+          />
           {details}
         </NativeFormScroll>
       </NativeHost>
     </View>
+  );
+}
+
+/** 스크롤 안 첫 요소인 로고. 위 여백은 로그인 히어로와 같은 `useHeroTopSpacing()`. */
+function BlockingLogo() {
+  const heroTop = useHeroTopSpacing();
+
+  return (
+    // 위: `FormColumn` 위 패딩(md)을 빼서 로그인 히어로와 같은 시작 높이. 아래: 컬럼 간격(md) + sm = 이전 로고~배지 간격.
+    <Column style={{ width: '100%', paddingTop: heroTop - spacing.md, paddingBottom: spacing.sm }}>
+      <BrandLogoHost height={LOGO_HEIGHT} />
+    </Column>
   );
 }

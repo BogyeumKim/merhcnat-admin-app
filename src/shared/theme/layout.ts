@@ -53,20 +53,14 @@ export function useWindowLayout() {
   const isLandscape = width > height;
   /** 펼친 폴더블, 태블릿, 넓은 창: 콘텐츠를 `CONTENT_MAX_WIDTH`로 가운데 둔다. */
   const isWide = widthClass !== 'compact';
-  /**
-   * 좌우 두 영역(디자인: 펼친 iPhone Duo 가로, 펼친 Galaxy Fold): 넓고 가로이거나 정사각형에 가까운 창.
-   * 접히는 선이 화면 가운데라 두 영역을 정확히 반씩 나누면 어떤 요소도 접히는 선을 넘지 않는다.
-   * 세로로 긴 넓은 창(태블릿·펼친 Duo 세로)은 한 컬럼이 낫다.
-   */
-  const isSplit = isWide && width >= height * 0.85;
   /** 세로 공간이 매우 적을 때(휴대폰 가로, 분할 화면): 장식 요소를 줄인다. */
   const isShort = height < 520;
 
   /**
-   * 폼 시트를 부분 높이 대신 전체 높이(detent `[1]`)로 띄워야 하는 창: 창이 낮거나(펼친 폴더블 가로, 휴대폰 가로, 분할 화면),
-   * 좌우 분할 창이거나, 글꼴이 커서 부분 높이에서는 하단 버튼 뒤로 내용이 가려지는 경우. 휴대폰 세로 기본 글꼴은 그대로 부분 높이.
+   * 폼 시트를 부분 높이 대신 전체 높이(detent `[1]`)로 띄워야 하는 창: 창이 낮거나(펼친 폴더블: Duo 951×669pt·Fold 816×616dp,
+   * 휴대폰 가로, 분할 화면), 글꼴이 커서 부분 높이에서는 하단 버튼 뒤로 내용이 가려지는 경우. 휴대폰 세로 기본 글꼴은 그대로 부분 높이.
    */
-  const prefersFullSheet = height < PARTIAL_SHEET_MIN_HEIGHT || isSplit || fontScale >= PARTIAL_SHEET_MAX_FONT_SCALE;
+  const prefersFullSheet = height < PARTIAL_SHEET_MIN_HEIGHT || fontScale >= PARTIAL_SHEET_MAX_FONT_SCALE;
 
   /** 손쉬운 사용 글꼴 크기(`LARGE_TEXT_FONT_SCALE` 이상): 가로로 나란한 버튼은 세로로 쌓고, 시트 위 여백을 없앤다. */
   const isLargeText = fontScale >= LARGE_TEXT_FONT_SCALE;
@@ -96,7 +90,6 @@ export function useWindowLayout() {
     widthClass,
     isLandscape,
     isWide,
-    isSplit,
     isShort,
     isLargeText,
     prefersFullSheet,

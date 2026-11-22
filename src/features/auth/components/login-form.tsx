@@ -1,11 +1,9 @@
-import { Column, Row, Spacer } from '@expo/ui';
+import { Row, Spacer } from '@expo/ui';
 import { Controller } from 'react-hook-form';
-import { Platform } from 'react-native';
 
 import { useValidationMessage } from '@/shared/forms/validation';
 import { useTranslation } from '@/shared/i18n';
 import { openSheet } from '@/shared/lib/open-sheet';
-import { useWindowLayout } from '@/shared/theme';
 import { BrandedFormScreen } from '@/shared/ui/branded-form-screen';
 import { ClearButton } from '@/shared/ui/clear-button';
 import { FormAlert } from '@/shared/ui/form-alert';
@@ -13,7 +11,6 @@ import { LabeledField } from '@/shared/ui/labeled-field';
 import { LinkText } from '@/shared/ui/link-text';
 import { NativeButton } from '@/shared/ui/native-button';
 
-import { AppVersionNote } from './app-version-note';
 import { useLoginForm } from '../hooks/use-login-form';
 import { PASSWORD_MAX_LENGTH, USER_ID_MAX_LENGTH, type LoginValues } from '../model/forms';
 
@@ -21,7 +18,7 @@ import { PASSWORD_MAX_LENGTH, USER_ID_MAX_LENGTH, type LoginValues } from '../mo
  * 아이디 칸은 영문 키보드로 연다. iOS `ascii-capable`은 영문 자판을 띄운다. Android universal 매핑은 `ascii-capable`을
  * 일반 `text`로 바꿔 한글 자판이 그대로 남으므로, 영문 자판으로 시작하는 이메일 자판을 쓴다.
  */
-const USER_ID_KEYBOARD = Platform.OS === 'ios' ? 'ascii-capable' : 'email-address';
+const USER_ID_KEYBOARD = process.env.EXPO_OS === 'ios' ? 'ascii-capable' : 'email-address';
 
 type LoginFormProps = {
   pending: boolean;
@@ -51,8 +48,8 @@ export function LoginForm({ pending, formError, passwordResetKey, onSubmit, onEd
     changeUserId,
     changePassword,
   } = useLoginForm({ pending, passwordResetKey, onSubmit, onEdit });
-  const { isSplit } = useWindowLayout();
 
+  // 모든 창 크기에서 같은 배치: 버튼은 하단 고정(`footer`), 도움말은 비밀번호 칸 바로 아래 오른쪽.
   const submitButton = (
     <NativeButton
       testID="login-submit"
@@ -63,15 +60,9 @@ export function LoginForm({ pending, formError, passwordResetKey, onSubmit, onEd
       onPress={() => void submit()}
     />
   );
-  const helpLink = (
-    <LinkText testID="login-help" onPress={() => void openSheet('/login-help')}>
-      {t('auth.loginHelp')}
-    </LinkText>
-  );
 
-  // 폰: 버튼은 하단 고정, 도움말은 입력란 아래 오른쪽. 좌우 분할(디자인): 버튼을 입력란 바로 아래, 도움말은 그 아래 가운데.
   return (
-    <BrandedFormScreen tagline bottomNote={<AppVersionNote />} footer={isSplit ? undefined : submitButton}>
+    <BrandedFormScreen tagline footer={submitButton}>
       <Controller
         control={control}
         name="userId"
@@ -145,19 +136,12 @@ export function LoginForm({ pending, formError, passwordResetKey, onSubmit, onEd
           </>
         )}
       />
-      {isSplit ? (
-        <>
-          {submitButton}
-          <Column alignment="center" style={{ width: '100%' }}>
-            {helpLink}
-          </Column>
-        </>
-      ) : (
-        <Row alignment="center" style={{ width: '100%' }}>
-          <Spacer flexible />
-          {helpLink}
-        </Row>
-      )}
+      <Row alignment="center" style={{ width: '100%' }}>
+        <Spacer flexible />
+        <LinkText testID="login-help" onPress={() => void openSheet('/login-help')}>
+          {t('auth.loginHelp')}
+        </LinkText>
+      </Row>
     </BrandedFormScreen>
   );
 }
