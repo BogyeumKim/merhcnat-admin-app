@@ -7,11 +7,6 @@ const BUTTON_TRAIT = accessibilityAddTraits(['isButton']);
 /** 투명한 여백까지 누를 수 있게: 없으면 44pt frame 안에서도 글리프 픽셀만 탭에 반응한다. */
 const HIT_AREA = contentShape(shapes.rectangle());
 const TARGET = { width: ICON_BUTTON_TARGET, height: ICON_BUTTON_TARGET } as const;
-const WEIGHTS = {
-  regular: font({ weight: 'regular' }),
-  medium: font({ weight: 'medium' }),
-  semibold: font({ weight: 'semibold' }),
-} as const;
 
 /**
  * 아이콘 전용 버튼 (iOS). `@expo/ui` 58의 iOS `Icon`은 `accessibilityLabel` prop을 무시하므로(설치본 소스 확인)
@@ -19,6 +14,8 @@ const WEIGHTS = {
  */
 export function IconButton({ icon, label, onPress, size = 24, color, weight, testID }: IconButtonProps) {
   const a11y = [HIT_AREA, accessibilityLabel(label), BUTTON_TRAIT];
+  // 굵기는 `font` modifier로 주되 size도 같이 넣는다: `@expo/ui` Image는 modifiers에 `font`가 있으면 `size` prop을
+  //  버리고(swift-ui/Image transformNativeProps), size 없는 FontModifier는 `.system(size: 17)`이 된다(FontModifier.swift).
   return (
     <Icon
       name={icon}
@@ -26,7 +23,7 @@ export function IconButton({ icon, label, onPress, size = 24, color, weight, tes
       color={color}
       onPress={onPress}
       testID={testID}
-      modifiers={weight ? [WEIGHTS[weight], ...a11y] : a11y}
+      modifiers={weight ? [font({ weight, size }), ...a11y] : a11y}
       style={TARGET}
     />
   );
