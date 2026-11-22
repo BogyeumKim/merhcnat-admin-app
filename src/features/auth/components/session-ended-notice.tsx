@@ -3,7 +3,6 @@ import { useTranslation } from '@/shared/i18n';
 import { useBlockBackButton } from '@/shared/lib/use-block-back-button';
 import { BlockingScreenLayout } from '@/shared/ui/blocking-screen-layout';
 import { icons } from '@/shared/ui/icons';
-import { NativeButton } from '@/shared/ui/native-button';
 
 import { useSessionEndReason } from '../model/session-store';
 
@@ -29,7 +28,7 @@ export function SessionEndedNotice({ onContinue }: { onContinue: () => void }) {
       icon={header.icon}
       title={header.title}
       description={header.body}
-      actions={<NativeButton testID="session-expired-signin" label={t('sessionExpired.action')} onPress={onContinue} />}
+      primaryAction={{ testID: 'session-expired-signin', label: t('sessionExpired.action'), onPress: onContinue }}
     />
   );
 }

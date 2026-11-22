@@ -6,7 +6,6 @@ import { radius, spacing, useNativeColors, useWindowLayout } from '@/shared/them
 import { BlockingScreenLayout } from '@/shared/ui/blocking-screen-layout';
 import { DecorativeIcon } from '@/shared/ui/decorative-icon';
 import { icons } from '@/shared/ui/icons';
-import { NativeButton } from '@/shared/ui/native-button';
 import { NativeText } from '@/shared/ui/native-text';
 
 import { useUpdateRequired } from '../hooks/use-update-required';
@@ -28,7 +27,7 @@ export default function UpdateRequiredScreen() {
       title={t('updateRequired.title')}
       description={t('updateRequired.body')}
       details={<VersionCompare current={current} required={required} />}
-      actions={<NativeButton testID="update-store" label={t('updateRequired.action')} onPress={update} />}
+      primaryAction={{ testID: 'update-store', label: t('updateRequired.action'), onPress: update }}
     />
   );
 }

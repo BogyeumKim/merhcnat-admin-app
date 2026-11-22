@@ -3,8 +3,6 @@ import { useBlockBackButton } from '@/shared/lib/use-block-back-button';
 import { BlockingScreenLayout } from '@/shared/ui/blocking-screen-layout';
 import { icons } from '@/shared/ui/icons';
 import { InfoRows } from '@/shared/ui/info-rows';
-import { NativeButton } from '@/shared/ui/native-button';
-import { SupportContactButtons } from '@/shared/ui/support-contact-buttons';
 
 import { useMaintenance } from '../hooks/use-maintenance';
 
@@ -31,12 +29,8 @@ export default function MaintenanceScreen() {
       title={t('maintenance.title')}
       description={t('maintenance.body')}
       details={rows.length > 0 ? <InfoRows rows={rows} /> : null}
-      actions={
-        <>
-          <SupportContactButtons />
-          <NativeButton testID="maintenance-sign-in" label={t('maintenance.goToSignIn')} onPress={goToSignIn} />
-        </>
-      }
+      showSupport
+      primaryAction={{ testID: 'maintenance-sign-in', label: t('maintenance.goToSignIn'), onPress: goToSignIn }}
     />
   );
 }

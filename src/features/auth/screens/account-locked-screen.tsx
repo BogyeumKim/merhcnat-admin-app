@@ -5,8 +5,6 @@ import { useBlockBackButton } from '@/shared/lib/use-block-back-button';
 import { BlockingScreenLayout } from '@/shared/ui/blocking-screen-layout';
 import { icons } from '@/shared/ui/icons';
 import { InfoRows } from '@/shared/ui/info-rows';
-import { NativeButton } from '@/shared/ui/native-button';
-import { SupportContactButtons } from '@/shared/ui/support-contact-buttons';
 
 import { useAccountNoticeActions } from '../hooks/use-account-notice-actions';
 import { formatLockedAt } from '../model/locked';
@@ -36,12 +34,8 @@ export default function AccountLockedScreen() {
       title={t('locked.title')}
       description={t('locked.body')}
       details={<InfoRows rows={rows} />}
-      actions={
-        <>
-          <SupportContactButtons />
-          <NativeButton testID="locked-back" variant="tonal" label={t('locked.back')} onPress={back} />
-        </>
-      }
+      showSupport
+      primaryAction={{ testID: 'locked-back', label: t('locked.back'), onPress: back }}
     />
   );
 }

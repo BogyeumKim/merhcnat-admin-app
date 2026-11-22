@@ -31,7 +31,7 @@
 3. 성공 시 `completeSignIn(userType)` → 세션 store 갱신 → `Stack.Protected`가 `(tabs)`로 전환. 로그인이 끝날 때마다 알림 권한을 요청하고 `PUT /api/devices/me`로 서버에 알린다(`device-push.ts`).
 4. 오류는 `ApiError.code`로 분류해 보여준다 (`feedback-ux.md`). **남은 시도 횟수는 어디에도 표시하지 않는다**(서버가 보내도 무시).
    - 자격 증명 실패: 아이디·비밀번호 칸에 빨간 테두리 없이 비밀번호 칸 아래 문구, 비밀번호만 비움.
-   - 차단 화면(잠김 `ACCOUNT_LOCKED`·정지·점검·필수 업데이트·보안 위험 기기·세션 종료)은 모두 `BlockingScreenLayout`이고(모든 창에서 한 컬럼: 로고·상태 헤더·상세가 스크롤 안, 버튼은 아래 고정, 폴더블 좌우 분할 없음. 로고 숨김·위 여백은 로그인 히어로와 같은 규칙) Android 뒤로가기는 앱 종료(`useBlockBackButton(true, 'exit')`). 고객센터 연락은 `SupportContactButtons`(`openSupportChat`/`openSupportPhone`).
+   - 차단 화면(잠김 `ACCOUNT_LOCKED`·정지·점검·필수 업데이트·보안 위험 기기·세션 종료)은 모두 `BlockingScreenLayout`이고(모든 창에서 한 컬럼: 로고·상태 헤더·상세가 스크롤 안, 버튼은 아래 고정, 폴더블 좌우 분할 없음. 로고 숨김·위 여백은 로그인 히어로와 같은 규칙) Android 뒤로가기는 앱 종료(`useBlockBackButton(true, 'exit')`). 고객센터 연락은 `SupportContactButtons`(`openSupportChat`/`openSupportPhone`). 버튼은 화면이 직접 그리지 않고 셸에 데이터로 넘긴다(`showSupport`: 고객센터 버튼 쌍이 위, `primaryAction`: 주 버튼이 아래, 기본 `filled` 빨강). 그래서 [로그인 화면으로]·[업데이트하기]·[다시 로그인하기]는 모든 차단 화면에서 같은 주 버튼 색이다.
    - 네트워크 오류·타임아웃(요청 10초, `shared/api/client.ts`)은 입력값을 유지하고 일반 오류 토스트(`showErrorToast`, id `error:<code>`, 자동으로 사라짐, `errors.NETWORK_ERROR`/`errors.TIMEOUT` 문구)를 띄운다. 재시도 버튼은 없고 사용자가 [로그인]을 다시 누른다. 챌린지 토큰 만료·발송 한도는 토스트 + 시트 닫기.
    - Android 뒤로가기: 로그인 폼이 보일 때만 두 번 눌러 종료(`useDoubleBackToExit`), 세션 종료 안내가 보이는 동안은 꺼져 한 번에 종료한다.
    - "로그인이 안 되나요?" 도움말 시트(`login-help-screen.tsx`): 한 번에 하나만 펼치는 아코디언 + 스크롤되지 않는 하단 [카카오톡 상담] [전화 상담].

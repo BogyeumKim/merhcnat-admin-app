@@ -2,8 +2,6 @@ import { useTranslation } from '@/shared/i18n';
 import { useBlockBackButton } from '@/shared/lib/use-block-back-button';
 import { BlockingScreenLayout } from '@/shared/ui/blocking-screen-layout';
 import { icons } from '@/shared/ui/icons';
-import { NativeButton } from '@/shared/ui/native-button';
-import { SupportContactButtons } from '@/shared/ui/support-contact-buttons';
 
 import { useAccountNoticeActions } from '../hooks/use-account-notice-actions';
 
@@ -20,12 +18,8 @@ export default function AccountSuspendedScreen() {
       tone="warning"
       title={t('suspended.title')}
       description={t('suspended.body')}
-      actions={
-        <>
-          <SupportContactButtons />
-          <NativeButton testID="suspended-back" variant="tonal" label={t('suspended.back')} onPress={back} />
-        </>
-      }
+      showSupport
+      primaryAction={{ testID: 'suspended-back', label: t('suspended.back'), onPress: back }}
     />
   );
 }
