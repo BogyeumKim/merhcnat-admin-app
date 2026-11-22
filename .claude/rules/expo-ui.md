@@ -58,6 +58,7 @@ paths:
 - **시트를 열 때는 `openSheet(href)`(`shared/lib/open-sheet`)만** 쓴다(`router.push`로 form sheet 라우트를 직접 열지 않는다). 띄우기 전에 포커스된 입력란을 블러하고 `onBlur`가 올 때까지 기다린다(Android는 `Keyboard.dismiss()`도, 연타는 무시. `NativeFieldBase`가 `shared/lib/focused-field` 레지스트리에 포커스를 기록). 포커스를 둔 채 띄우면 시트가 닫힐 때 OS가 그 칸에 포커스·키보드를 되돌린다. 값은 유지된다.
 - **form sheet 배경**: 항상 단색(`useNativeColors().background`). iOS 26의 투명 form sheet는 Liquid Glass로 그려져 뒤 화면이 글씨 아래로 비쳐 읽기 어렵다 (`core/navigation/root-stack.tsx`의 `*SheetOptions`). 페이지 배경은 시스템 동적 색(`Color.android.dynamic.surface`는 Android 12+에서 연보라)이 아니라 팔레트의 `background`(라이트 흰색, 다크 `#0B0F19`)를 쓴다.
 - **Android 실기 확인에서 나온 함정 (에뮬레이터 API 35, 개발 빌드)**:
+  - `@expo/ui/jetpack-compose` 컴포넌트의 `modifiers`를 배열 → `undefined`로 바꾸면 Fabric이 `null`을 보내 "Cannot set prop 'modifiers' ... Could not cast dynamic value to ReadableMap" 오류가 난다(네이티브 타입이 non-null 리스트). 조건부일 때는 빈 배열 상수를 넘긴다 (`native-button.android.tsx` `VISIBLE`). universal 컴포넌트는 항상 배열로 바꿔 보내므로 안전하다.
   - 자식 없는 `Column`(높이 + 배경만)은 Compose에서 아무것도 그리지 않는다. 구분선은 `shared/ui/divider`의 `Divider`를 쓴다 (Android는 Compose `HorizontalDivider`).
   - Android `Icon`에 `onPress`를 주면 정확히 `size`짜리 `Box`가 되어, 그 `Icon`에 `padding`을 주면 글리프가 점으로 줄어든다. 터치 영역 패딩과 `onPress`는 감싸는 `Column`에 둔다 (`password-toggle.tsx`).
   - Host의 `seedColor`로 생성되는 Material 색 체계에서는 빨강 seed의 primary가 칙칙한 갈색이 된다. 브랜드 색 버튼은 `colors`를 명시한다 (`native-button.android.tsx`: `containerColor`/`contentColor`).

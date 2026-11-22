@@ -84,7 +84,7 @@ otp/verify ───────────────────────
 
 - **로그인 실패 통일:** 없는 아이디·틀린 비밀번호·삭제 계정 모두 401 `INVALID_CREDENTIALS`, `data` 없음(`remainingAttempts` 제거). 423 `ACCOUNT_LOCKED`는 비밀번호가 맞았을 때만. `OTP_INVALID`·`CURRENT_PASSWORD_INVALID`의 `remainingAttempts`는 유지.
 - **기기 비밀키 `deviceSecret`:** OTP 검증 또는 `password/temp`로 기기를 등록한 200 `SUCCESS`의 `data.deviceSecret`(43자)이 **한 번만** 온다. 앱은 `expo-secure-store`(`device.secret`, THIS_DEVICE_ONLY)에 보관하고 로그인 `device.deviceSecret`(≤128자)와 `PUT /api/devices/me`(필수)에 보낸다(`features/auth/model/device-secret.ts`). OTP 생략 조건은 메시지형 + `deviceId` 일치 + `deviceSecret` 일치. 기존 등록 기기는 비밀키가 없어 업데이트 후 첫 로그인에 OTP를 한 번 거친다.
-- **다른 계정 소유 기기:** `MFA_REQUIRED` `data.deviceRegisteredToOtherAccount: true`(그때 `registeredUserIdMasked` 없음). 앱은 "이 기기는 다른 계정에 등록돼 있어요" 안내. 본인의 다른 기기면 기존처럼 `registeredUserIdMasked`.
+- **다른 계정 소유 기기:** `MFA_REQUIRED` `data: { deviceState: "CHANGED", deviceRegisteredToOtherAccount: true, registeredUserIdMasked }`. 이때 `registeredUserIdMasked`는 그 기기를 등록한 **다른 계정**의 아이디(마스킹)다(2026-11-22 변경, 기기 변경 시트의 "현재 등록된 아이디"). 본인의 다른 기기면(`CHANGED`) 본인 아이디 마스킹만 오고 `deviceRegisteredToOtherAccount`는 없다. `NONE`/`MATCH`는 두 필드 모두 없다. 마스킹 규칙: 6자 이상 앞 3자 + (길이−5)개 `*` + 끝 2자(`mer*****01`), 4~5자 첫 1자 + `*` + 끝 1자, 3자 이하 첫 1자 + `*`. 앱은 값이 있으면 표시하고 없으면 그 줄을 숨긴다.
 - **비밀번호 90일 만료:** 200 `PASSWORD_CHANGE_REQUIRED` `data: { userId, challengeToken, reason: "TEMP_PASSWORD" | "PASSWORD_EXPIRED" }`(둘 다면 TEMP_PASSWORD). 흐름은 `password/temp`로 같고 문구만 다르다.
 - **`PUT /api/devices/me`:** `{ deviceSecret, expoPushToken? }`. 403 `DEVICE_NOT_VERIFIED`(비밀키 불일치), 400(누락), 404 `DEVICE_NOT_FOUND`, 400 `PUSH_TOKEN_INVALID`. 앱은 비밀키가 없으면 호출하지 않는다.
 - **길이 상한(400 `BAD_REQUEST` + fieldErrors):** userId 30, password 64, otp 10, challengeToken 2048, channel 10, deviceId 64, platform 10, 기기 문자열 100, expoPushToken 255, deviceSecret 128. 앱은 로그인 입력란에 30/64 `maxLength`.
@@ -105,3 +105,17 @@ otp/verify ───────────────────────
 - 401 판단은 `shared/api/client.ts`가 토큰을 실은 같은 세션 요청에만 하며, 응답 `code`를 `notifyUnauthorized(code)`로 넘겨 `session-store`가 이유를 고른다.
 - `PUT /api/users/me/password` 성공은 200 `SUCCESS`(data 없음) + **`Access-Token` 응답 헤더(새 토큰)**다. 서버가 세션을 새 토큰으로 교체하므로 이전 토큰은 401 `SESSION_REPLACED`가 된다. 기기 등록·`deviceSecret`은 그대로다. 앱은 **다시 로그인시키지 않는다**: `apiEnvelope`가 응답 수락 뒤 메모리 토큰을 교체하고, 앱은 비밀번호 변경 요구 상태를 풀어(`markPasswordChanged()`, `Stack.Protected`가 홈으로 보냄) "비밀번호를 바꿨어요" 성공 토스트를 띄운다. 임시비밀번호 변경(`POST /api/auth/password/temp`)은 그대로 로그인까지 완료한다.
 - 비밀번호 정책: 8~20자, 영문(A-Z/a-z)·숫자(0-9)·특수문자(공백 없는 출력 가능 ASCII 기호 ``!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~``) 모두 포함, 그 외 문자(한글, 공백, 이모지, 전각)는 불가 → 400 `PASSWORD_POLICY_VIOLATION` `violations: ["CHARSET"]`. 아이디 포함 금지, 최근 비밀번호 재사용 금지는 서버만 판단한다. 앱의 규칙 목록 "영문·숫자·특수문자 모두 포함" 줄은 허용 밖 글자가 있으면 실패로 바뀌고 문구가 "영문·숫자·특수문자만 쓸 수 있어요 (공백·한글·이모지 불가)"로 바뀐다(`password-rules.ts`).
+
+## 점검 · 버전 차단 (2026-11-22)
+
+**요청 헤더 (모든 요청, `shared/api/client.ts`):** `X-App-Version: <설치 버전>`(`expo-application` `nativeApplicationVersion`, 엄격한 `major.minor.patch`)과 `X-App-Platform: IOS|ANDROID`(`process.env.EXPO_OS`)를 **항상 함께** 보낸다. 버전을 그 형식으로 읽지 못하면(일부 개발 환경의 `null`) **둘 다 보내지 않는다**: 서버는 한쪽만 있거나 형식이 틀리면 400 `BAD_REQUEST`.
+
+| 응답 | `data` (모두 zod 검증, 잘못된 필드만 버림) | 앱 동작 |
+| --- | --- | --- |
+| 503 `MAINTENANCE` | `{ startedAt?, endsAt? }` (ISO-8601 + 오프셋, 예 `2026-01-01T01:00:00+09:00`. 서버 점검 테이블 `app_maintenance(fr_dt, to_dt, use_flg)`에서 `use_flg = 1`이고 `fr_dt ≤ 현재 < to_dt`인 행이 있으면 점검. 미리 등록(0) 후 1로 켜는 방식, 변경은 10초 안에 반영) | 점검 화면(`/maintenance`, 파라미터 이름 동일). 시작·종료 예정 시각만 앱 언어로 포맷해 표시(없는 값은 그 행을 숨김). 점검 사유·영향 범위·`message`는 받지도 보여주지도 않는다(제목·설명은 앱 i18n) |
+| 426 `UPDATE_REQUIRED` | `{ minAppVersion, latestAppVersion? }` | 필수 업데이트 화면(`/update-required`): "지금 x → 최신 y" 카드(`latestAppVersion` 없으면 현재 버전만), 스토어에서 돌아오면 `minAppVersion`(없으면 최신)과 비교해 통과하면 화면을 닫음 |
+
+- 둘 다 해당하면 서버가 **503 `MAINTENANCE`를 우선**한다.
+- 같은 503이라도 `code`로 구분한다: `MAINTENANCE`는 점검 화면, `SESSION_STORE_UNAVAILABLE`은 토스트·재시도(위 단일 세션 표). envelope가 없는 503(프록시 HTML 등)은 점검, envelope 없는 426은 `UPDATE_REQUIRED`로 본다.
+- 로그인 전(login/otp 등 인증 mutation, `useErrorPresenter`)과 로그인 후(쿼리 최종 실패, `QueryCache.onError`) 모두 같은 화면으로 보낸다(`shared/api/blocking-error-route.ts`). 점검과 4xx는 자동 재시도하지 않는다.
+- 상태만 확인하는 API(점검/버전)는 두지 않는다: 화면을 벗어날 때는 다음 요청이 다시 판단한다. [홈으로]는 `endsAt`이 아직 미래면 토스트만 보이고 머무르며, 지났거나 없으면 이전 화면(로그인)으로 돌아간다.
