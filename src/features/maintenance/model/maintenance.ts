@@ -2,12 +2,6 @@ import { z } from 'zod';
 
 const isoDate = z.iso.datetime({ offset: true });
 
-/** 종료 예정 시각이 아직 오지 않았는가. 시각을 모르면 `false`(끝났는지 앱이 알 수 없으므로 다음 요청이 판단하게 한다). */
-export function endsInFuture(endAt: string | undefined, now = Date.now()): boolean {
-  const end = isoDate.safeParse(endAt);
-  return end.success && new Date(end.data).getTime() > now;
-}
-
 /** 언어별로 한 번만 만든다(`Intl.DateTimeFormat` 생성은 비싸다). */
 const dateFormatters = new Map<string, Intl.DateTimeFormat>();
 

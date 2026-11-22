@@ -213,8 +213,7 @@ export const en = {
     body: 'You can use the app again as soon as maintenance ends. Please wait a moment.',
     start: 'Started',
     end: 'Expected end',
-    home: 'Go home',
-    stillOngoing: 'Maintenance is still running. You can use the app as soon as it ends.',
+    goToSignIn: 'Go to sign in',
   },
   updateRequired: {
     title: 'Please update\nto the new version',

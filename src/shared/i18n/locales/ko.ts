@@ -216,8 +216,7 @@ export const ko: typeof en = {
     body: '점검이 끝나면 바로 다시 이용할 수 있어요. 잠시만 기다려 주세요.',
     start: '시작',
     end: '종료 예정',
-    home: '홈으로',
-    stillOngoing: '아직 점검 중이에요. 끝나면 바로 이용할 수 있어요.',
+    goToSignIn: '로그인 화면으로',
   },
   updateRequired: {
     title: '새 버전으로\n업데이트해 주세요',
