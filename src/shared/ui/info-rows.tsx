@@ -4,8 +4,10 @@ import { radius, spacing, useNativeColors } from '@/shared/theme';
 
 import { Divider } from './divider';
 import { NativeText } from './native-text';
+import type { NativeTextTone } from './native-text.types';
 
-type InfoRow = { label: string; value: string };
+/** `tone`: 값 글자 색(강조가 필요한 값). 기본은 본문색. */
+type InfoRow = { label: string; value: string; tone?: NativeTextTone };
 
 /** 상태 화면(점검 시간, 잠긴 계정)의 차분한 라벨/값 카드: 행은 헤어라인으로 나누고 값은 굵게. */
 export function InfoRows({ rows }: { rows: readonly InfoRow[] }) {
@@ -21,7 +23,9 @@ export function InfoRows({ rows }: { rows: readonly InfoRow[] }) {
               {row.label}
             </NativeText>
             <Spacer flexible />
-            <NativeText variant="label">{row.value}</NativeText>
+            <NativeText variant="label" tone={row.tone}>
+              {row.value}
+            </NativeText>
           </Row>
         </Column>
       ))}

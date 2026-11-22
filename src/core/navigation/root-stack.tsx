@@ -53,6 +53,8 @@ const BLOCKING_SCREEN: NativeStackNavigationOptions = { presentation: 'fullScree
 /** 계정 안내(잠김, 정지): 스와이프로 닫지 못하는 모달. */
 const ACCOUNT_NOTICE: NativeStackNavigationOptions = { presentation: 'modal', gestureEnabled: false };
 const NO_GESTURE: NativeStackNavigationOptions = { gestureEnabled: false };
+/** 필수 공지: 뒤 화면 위에 투명하게 뜨는 가운데 다이얼로그. 스와이프로 닫히지 않고 [확인]으로만 닫힌다(뒤로가기는 화면 훅이 막음). */
+const REQUIRED_NOTICE: NativeStackNavigationOptions = { presentation: 'transparentModal', animation: 'fade', gestureEnabled: false };
 /**
  * 상태 표시줄 글자/아이콘은 색 모드를 따른다(밝은 배경에 어두운 아이콘). 지정하지 않으면 Android는 react-native-screens 기본값
  * `light`(흰 아이콘)라 밝은 화면에서 보이지 않았다. iOS는 `UIViewControllerBasedStatusBarAppearance=true`라 RN `StatusBar`가 아니라
@@ -82,6 +84,7 @@ export function RootNavigator() {
         <Stack.Screen name="settings-password" />
         <Stack.Screen name="feature/[id]" />
         <Stack.Screen name="notice-popup" options={noticeSheetOptions(background, floatingSheet)} />
+        <Stack.Screen name="notice-required" options={REQUIRED_NOTICE} />
       </Stack.Protected>
       <Stack.Protected guard={!isSignedIn}>
         <Stack.Screen name="sign-in" />

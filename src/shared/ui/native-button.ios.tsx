@@ -1,5 +1,15 @@
-import { Button, Column, Text } from '@expo/ui';
-import { buttonBorderShape, buttonStyle, font, foregroundStyle, frame, tint } from '@expo/ui/swift-ui/modifiers';
+import { Button, Column, Row, Text } from '@expo/ui';
+import { ProgressView, ZStack } from '@expo/ui/swift-ui';
+import {
+  accessibilityLabel as accessibilityLabelModifier,
+  buttonBorderShape,
+  buttonStyle,
+  font,
+  foregroundStyle,
+  frame,
+  opacity,
+  tint,
+} from '@expo/ui/swift-ui/modifiers';
 
 import { spacing, useNativeColors } from '@/shared/theme';
 
@@ -17,32 +27,62 @@ const TONAL_STYLE = buttonStyle('bordered');
 const LABEL_FRAME = [FILL_WIDTH];
 const LABEL_STYLE = { paddingVertical: LABEL_PADDING } as const;
 const FULL_WIDTH_STYLE = { width: '100%' } as const;
+/** 로딩 중에도 라벨을 투명하게 남겨 버튼 높이·폭이 바뀌지 않게 한다(스피너는 그 위에 겹친다). */
+const HIDDEN = opacity(0);
+const noop = () => {};
 
 /**
  * 일반 SwiftUI 버튼은 라벨 높이(약 22pt)뿐이라 최소 터치 영역 44pt에 못 미친다. 패딩을 라벨 안쪽에 넣어 눌림 영역에 포함시킨다.
  *  라벨에는 `fontSize`/색이 없고 Dynamic Type과 tint를 따른다.
  *  라벨은 SwiftUI `Button` 안에 있어 퍼센트 너비가 해석되지 않으므로(콘텐츠 크기로 남음),
  *  `width: '100%'` 대신 SwiftUI flexible frame으로 너비를 채운다.
+ *  `loading`: 비활성(회색)으로 바꾸지 않고 같은 색 버튼 안에 `ProgressView`를 보이며 탭은 무시한다.
  */
-export function NativeButton({ label, onPress, variant = 'filled', disabled, testID }: NativeButtonProps) {
+export function NativeButton({
+  label,
+  onPress,
+  variant = 'filled',
+  disabled,
+  loading = false,
+  leading,
+  accessibilityLabel,
+  testID,
+}: NativeButtonProps) {
   const colors = useNativeColors();
   const shapeModifiers =
-    variant === 'text' ? undefined : variant === 'tonal' ? [SHAPE, TONAL_STYLE, tint(colors.ink)] : variant === 'ink' ? [SHAPE, tint(colors.ink)] : [SHAPE];
+    variant === 'text' ? [] : variant === 'tonal' ? [SHAPE, TONAL_STYLE, tint(colors.ink)] : variant === 'ink' ? [SHAPE, tint(colors.ink)] : [SHAPE];
+  const buttonModifiers = accessibilityLabel ? [...shapeModifiers, accessibilityLabelModifier(accessibilityLabel)] : shapeModifiers;
+  const contentColor =
+    variant === 'ink' ? colors.background : variant === 'filled' ? colors.onAction : variant === 'tonal' ? colors.ink : colors.action;
   const labelModifiers = variant === 'ink' ? [LABEL, foregroundStyle(colors.background)] : [LABEL];
+  const text = <Text modifiers={labelModifiers}>{label}</Text>;
+  const content = leading ? (
+    <Row
+      alignment="center"
+      spacing={spacing.sm}>
+      {leading}
+      {text}
+    </Row>
+  ) : (
+    text
+  );
 
   return (
     <Button
       variant={variant === 'tonal' || variant === 'ink' ? 'filled' : variant}
       disabled={disabled}
-      onPress={onPress}
+      onPress={loading ? noop : onPress}
       testID={testID}
-      modifiers={shapeModifiers}
+      modifiers={buttonModifiers}
       style={FULL_WIDTH_STYLE}>
       <Column
         alignment="center"
         modifiers={LABEL_FRAME}
         style={LABEL_STYLE}>
-        <Text modifiers={labelModifiers}>{label}</Text>
+        <ZStack>
+          <Column modifiers={loading ? [HIDDEN] : undefined}>{content}</Column>
+          {loading ? <ProgressView modifiers={[tint(contentColor)]} /> : null}
+        </ZStack>
       </Column>
     </Button>
   );

@@ -21,6 +21,8 @@ type NativeFieldBaseProps = NativeFieldProps & {
 /** Korpay 디자인에서 박스 높이는 56 (플랫폼 파일이 최소 높이를 지정), 링은 1.5. */
 const RING = 1.5;
 const RADIUS = radius.lg;
+/** SwiftUI가 입력란을 갈아 끼운 뒤(이전 입력란의 blur 이후) 포커스를 준다. */
+const REFOCUS_DELAY_MS = 50;
 
 /** 바깥에서 받은 ref(콜백 또는 객체)에 입력란 인스턴스를 넘긴다. */
 function assignRef(ref: Ref<TextInputRef> | undefined, instance: TextInputRef | null) {
@@ -29,15 +31,16 @@ function assignRef(ref: Ref<TextInputRef> | undefined, instance: TextInputRef | 
 }
 
 /**
- * 박스형 필드, Korpay 디자인: 기본은 옅은 색의 둥근 박스, 포커스 시 흰색 + 1.5 ink 링, 오류 시 흰색 + danger 링
- *  (색에만 의존하지 않음: 아래 메시지에 아이콘이 있다). Android는 박스를 감싼 링 색의 둥근 `Column`, iOS는 `ringModifiers`의
+ * 박스형 필드, Korpay 디자인: 기본은 옅은 색의 둥근 박스, 포커스 시 흰색 + 1.5 ink 링. 오류여도 박스 색은 그대로다
+ *  (스펙: 입력란을 빨갛게 칠하지 않고 아래에 빨간 문장 + 아이콘). Android는 박스를 감싼 링 색의 둥근 `Column`, iOS는 `ringModifiers`의
  *  `strokeBorder`로 링을 그린다 (`borderWidth` + `borderRadius` 조합은 iOS에서 테두리가 잘린다). `fontSize` 없음: 글자는 시스템 글자 크기를 따른다.
  *  여기서 유지하는 상태는 포커스 boolean뿐이며 텍스트는 절대 보관하지 않는다.
  */
 export function NativeFieldBase({
   style,
   textStyle,
-  invalid = false,
+  // 박스 모양에 쓰지 않는다(아래 주석). TextInput으로 넘기지 않으려고 꺼내기만 한다.
+  invalid: _invalid,
   trailing,
   onFocus,
   onBlur,
@@ -55,9 +58,24 @@ export function NativeFieldBase({
   const [handle] = useState(() => ({ blur: () => inputRef.current?.blur() }));
   // 등록을 지우는 곳은 실제 블러(`onBlur`)와 언마운트뿐이다.
   useEffect(() => () => forgetField(handle), [handle]);
-  const ring = invalid ? colors.danger : focused ? colors.text : colors.field;
+  // 오류여도 입력란을 빨갛게 칠하지 않는다(디자인 스펙): 오류는 아래 빨간 문장(`LabeledField error`)이 알리고, 링은 포커스만 나타낸다.
+  const ring = focused ? colors.text : colors.field;
+  const fill = focused ? colors.card : colors.field;
 
-  const fill = focused || invalid ? colors.card : colors.field;
+  // iOS 비밀번호 보기/숨기기: `secureTextEntry`가 바뀌면 SwiftUI가 SecureField ↔ TextField를 갈아 끼워 포커스(키보드)가 풀린다.
+  // 바뀌기 직전 렌더에서 포커스 중이었다면 새 입력란에 다시 포커스를 준다(커서는 끝으로 간다). Android Compose는 같은 입력란이라 해당 없음.
+  const secure = Boolean(props.secureTextEntry);
+  const [lastSecure, setLastSecure] = useState(secure);
+  const [refocusToken, setRefocusToken] = useState(0);
+  if (lastSecure !== secure) {
+    setLastSecure(secure);
+    if (focused && process.env.EXPO_OS === 'ios') setRefocusToken((token) => token + 1);
+  }
+  useEffect(() => {
+    if (refocusToken === 0) return undefined;
+    const timer = setTimeout(() => inputRef.current?.focus(), REFOCUS_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [refocusToken]);
 
   const box = (
     <Row

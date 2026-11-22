@@ -25,3 +25,14 @@ export function showSuccessToast({ id, title, description }: ToastInput) {
   AccessibilityInfo.announceForAccessibility(description ? `${title}. ${description}` : title);
   toast.success(title, { id, description });
 }
+
+/** 아이콘 없는 짧은 안내("한 번 더 누르면 종료돼요"). `durationMs`를 주면 그 시간 뒤 사라진다. */
+export function showInfoToast({ id, title, durationMs }: { id: string; title: string; durationMs?: number }) {
+  AccessibilityInfo.announceForAccessibility(title);
+  toast(title, { id, duration: durationMs });
+}
+
+/** id로 토스트를 닫는다(없으면 아무 일도 없다). */
+export function dismissToast(id: string) {
+  toast.dismiss(id);
+}

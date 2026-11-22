@@ -5,14 +5,5 @@ import { Toaster } from 'sonner-native';
  *  동시에 최대 3개까지 보이고 시스템 글자 크기에 맞춰 커진다.
  */
 export function ToastHost() {
-  return (
-    <Toaster
-      theme="system"
-      richColors
-      closeButton
-      position="top-center"
-      visibleToasts={3}
-      autoWiggleOnUpdate="always"
-    />
-  );
+  return <Toaster theme="system" richColors closeButton position="top-center" visibleToasts={3} autoWiggleOnUpdate="always" />;
 }

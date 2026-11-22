@@ -30,15 +30,26 @@ export function blockingErrorRoute(error: ApiError) {
     case 'maintenance':
       return {
         kind,
+        // 503 `MAINTENANCE` `data: { startedAt?, endsAt? }`(ISO-8601 + 오프셋, 둘 다 선택). 서버 `message`는 화면에 쓰지 않는다(문구는 i18n).
         href: {
           pathname: '/maintenance' as const,
-          params: pickParams(error, { startAt: { from: 'startAt', schema: isoDate }, endAt: { from: 'endAt', schema: isoDate } }),
+          params: pickParams(error, {
+            startedAt: { from: 'startedAt', schema: isoDate },
+            endsAt: { from: 'endsAt', schema: isoDate },
+          }),
         },
       };
     case 'update':
       return {
         kind,
-        href: { pathname: '/update-required' as const, params: pickParams(error, { latest: { from: 'latestVersion', schema: version } }) },
+        // 426 `UPDATE_REQUIRED` `data: { minAppVersion, latestAppVersion? }`: 최신 버전은 "지금 x → 최신 y" 카드, 최소 버전은 스토어에서 돌아온 뒤 다시 확인할 기준.
+        href: {
+          pathname: '/update-required' as const,
+          params: pickParams(error, {
+            latest: { from: 'latestAppVersion', schema: version },
+            min: { from: 'minAppVersion', schema: version },
+          }),
+        },
       };
     case 'insecure':
       return { kind, href: '/insecure-device' as const };

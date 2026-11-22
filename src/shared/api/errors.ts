@@ -67,7 +67,7 @@ export function toErrorCode(value: unknown): ErrorCode {
 export class ApiError extends Error {
   readonly status: number;
   readonly code: ErrorCode;
-  /** 서버가 보낸 RFC 9457 추가 멤버(예: `startAt`, `endAt`, `retryAfterSeconds`). */
+  /** 서버 envelope의 `data`와 부가 정보(예: 점검 `startedAt`/`endsAt`, 업데이트 `minAppVersion`, `retryAfterSeconds`). */
   readonly extras: Readonly<Record<string, unknown>>;
 
   constructor(init: { status: number; code: ErrorCode; message?: string; extras?: Record<string, unknown> }) {

@@ -46,3 +46,12 @@ export function blurFocusedField(): Promise<void> {
     if (process.env.EXPO_OS === 'android') Keyboard.dismiss();
   });
 }
+
+/**
+ * 화면 빈 곳을 탭하면 키보드를 내린다(스펙 공통). 포커스된 입력란이 있을 때만 블러한다(값은 유지).
+ * 폼 셸(`NativeFormScroll`)의 배경 탭 레이어가 부른다. 레지스트리 밖 입력(RN TextInput)도 있을 수 있어 `Keyboard.dismiss()`도 부른다.
+ */
+export function dismissKeyboard() {
+  if (focused !== null) void blurFocusedField();
+  if (Keyboard.isVisible()) Keyboard.dismiss();
+}

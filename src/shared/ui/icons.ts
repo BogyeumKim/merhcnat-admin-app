@@ -53,6 +53,17 @@ export const icons = {
   sessionReplaced: Icon.select({ ios: 'iphone.and.arrow.forward', android: import('@expo/material-symbols/devices.xml') }),
   sessionExpired: Icon.select({ ios: 'clock', android: import('@expo/material-symbols/schedule.xml') }),
 
+  // 고객센터 연락
+  /** 전화 상담. iOS HIG 외곽선 수화기, Android M3 `call`. */
+  phone: Icon.select({ ios: 'phone', android: import('@expo/material-symbols/call.xml') }),
+  /** 확인·안내 표시(점검 영향 범위 박스). */
+  check: Icon.select({ ios: 'checkmark', android: import('@expo/material-symbols/check.xml') }),
+  /**
+   * 카카오톡 말풍선(노란 원 배지 안의 글리프, `SupportContactButtons`). Android는 Kakao 마크(`channel-kakao.svg`)의
+   * 말풍선 경로를 옮긴 벡터, iOS는 같은 모양의 SF Symbol.
+   */
+  kakaoTalk: Icon.select({ ios: 'message.fill', android: import('@/assets/icons/kakao-bubble.xml') }),
+
   // 인증 수단
   sms: Icon.select({ ios: 'text.bubble', android: import('@expo/material-symbols/sms.xml') }),
   mail: Icon.select({ ios: 'envelope', android: import('@expo/material-symbols/mail.xml') }),

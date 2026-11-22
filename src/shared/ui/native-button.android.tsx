@@ -1,23 +1,76 @@
-import { Button, FilledTonalButton, OutlinedButton, Text, TextButton } from '@expo/ui/jetpack-compose';
-import { fillMaxWidth, height, testID as testIDModifier } from '@expo/ui/jetpack-compose/modifiers';
+import {
+  Box,
+  Button,
+  CircularProgressIndicator,
+  FilledTonalButton,
+  OutlinedButton,
+  Row,
+  Text,
+  TextButton,
+} from '@expo/ui/jetpack-compose';
+import { alpha, fillMaxWidth, height, semantics, size, testID as testIDModifier } from '@expo/ui/jetpack-compose/modifiers';
 
-import { useNativeColors } from '@/shared/theme';
+import { spacing, useNativeColors } from '@/shared/theme';
 
 import type { NativeButtonProps } from './native-button.types';
 
 /** 56dp: Korpay 디자인 pill 버튼 높이 (Material 최소 터치 영역 48dp보다 큼). */
 const FULL_WIDTH = [fillMaxWidth(), height(56)];
+/** 로딩 중에도 라벨을 투명하게 남겨 버튼 크기가 바뀌지 않게 한다(스피너는 가운데 겹침). */
+const HIDDEN = [alpha(0)];
+/**
+ * 로딩이 끝나면 빈 배열로 되돌린다. `undefined`로 바꾸면 Fabric이 prop 제거로 `null`을 보내고, Compose 뷰의
+ *  `modifiers`(non-null 리스트)가 null을 변환하지 못해 "Cannot set prop 'modifiers'" 오류가 난다.
+ *  jetpack-compose 컴포넌트(`Box`/`Row` 등)에는 조건부 `undefined` 대신 항상 배열을 넘긴다.
+ */
+const VISIBLE: typeof HIDDEN = [];
+const SPINNER = [size(20, 20)];
+const LEADING_GAP = { spacedBy: spacing.sm } as const;
+const noop = () => {};
 
 /**
  * Material 3 버튼 (Android). 브랜드 `action` 색을 명시적으로 지정한다. 범용 `Button`은 Host가 생성한 Material 색상표에서
  *  색을 가져오는데, 빨간 시드는 브랜드 레드가 아닌 칙칙한 갈색 primary가 되기 때문이다.
  *  비활성 색은 Material 기본값을 그대로 쓴다 (회색 컨테이너, 38% 콘텐츠).
+ *  `loading`: 활성 색을 유지한 채 `CircularProgressIndicator`를 보이고 클릭은 무시한다.
  */
-export function NativeButton({ label, onPress, variant = 'filled', disabled, testID }: NativeButtonProps) {
+export function NativeButton({
+  label,
+  onPress,
+  variant = 'filled',
+  disabled,
+  loading = false,
+  leading,
+  accessibilityLabel,
+  testID,
+}: NativeButtonProps) {
   const colors = useNativeColors();
-  const modifiers = testID ? [...FULL_WIDTH, testIDModifier(testID)] : FULL_WIDTH;
-  const common = { onClick: disabled ? undefined : onPress, enabled: !disabled, modifiers };
-  const content = <Text>{label}</Text>;
+  const modifiers = [
+    ...FULL_WIDTH,
+    ...(testID ? [testIDModifier(testID)] : []),
+    ...(accessibilityLabel ? [semantics({ contentDescription: accessibilityLabel })] : []),
+  ];
+  const common = { onClick: disabled ? undefined : loading ? noop : onPress, enabled: !disabled, modifiers };
+  const contentColor =
+    variant === 'tonal' ? colors.text : variant === 'ink' ? colors.background : variant === 'filled' ? colors.onAction : colors.action;
+  const content = (
+    <Box contentAlignment="center">
+      <Row
+        verticalAlignment="center"
+        horizontalArrangement={LEADING_GAP}
+        modifiers={loading ? HIDDEN : VISIBLE}>
+        {leading ?? null}
+        <Text>{label}</Text>
+      </Row>
+      {loading ? (
+        <CircularProgressIndicator
+          color={contentColor}
+          strokeWidth={2}
+          modifiers={SPINNER}
+        />
+      ) : null}
+    </Box>
+  );
 
   if (variant === 'tonal') {
     return (

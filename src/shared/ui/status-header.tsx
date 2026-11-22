@@ -15,7 +15,8 @@ const ICON = 28;
  *  잠금, 렌치, 다운로드, 방패 화면이 모두 공유). `tone`이 배지 색을 정한다 (기본 회색, 액션/잠금은 분홍 + 빨강, 주의는 호박색).
  *  배지는 고정 정사각형이며 아이콘은 flexible spacer로 가운데 정렬하므로, 키가 크거나 넓은 글리프(잠금, 렌치)도 타원으로 늘어나지 않는다.
  */
-type Tone = 'neutral' | 'action' | 'warning' | 'danger';
+export type StatusTone = 'neutral' | 'action' | 'warning' | 'danger';
+type Tone = StatusTone;
 
 export function StatusHeader({ icon, title, body, children, tone = 'neutral' }: { icon?: IconName; title: string; body?: string; children?: ReactNode; tone?: Tone }) {
   const colors = useNativeColors();

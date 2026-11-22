@@ -1,3 +1,4 @@
+import * as Application from 'expo-application';
 import { z } from 'zod';
 
 import { env } from '@/shared/config/env';
@@ -8,7 +9,19 @@ import { getAccessToken, getSessionGeneration, notifyUnauthorized, setAccessToke
 
 /** 연장된 토큰을 담은 응답 헤더(슬라이딩 만료). 제안된 이름이며 docs/backend-contract 참고. */
 const TOKEN_RESPONSE_HEADER = 'Access-Token';
-const TIMEOUT_MS = 15_000;
+/** 스펙: 서버 응답이 10초를 넘으면 네트워크 오류와 똑같이 처리한다(`TIMEOUT`). */
+const TIMEOUT_MS = 10_000;
+
+/**
+ * 서버의 버전 차단(426 `UPDATE_REQUIRED`)용 요청 헤더. 서버는 `X-App-Version`(엄격한 major.minor.patch)과 `X-App-Platform`이
+ * 함께 오거나 둘 다 없어야 하며, 한쪽만 있거나 형식이 틀리면 400 `BAD_REQUEST`다. 그래서 설치 버전을 그 형식으로 읽지 못하면
+ * (일부 개발 환경에서 `null`) 둘 다 보내지 않는다. 앱 실행 중 바뀌지 않으므로 모듈 로드 때 한 번만 만든다.
+ */
+const APP_VERSION_HEADERS = ((): Readonly<Record<string, string>> => {
+  const appVersion = Application.nativeApplicationVersion;
+  if (!appVersion || !/^\d+\.\d+\.\d+$/.test(appVersion)) return {};
+  return { 'X-App-Version': appVersion, 'X-App-Platform': process.env.EXPO_OS === 'ios' ? 'IOS' : 'ANDROID' };
+})();
 
 type RequestOptions = {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
@@ -43,13 +56,14 @@ function toApiError(response: Response, json: unknown): ApiError {
   const retryAfter = Number(response.headers.get('Retry-After'));
   const retryExtras = Number.isFinite(retryAfter) && retryAfter > 0 ? { retryAfterSeconds: retryAfter } : {};
 
-  // 프록시나 CDN이 HTML로 503을 응답할 수 있다: envelope가 아닌 것은 모두 알 수 없는 오류로 처리한다.
-  // envelope가 있는 503(예: `SESSION_STORE_UNAVAILABLE`)은 아래에서 서버 `code` 그대로 매핑되므로 점검으로 오인하지 않는다.
+  // 프록시나 CDN이 HTML로 503/426을 응답할 수 있다: envelope가 아니면 503은 점검, 426은 필수 업데이트, 그 외는 알 수 없는 오류다.
+  // envelope가 있는 응답은 아래에서 서버 `code` 그대로 매핑된다: 같은 503이라도 `MAINTENANCE`(점검 화면)와
+  // `SESSION_STORE_UNAVAILABLE`(토스트·재시도)을 `code`로 구분하고, 426 `UPDATE_REQUIRED`도 서버 code를 그대로 쓴다.
   const parsed = errorEnvelopeSchema.safeParse(json);
   if (!parsed.success) {
     return new ApiError({
       status: response.status,
-      code: response.status === 503 ? 'MAINTENANCE' : 'UNKNOWN',
+      code: response.status === 503 ? 'MAINTENANCE' : response.status === 426 ? 'UPDATE_REQUIRED' : 'UNKNOWN',
       extras: retryExtras,
     });
   }
@@ -110,6 +124,7 @@ async function send(path: string, options: RequestOptions): Promise<Sent> {
   const headers = new Headers({
     Accept: 'application/json, application/problem+json',
     'Accept-Language': getCurrentLanguage(),
+    ...APP_VERSION_HEADERS,
   });
   if (token) headers.set('Authorization', `Bearer ${token}`);
   if (options.body !== undefined) headers.set('Content-Type', 'application/json');
@@ -148,7 +163,7 @@ async function send(path: string, options: RequestOptions): Promise<Sent> {
 }
 
 /**
- * 전역 `fetch`(SDK 56+에서는 `expo/fetch`)의 얇은 래퍼: bearer 토큰과 언어를 붙이고,
+ * 전역 `fetch`(SDK 56+에서는 `expo/fetch`)의 얇은 래퍼: bearer 토큰, 언어, 앱 버전·플랫폼(`X-App-Version`/`X-App-Platform`)을 붙이고,
  * 서버가 연장된 토큰을 보내면 메모리 토큰을 교체하며, 실패를 `ApiError`로 정규화한다.
  */
 export async function apiFetch(path: string, options: RequestOptions = {}): Promise<Response> {

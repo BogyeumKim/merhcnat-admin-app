@@ -15,9 +15,13 @@ SplashScreen.preventAutoHideAsync();
 /** 재설치 직후 iOS Keychain에 남은 이전 설치의 기기 값을 로그인 전에 지운다(실패해도 로그인을 막지 않는다). */
 ensureFreshInstallHandled();
 
-/** 로그인 시트는 로그인 화면 위에 의도적으로 띄운다. 로그인 그룹이 스택의 첫 화면일 때 Expo Router가 경고하므로 이를 감수한다. */
+/**
+ * 로그인 시트는 로그인 화면 위에 의도적으로 띄운다. 로그인 그룹이 스택의 첫 화면일 때 Expo Router가 경고하므로 이를 감수한다.
+ * 차단 화면(점검·업데이트)은 스택을 비우고 단독으로 남기므로(뒤로 돌아갈 화면이 없어야 함) 카드로 그려진다는 같은 경고를 감수한다.
+ */
 LogBox.ignoreLogs([
   'uses presentation "formSheet" but is the first screen in its native stack',
+  'uses presentation "fullScreenModal" but is the first screen in its native stack',
   'Sending `onAnimatedValueUpdate` with no listeners registered',
 ]);
 
