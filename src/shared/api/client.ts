@@ -7,8 +7,11 @@ import { getCurrentLanguage } from '@/shared/i18n';
 import { ApiError, toErrorCode } from './errors';
 import { getAccessToken, getSessionGeneration, notifyUnauthorized, setAccessToken } from './session-token';
 
-/** 연장된 토큰을 담은 응답 헤더(슬라이딩 만료). 제안된 이름이며 docs/backend-contract 참고. */
-const TOKEN_RESPONSE_HEADER = 'Access-Token';
+/**
+ * 이전 계약의 토큰 응답 헤더. 새 토큰은 이제 로그인 완료·비밀번호 변경 응답의 `data.accessToken`으로 온다.
+ * 서버 배포 순서와 무관하게 동작하도록 그 엔드포인트에서만 본문에 없을 때 대신 읽는다(`apiTokenEnvelope`). 서버 전환 후 제거한다.
+ */
+const LEGACY_TOKEN_HEADER = 'Access-Token';
 /** 스펙: 서버 응답이 10초를 넘으면 네트워크 오류와 똑같이 처리한다(`TIMEOUT`). */
 const TIMEOUT_MS = 10_000;
 
@@ -81,8 +84,7 @@ function toTransportError(error: unknown, timeout: AbortSignal, caller?: AbortSi
 
 type Sent = {
   response: Response;
-  refreshedToken: string | null;
-  /** 요청을 시작한 세션. 연장된 토큰은 적용 시점에도 같은 세션일 때만 쓴다(`applyRefreshedToken`). */
+  /** 요청을 시작한 세션. 발급된 토큰은 적용 시점에도 같은 세션일 때만 쓴다(`apiTokenEnvelope`). */
   generation: number;
   /** 본문 읽기에도 같은 타임아웃이 걸린다: 헤더 뒤 본문이 멈추면 `TIMEOUT`으로 보고한다. */
   timeout: AbortSignal;
@@ -98,15 +100,7 @@ async function readJson(response: Response, timeout: AbortSignal): Promise<unkno
   }
 }
 
-/**
- * 연장된 토큰을 적용한다. 본문을 읽는 동안(`await`) 로그아웃했을 수 있으므로 적용 직전에 세션을 다시 확인한다:
- * 그렇지 않으면 늦게 온 응답이 로그아웃 뒤 메모리에 토큰을 되살린다.
- */
-function applyRefreshedToken({ refreshedToken, generation }: Sent) {
-  if (refreshedToken && generation === getSessionGeneration()) setAccessToken(refreshedToken);
-}
-
-/** 요청을 보낸다. 연장된 토큰은 적용하지 않고 반환한다: 응답이 수락된 뒤 호출자가 한 번 적용한다. */
+/** 요청을 보낸다. 일반 응답은 토큰을 싣지 않는다(유휴 연장은 서버가 같은 토큰으로 처리): 토큰은 `apiTokenEnvelope`만 적용한다. */
 async function send(path: string, options: RequestOptions): Promise<Sent> {
   const generation = getSessionGeneration();
   const token = getAccessToken();
@@ -142,35 +136,56 @@ async function send(path: string, options: RequestOptions): Promise<Sent> {
     if (response.status === 401 && token && sameSession) notifyUnauthorized(error.code);
     throw error;
   }
-  return { response, refreshedToken: sameSession ? response.headers.get(TOKEN_RESPONSE_HEADER) : null, generation, timeout };
+  return { response, generation, timeout };
 }
 
 /**
  * 전역 `fetch`(SDK 56+에서는 `expo/fetch`)의 얇은 래퍼: bearer 토큰, 언어, 앱 버전·플랫폼(`X-App-Version`/`X-App-Platform`)을 붙이고,
- * 서버가 연장된 토큰을 보내면 메모리 토큰을 교체하며, 실패를 `ApiError`로 정규화한다.
+ * 실패를 `ApiError`로 정규화한다. 응답에서 토큰을 읽지 않는다.
  */
 export async function apiFetch(path: string, options: RequestOptions = {}): Promise<Response> {
-  const sent = await send(path, options);
-  applyRefreshedToken(sent);
-  return sent.response;
+  return (await send(path, options)).response;
 }
 
-/**
- * `{ code, message, data }` envelope용 `apiFetch`: `data`를 `dataSchema`로 검증하고 HTTP 상태, envelope `code`,
- * 검증된 `data`를 반환한다. 성공 단계는 모두 200이므로 호출자는 `code`로 다음 단계를 고른다.
- * 스키마와 맞지 않는 본문은 `INVALID_RESPONSE`이며, 토큰 헤더는 응답 전체가 수락된 뒤에만 적용한다(거부된 응답이 토큰을 남기면 안 된다).
- */
-export async function apiEnvelope<T>(
-  path: string,
-  dataSchema: z.ZodType<T>,
-  options: RequestOptions = {},
-): Promise<{ status: number; code: string; data: T }> {
-  const sent = await send(path, options);
+type Envelope<T> = { status: number; code: string; data: T };
+
+/** envelope를 읽고 `data`를 검증한다. 어긋나면 `INVALID_RESPONSE`. */
+async function receiveEnvelope<T>(sent: Sent, dataSchema: z.ZodType<T>): Promise<Envelope<T>> {
   const { response } = sent;
   const envelope = envelopeSchema.safeParse(await readJson(response, sent.timeout));
   if (!envelope.success) throw new ApiError({ status: response.status, code: 'INVALID_RESPONSE' });
   const data = dataSchema.safeParse(envelope.data.data);
   if (!data.success) throw new ApiError({ status: response.status, code: 'INVALID_RESPONSE' });
-  applyRefreshedToken(sent);
   return { status: response.status, code: envelope.data.code, data: data.data };
+}
+
+/**
+ * `{ code, message, data }` envelope용 `apiFetch`: `data`를 `dataSchema`로 검증하고 HTTP 상태, envelope `code`,
+ * 검증된 `data`를 반환한다. 성공 단계는 모두 200이므로 호출자는 `code`로 다음 단계를 고른다.
+ * 스키마와 맞지 않는 본문은 `INVALID_RESPONSE`다. 토큰은 다루지 않는다.
+ */
+export async function apiEnvelope<T>(path: string, dataSchema: z.ZodType<T>, options: RequestOptions = {}): Promise<Envelope<T>> {
+  return receiveEnvelope(await send(path, options), dataSchema);
+}
+
+/**
+ * 새 토큰을 발급하는 엔드포인트 전용 `apiEnvelope`(로그인 완료: login·otp/verify·password/temp, 그리고 PUT /api/users/me/password).
+ * 토큰을 바로 적용하지 않고 `adoptIssuedToken`을 돌려준다: 호출자가 응답 전체(분기별 스키마, `code`)를 수락한 뒤 한 번 부른다.
+ * 거부된 응답이 토큰을 남기면 안 되기 때문이다.
+ * `adoptIssuedToken(bodyToken)`: 검증된 `data.accessToken`을 먼저, 없으면 이전 계약의 `Access-Token` 헤더를 쓴다(서버 전환기 폴백).
+ * 요청 이후 로그아웃했으면(세션 세대가 다르면) 적용하지 않는다: 늦게 온 응답이 로그아웃된 세션을 되살리지 못한다.
+ * 둘 다 없으면 아무것도 하지 않으며, 로그인 mutation의 `assertTokenIssued()`가 `INVALID_RESPONSE`로 거부한다.
+ */
+export async function apiTokenEnvelope<T>(
+  path: string,
+  dataSchema: z.ZodType<T>,
+  options: RequestOptions = {},
+): Promise<Envelope<T> & { adoptIssuedToken: (bodyToken: string | undefined) => void }> {
+  const sent = await send(path, options);
+  const envelope = await receiveEnvelope(sent, dataSchema);
+  const adoptIssuedToken = (bodyToken: string | undefined) => {
+    const token = bodyToken || sent.response.headers.get(LEGACY_TOKEN_HEADER);
+    if (token && sent.generation === getSessionGeneration()) setAccessToken(token);
+  };
+  return { ...envelope, adoptIssuedToken };
 }

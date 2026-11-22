@@ -87,7 +87,7 @@ export function registerSignOutHandler(handler: () => void) {
   return () => signOutHandlers.delete(handler);
 }
 
-/** 토큰 헤더 없는 `AUTHENTICATED` 응답은 계약 위반이다: 이를 근거로 로그인하지 않는다. */
+/** 토큰(`data.accessToken`, 전환기 폴백 `Access-Token` 헤더) 없는 `AUTHENTICATED` 응답은 계약 위반이다: 이를 근거로 로그인하지 않는다. */
 export function assertTokenIssued() {
   if (getAccessToken() === null) throw new ApiError({ status: 200, code: 'INVALID_RESPONSE' });
 }

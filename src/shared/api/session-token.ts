@@ -5,7 +5,7 @@ import type { ErrorCode } from './errors';
 /**
  * 메모리 액세스 토큰 store (zustand vanilla, `persist` 없음). 앱을 켤 때마다 로그아웃 상태로 시작한다.
  * SecureStore에 두지 않는 이유: refresh token이 없고 앱 실행마다 로그인하는 정책이라 디스크에 남길 이유가 없다.
- * API 클라이언트가 React 밖에서 읽고 교체(슬라이딩 만료)하므로 vanilla store로 둔다.
+ * API 클라이언트가 React 밖에서 읽고 교체(로그인 완료·비밀번호 변경 응답의 새 토큰)하므로 vanilla store로 둔다.
  *
  * `generation`은 로그아웃할 때마다 증가한다. 요청은 시작 시점의 generation을 기억해 두고, 그사이 세션이
  * 끝났으면 자신의 응답(새 토큰, 401)을 무시한다. 그래서 늦게 온 응답이 로그아웃된 세션을 되살리거나

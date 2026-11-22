@@ -34,6 +34,10 @@ import { UserType } from '../model/user-type';
  */
 const LATENCY_MS = 450;
 const MAX_ATTEMPTS = 5;
+/**
+ * 로그인 완료 시 서버가 `data.accessToken`으로 주는 토큰의 대역. mock은 HTTP 계층 위(`AuthApi`)에서 동작하므로
+ * 실제 경로(`apiTokenEnvelope`의 `adoptIssuedToken`) 대신 바로 메모리에 넣는다.
+ */
 const MOCK_TOKEN = 'mock-access-token';
 const EXPIRES_IN_SECONDS = 180;
 const RESEND_AFTER_SECONDS = 15;

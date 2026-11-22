@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { apiEnvelope } from '@/shared/api/client';
+import { apiEnvelope, apiTokenEnvelope } from '@/shared/api/client';
 import { ApiError } from '@/shared/api/errors';
 import { env } from '@/shared/config/env';
 
@@ -33,22 +33,23 @@ function tempPasswordRequired(status: number, code: string, data: unknown): Temp
  * 계약: docs/backend-contract/app-migration-server-login.md. 모든 응답은 `{ code, message, data? }`이며
  * **1차 HTTP status, 2차 `code`로 분기한다**(같은 200이 SUCCESS·MFA_REQUIRED·PASSWORD_CHANGE_REQUIRED, 같은 400·401도 여러 의미로 온다).
  * `message`는 분기에 쓰지 않는다.
- * - `POST /api/auth/login` `{ userId, password, device }`: 200 `SUCCESS` + `Access-Token` 헤더 = 로그인 완료(등록된
+ * - `POST /api/auth/login` `{ userId, password, device }`: 200 `SUCCESS` + `data.accessToken` = 로그인 완료(등록된
  *   기기, 메시지 코드 계정). 200 `MFA_REQUIRED` = 비밀번호는 통과, 코드 필요(`channels`[{channel, destination}],
  *   `lastUsedChannel`, `challengeToken`, `deviceState`). 절대 로그인으로 취급하지 않는다.
  * - `POST /api/auth/otp/send` `{ challengeToken, channel: KAKAO|SMS|EMAIL }`: 200 `SUCCESS` `{ expiresInSeconds, resendAfterSeconds, maskedDestination, remainingSends? }`.
- * - `POST /api/auth/otp/verify` `{ challengeToken, channel, otp }`: 200 `SUCCESS` + `Access-Token` 헤더 = 로그인 완료
- *   (서버가 여기서 기기를 등록하거나 교체한다). 토큰 헤더 없는 200은 mutation의 `assertTokenIssued()`가
- *   거부한다(INVALID_RESPONSE).
+ * - `POST /api/auth/otp/verify` `{ challengeToken, channel, otp }`: 200 `SUCCESS` + `data.accessToken` = 로그인 완료
+ *   (서버가 여기서 기기를 등록하거나 교체한다). 전환기에는 `data.accessToken`이 없으면 `Access-Token` 헤더를 쓰고,
+ *   둘 다 없는 200은 mutation의 `assertTokenIssued()`가 거부한다(INVALID_RESPONSE).
+ *   토큰은 분기별 검증과 기기 비밀키 저장이 끝난 뒤 `adoptIssuedToken`으로 한 번 적용한다.
  * - 임시비밀번호 계정은 위 두 호출 모두에서 200 `PASSWORD_CHANGE_REQUIRED` `{ userId, challengeToken }`를 받는다.
- *   토큰 헤더가 없고 기기도 아직 등록되지 않았으며, `POST /api/auth/password/temp`로 변경을 마쳐야 로그인된다.
+ *   토큰이 없고 기기도 아직 등록되지 않았으며, `POST /api/auth/password/temp`로 변경을 마쳐야 로그인된다.
  * 실패(400, 401, 403 `UPDATE_REQUIRED`, 503, ...)는 클라이언트가 envelope `code`와 `data` 부가 정보를 담은 `ApiError`로 던진다.
  */
 const realAuthApi: AuthApi = {
   login: async ({ userId, password, device }): Promise<LoginApiResult> => {
     // `data`는 code마다 모양이 달라 여기서는 원문 그대로 받고, 아래에서 분기별로 한 번만 검증한다
     // (변환이 있는 스키마를 두 번 거치면 변환된 결과가 다시 검증에 실패한다).
-    const envelope = await apiEnvelope('/api/auth/login', z.unknown(), {
+    const envelope = await apiTokenEnvelope('/api/auth/login', z.unknown(), {
       method: 'POST',
       body: { userId, password, device },
     });
@@ -63,6 +64,7 @@ const realAuthApi: AuthApi = {
 
     if (isStep(status, code, 'SUCCESS')) {
       if (data.deviceSecret) await saveDeviceSecret(data.deviceSecret);
+      envelope.adoptIssuedToken(data.accessToken);
       return {
         status: 'AUTHENTICATED',
         userType: data.userType,
@@ -106,7 +108,7 @@ const realAuthApi: AuthApi = {
   },
 
   verifyCode: async ({ challengeToken, channel, code: otp }): Promise<VerifyApiResult> => {
-    const envelope = await apiEnvelope('/api/auth/otp/verify', z.unknown(), {
+    const envelope = await apiTokenEnvelope('/api/auth/otp/verify', z.unknown(), {
       method: 'POST',
       body: { challengeToken, channel, otp },
     });
@@ -120,6 +122,7 @@ const realAuthApi: AuthApi = {
     const data = parsed.data;
     // 기기 등록이 끝난 순간에만 오는 비밀키: 다음 로그인부터 OTP를 생략하는 데 필요하다.
     if (data.deviceSecret) await saveDeviceSecret(data.deviceSecret);
+    envelope.adoptIssuedToken(data.accessToken);
     return {
       status: 'AUTHENTICATED' as const,
       userType: data.userType,

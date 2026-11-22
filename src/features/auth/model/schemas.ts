@@ -36,6 +36,12 @@ export const authenticatedSchema = z.object({
   userId: z.string().optional(),
 });
 
+/**
+ * 로그인 완료(200 `SUCCESS`)에 오는 새 액세스 토큰. 이전 계약에서는 `Access-Token` 헤더로 왔으므로 전환기 동안 없을 수 있다
+ * (그때는 `apiTokenEnvelope`가 헤더로 대신한다). 빈 문자열은 계약 위반(`INVALID_RESPONSE`). 메모리에만 두고 로그로 남기지 않는다.
+ */
+export const issuedAccessTokenSchema = z.string().min(1).optional();
+
 /** 로그인 완료 시 추가되는 비밀번호 경과 필드(없으면 변경 불필요). */
 const passwordAgeFields = {
   /** 계약상 성공 `data`에 함께 온다. 로그·화면 출력 없이 세션 메모리에만 둔다. */
@@ -66,7 +72,7 @@ export const challengeRequiredSchema = z.object({
 });
 
 /**
- * `POST /api/auth/login`의 `data`. 200 `SUCCESS` = 로그인 완료(`Access-Token` 헤더 설정, 등록된 기기이며
+ * `POST /api/auth/login`의 `data`. 200 `SUCCESS` = 로그인 완료(`data.accessToken`, 등록된 기기이며
  * 메시지 코드 계정). 200 `MFA_REQUIRED` = 비밀번호는 통과했으나 코드가 아직 필요: `channels`와
  * 코드 호출이 보내는 `challengeToken`을 담는다. 로그인이 아니며, 같은 200이라 `code`로 구분한다.
  */
@@ -80,10 +86,12 @@ export const serverLoginDataSchema = z.looseObject({
   registeredUserIdMasked: z.string().optional(),
   deviceRegisteredToOtherAccount: z.boolean().optional(),
   deviceSecret: z.string().min(1).optional(),
+  /** `SUCCESS`일 때만 온다. `MFA_REQUIRED`에서는 무시한다. */
+  accessToken: issuedAccessTokenSchema,
   ...passwordAgeFields,
 });
 
-/** 200 `PASSWORD_CHANGE_REQUIRED`의 `data`(로그인·코드 검증 공통): 토큰 헤더는 없다. */
+/** 200 `PASSWORD_CHANGE_REQUIRED`의 `data`(로그인·코드 검증 공통): 토큰이 없다. */
 export const serverTempPasswordDataSchema = z.looseObject({
   challengeToken: z.string().min(1),
   userId: z.string().min(1).optional(),
@@ -102,11 +110,12 @@ export const serverSendCodeDataSchema = z.looseObject({
 });
 
 /**
- * `POST /api/auth/otp/verify`의 `data`. `userType`만 읽는다. 액세스 토큰은 본문이 아니라
- * `Access-Token` 응답 헤더로 온다(`shared/api/client.ts` 참고).
+ * `POST /api/auth/otp/verify`의 `data`. 액세스 토큰은 `data.accessToken`(전환기에는 없으면 `Access-Token` 헤더,
+ * `shared/api/client.ts`의 `apiTokenEnvelope` 참고).
  */
 export const serverVerifyDataSchema = z.looseObject({
   userType: userTypeSchema,
+  accessToken: issuedAccessTokenSchema,
   /** 이 기기를 등록했을 때만 한 번 온다: SecureStore에 보관(`device-secret`). */
   deviceSecret: z.string().min(1).optional(),
   ...passwordAgeFields,

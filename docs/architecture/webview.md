@@ -30,7 +30,7 @@
 | 항목 | 초안 |
 | --- | --- |
 | URL | 환경별(dev/staging/prod) 베이스 URL을 `EXPO_PUBLIC_*`로 주입하고 `shared/config/env.ts`에서 검증 |
-| 인증 | 네이티브 로그인 → 토큰을 WebView 요청 헤더로 전달. 만료/401은 웹이 앱에 `AUTH_EXPIRED` 메시지로 알리고 앱이 로그아웃 처리. **슬라이딩 만료로 서버가 새 토큰을 내려주면 웹이 `TOKEN_UPDATED` 메시지로 앱에 전달해야 한다** (`auth-jwt.md`). refresh token은 없다 |
+| 인증 | 네이티브 로그인 → 토큰을 WebView 요청 헤더로 전달. 만료/401은 웹이 앱에 `AUTH_EXPIRED` 메시지로 알리고 앱이 로그아웃 처리. 일반 API 응답은 새 토큰을 주지 않으므로(유휴 연장은 서버 TTL, `auth-jwt.md`) 웹이 토큰을 앱에 되돌려줄 필요는 없다. refresh token은 없다 |
 | 메시지 | `{ type, version, payload }` 형태의 타입 있는 스키마. 앱은 허용된 `type`만 처리 |
 | 언어 | 앱의 현재 언어(ko/en)를 웹에 전달 |
 | 오류 | `onError`/`onHttpError` → 네이티브 오류 화면(재시도, 닫기) + 오류 리포팅 |

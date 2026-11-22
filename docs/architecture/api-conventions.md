@@ -33,7 +33,7 @@
 - **Expo SDK 56부터 전역 `fetch`가 `expo/fetch`다.** (Expo SDK 56 changelog, SDK 58 문서에서 확인: iOS/Android에서 `expo/fetch`가 전역 `fetch`. 끄려면 `EXPO_PUBLIC_USE_RN_FETCH=1`.) WinterTC 호환이며 `AbortSignal.timeout`, `AbortSignal.any`를 지원한다.
 - axios는 React Native에서 `fetch`가 아니라 `XMLHttpRequest`를 쓴다는 블로그 한 곳의 설명이 있다 (검증 안 됨).
 - **OkHttp**는 React Native의 Android 네트워킹이 내부적으로 쓰는 네이티브 라이브러리라는 것이 일반 지식이다 (이 세션에서 확인하지 못함). JS에서 고르는 대상이 아니다.
-- axios의 주된 장점은 인터셉터인데, 이 앱에 필요한 것은 몇 가지뿐이다: `Authorization` 헤더 부착, 응답 헤더 토큰 교체(슬라이딩), 401 → 로그아웃, 오류 정규화(RFC 9457 → 앱 오류 타입). 재시도/캐시는 TanStack Query가 맡는다.
+- axios의 주된 장점은 인터셉터인데, 이 앱에 필요한 것은 몇 가지뿐이다: `Authorization` 헤더 부착, 로그인 응답 토큰 적용, 401 → 로그아웃, 오류 정규화(RFC 9457 → 앱 오류 타입). 재시도/캐시는 TanStack Query가 맡는다.
 
 **결정(사용자): 전역 `fetch`로 진행.** `shared/api/client.ts`에 얇은 래퍼를 둔다. 의존성 추가 없음.
 
@@ -94,9 +94,6 @@ export async function apiFetch(path: string, init: RequestInit = {}) {
     signal: init.signal ?? AbortSignal.timeout(15_000), // SDK 56+ expo/fetch 지원
   });
 
-  const refreshed = response.headers.get('Access-Token');       // 계약: docs/backend-contract/app-migration-server-login.md
-  if (refreshed) setAccessToken(refreshed);                     // 슬라이딩 만료: 메모리 토큰 교체
-
   if (!response.ok) throw await toApiError(response);           // 401이면 signOut() + 캐시 비우기
   return response;
 }
@@ -104,4 +101,4 @@ export async function apiFetch(path: string, init: RequestInit = {}) {
 
 - 헤더 이름은 대소문자를 구분하지 않는다. 같은 이름 헤더가 여러 개면 `get`은 합쳐서 돌려준다.
 - 토큰 저장소는 React 밖에서 읽고 써야 하므로 컴포넌트 상태(Context)가 아니라 **비영속 zustand vanilla store**(`shared/api/session-token.ts`)다 (구현됨).
-- 새 토큰 응답 헤더 이름은 `Access-Token`으로 제안했고(`docs/backend-contract/app-migration-server-login.md`, 표준 없는 커스텀 헤더, `X-` 접두 회피), 값은 `Bearer` 없이 JWT 문자열만을 제안한다. 서버와 합의 전이다.
+- 일반 응답은 토큰을 싣지 않는다(유휴 연장은 서버 TTL). 새 토큰은 로그인 완료·비밀번호 변경 응답의 `data.accessToken`으로 오고, 전환기에는 없으면 `Access-Token` 헤더를 읽는다. 구현은 `shared/api/client.ts`의 `apiTokenEnvelope`(`docs/architecture/auth-jwt.md`).
