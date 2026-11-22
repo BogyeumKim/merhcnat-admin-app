@@ -1,6 +1,7 @@
-import { TextInput } from '@expo/ui';
+import { TextInput, type TextInputRef } from '@expo/ui';
 import { ZStack } from '@expo/ui/swift-ui';
 import { accessibilityLabel as a11yLabel, frame, opacity } from '@expo/ui/swift-ui/modifiers';
+import { useRef } from 'react';
 
 import { OtpBoxes } from './otp-boxes';
 import type { OtpCodeFieldProps } from './otp-code-field.types';
@@ -15,19 +16,23 @@ import { CODE_LENGTH } from '../model/forms';
  */
 const FILL = frame({ maxWidth: Infinity, minHeight: OTP_BOX_HEIGHT, maxHeight: OTP_BOX_HEIGHT });
 
-export function OtpCodeField({ invalid, accessibilityLabel, testID, onChange }: OtpCodeFieldProps) {
-  const field = useOtpCodeField(onChange);
+export function OtpCodeField({ invalid, locked, disabled, autoFocus, accessibilityLabel, testID, onChange }: OtpCodeFieldProps) {
+  const inputRef = useRef<TextInputRef>(null);
+  const field = useOtpCodeField(onChange, locked, inputRef);
 
   return (
     <ZStack modifiers={[FILL]}>
-      <OtpBoxes value={field.value} focused={field.focused} invalid={invalid} />
+      <OtpBoxes value={field.value} focused={field.focused} invalid={invalid} inactive={locked || disabled} />
       <TextInput
+        ref={inputRef}
         testID={testID}
         keyboardType="number-pad"
         autoComplete="one-time-code"
-        autoFocus
+        autoFocus={autoFocus}
         maxLength={CODE_LENGTH}
+        editable={!disabled}
         onChangeText={field.change}
+        onSelectionChange={field.selectionChange}
         onFocus={field.onFocus}
         onBlur={field.onBlur}
         modifiers={[FILL, opacity(0.011), a11yLabel(accessibilityLabel)]}

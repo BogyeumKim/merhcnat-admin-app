@@ -1,18 +1,20 @@
 import { useLocalSearchParams } from 'expo-router';
 
 import { useTranslation } from '@/shared/i18n';
-import { BrandedFormScreen } from '@/shared/ui/branded-form-screen';
+import { useBlockBackButton } from '@/shared/lib/use-block-back-button';
+import { BlockingScreenLayout } from '@/shared/ui/blocking-screen-layout';
 import { icons } from '@/shared/ui/icons';
 import { InfoRows } from '@/shared/ui/info-rows';
 import { NativeButton } from '@/shared/ui/native-button';
-import { StatusHeader } from '@/shared/ui/status-header';
+import { SupportContactButtons } from '@/shared/ui/support-contact-buttons';
 
 import { useAccountNoticeActions } from '../hooks/use-account-notice-actions';
 import { formatLockedAt } from '../model/locked';
 
 /**
- * 서버가 관리자가 풀어줄 때까지 계정이 잠겼다고 알릴 때(`ACCOUNT_LOCKED`) 표시한다.
- * 의도적으로 재시도가 없다: 여기서 사용자가 할 수 있는 일은 결과를 바꾸지 않는다. 고객센터가 유일한 방법이다.
+ * 계정 잠김(`ACCOUNT_LOCKED`, 디자인 1-11). 횟수는 쓰지 않는다. 가린 아이디(`mer*****01`)와 잠긴 시각은 서버가 준 경우에만 행을 보인다
+ * (아이디는 서버 마스킹 값만 쓰며 앱이 입력값으로 만들지 않는다). 재시도는 없고 고객센터 연락 + [로그인 화면으로].
+ * Android 뒤로가기는 앱 종료(차단 화면 공통).
  */
 export default function AccountLockedScreen() {
   const { t } = useTranslation();
@@ -23,19 +25,23 @@ export default function AccountLockedScreen() {
     ...(lockedTime ? [{ label: t('locked.lockedAtLabel'), value: lockedTime }] : []),
     { label: t('locked.unlockLabel'), value: t('locked.unlockValue') },
   ];
+  const { back } = useAccountNoticeActions();
 
-  const { back, call } = useAccountNoticeActions();
+  useBlockBackButton(true, 'exit');
 
   return (
-    <BrandedFormScreen
-      footer={
+    <BlockingScreenLayout
+      icon={icons.lock}
+      tone="action"
+      title={t('locked.title')}
+      description={t('locked.body')}
+      details={<InfoRows rows={rows} />}
+      actions={
         <>
-          <NativeButton testID="locked-call" label={t('locked.call')} onPress={call} />
+          <SupportContactButtons />
           <NativeButton testID="locked-back" variant="tonal" label={t('locked.back')} onPress={back} />
         </>
-      }>
-      <StatusHeader tone="danger" icon={icons.lock} title={t('locked.title')} body={t('locked.body')} />
-      <InfoRows rows={rows} />
-    </BrandedFormScreen>
+      }
+    />
   );
 }

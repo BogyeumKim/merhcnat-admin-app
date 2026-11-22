@@ -1,23 +1,18 @@
 import { useTranslation } from '@/shared/i18n';
 import { NativeText } from '@/shared/ui/native-text';
 
-import { formatClock, useSecondsLeft } from '../hooks/use-seconds-left';
+import { formatClock } from '../hooks/use-seconds-left';
 
 /**
- * 현재 코드의 남은 시간. `key={expiresAt}`로 렌더하면 새 코드에서 시계가 다시 시작된다.
- * 만료되면 같은 자리에 짧은 문구만 둔다: 오른쪽 "인증번호 다시 받기" 링크와 한 줄에 들어가야 한다(긴 문장이면 링크가 세로로 찌그러진다).
+ * 현재 코드의 남은 시간("남은 시간 2:57"). 남은 초는 코드 단계(`CodeEntry`)가 한 번 계산해 넘긴다:
+ * 0초가 되면 같은 값으로 칸을 잠그고 시간 초과 안내로 바꾸므로 타이머가 둘로 갈라지지 않게.
  */
-export function CodeExpiry({ expiresAt }: { expiresAt: number }) {
+export function CodeExpiry({ secondsLeft }: { secondsLeft: number }) {
   const { t } = useTranslation();
-  const secondsLeft = useSecondsLeft(expiresAt);
 
-  return secondsLeft > 0 ? (
-    <NativeText variant="subhead" tone="secondary">
+  return (
+    <NativeText variant="subhead" tone="secondary" tabular>
       {t('auth.verify.expiresIn', { time: formatClock(secondsLeft) })}
-    </NativeText>
-  ) : (
-    <NativeText variant="subhead" tone="danger">
-      {t('auth.verify.expiredShort')}
     </NativeText>
   );
 }

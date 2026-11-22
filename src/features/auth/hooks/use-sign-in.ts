@@ -15,7 +15,8 @@ import { useLogin } from '../mutations/use-login';
 
 /**
  * 로그인 화면의 동작: 한 번에 하나만 제출, 실패 표시, 서버가 요구하면 인증 단계로 이동.
- * `passwordResetKey`: 비밀번호 거부 때마다 바뀌어 비밀번호만 비운다(아이디 유지, 포커스 이동 없음).
+ * `passwordResetKey`: 비밀번호 거부 때마다 바뀌어 비밀번호만 비우고 그 칸에 포커스한다(아이디 유지).
+ * 네트워크 오류·타임아웃은 공용 오류 토스트(`error:<code>`, 자동으로 사라짐)로 알리고 입력값은 그대로 둔다. 사용자는 [로그인]을 다시 누른다.
  * `formKey`: 로그인 화면을 떠난 인증 흐름(2단계 인증, 로그인 전 비밀번호 변경)이 성공 없이 끝날 때마다 바뀐다
  * (`auth-flow-store`의 `abandonedCount`). 화면은 이를 폼 `key`로 써서 새 입력란으로 다시 마운트한다(아이디·비밀번호 모두 초기화).
  */
@@ -31,7 +32,7 @@ export function useSignIn() {
   const formError = formErrorCode ? t(`errors.${formErrorCode}`) : null;
   useAnnounce(formError);
 
-  const presentError = useAuthErrorPresenter({
+  const presentInline = useAuthErrorPresenter({
     onInline: (error) => {
       setFormErrorCode(error.code);
       if (error.code === 'INVALID_CREDENTIALS') setRejectedCount((count) => count + 1);
@@ -40,7 +41,8 @@ export function useSignIn() {
 
   const login = useLogin({
     onMutate: () => setFormErrorCode(null),
-    onError: presentError,
+    // 네트워크 오류·타임아웃은 공용 표시기가 오류 토스트로 보낸다(입력값 유지).
+    onError: presentInline,
   });
 
   /**
@@ -59,14 +61,15 @@ export function useSignIn() {
   // 잠금은 실패하면 바로, 성공하면 다음 화면으로 이동을 시작한 뒤에 푼다: 인증 시트를 띄우기 전 블러 대기 동안
   // (`reset()`으로 버튼은 다시 활성화된다) 두 번째 탭이 로그인을 또 보내 challenge를 새로 만들지 않게 한다.
   // `reset()`은 호출이 끝나는 즉시 mutation 변수(비밀번호)를 메모리에서 버린다.
-  const submit = (input: { userId: string; password: string }) =>
-    runOnce((done) =>
+  function submit(input: { userId: string; password: string }) {
+    runOnce((done) => {
       login.mutate(input, {
         onSuccess: (result) => void routeAfterLogin(result).finally(done),
         onError: done,
         onSettled: () => login.reset(),
-      }),
-    );
+      });
+    });
+  }
 
   return {
     pending: login.isPending,
@@ -75,6 +78,7 @@ export function useSignIn() {
     formKey,
     sessionEnded,
     submit,
+    /** 사용자가 입력을 고치기 시작함: 폼 오류를 닫는다. */
     dismissFormError: () => setFormErrorCode(null),
     acknowledgeSessionEnded,
   };

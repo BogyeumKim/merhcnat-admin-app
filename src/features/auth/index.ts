@@ -6,7 +6,7 @@ export { default as AccountSuspendedScreen } from './screens/account-suspended-s
 export { default as TempPasswordScreen } from './screens/temp-password-screen';
 export { default as SettingsPasswordScreen } from './screens/settings-password-screen';
 export { default as AccountLockedScreen } from './screens/account-locked-screen';
-export { registerSignOutHandler, signOutLocally, useIsSignedIn, useMustChangePassword, useSession } from './model/session-store';
+export { isSignedInNow, registerSignOutHandler, signOutLocally, useIsSignedIn, useMustChangePassword, useSession } from './model/session-store';
 export { useSessionEndedRedirect } from './hooks/use-session-ended-redirect';
 export { UserType, parseUserType } from './model/user-type';
 export { useCapabilities, type Capabilities } from './model/capabilities';

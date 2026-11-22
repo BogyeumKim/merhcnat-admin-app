@@ -28,6 +28,7 @@ import { UserType } from '../model/user-type';
  *   temp       -> 403 PASSWORD_CHANGE_REQUIRED(임시비밀번호, 바로)   tempotp -> 코드 통과 후 임시비밀번호 변경
  *   update     -> 426 UPDATE_REQUIRED     insecure -> 403 DEVICE_INSECURE     idle -> 로그인 후 6초 뒤 401
  *   blocked    -> 403 UNSUPPORTED_LOGIN_TYPE      maint -> 503 MAINTENANCE(기간 포함)
+ *   offline    -> 연결 실패(NETWORK_ERROR): 로그인 화면의 오류 토스트(`error:NETWORK_ERROR`) 확인용
  * 코드: 000000 = 정상, 999999 = 만료, 그 외 = 오류(남은 횟수를 오류에 담음;
  * 5회 오류 시 서버처럼 계정이 영구 잠금).
  */
@@ -94,7 +95,7 @@ export const mockAuthApi: AuthApi = {
       case 'temp':
         return { status: 'TEMP_PASSWORD_REQUIRED', challengeToken: `mock-temp-${Date.now()}` };
       case 'update':
-        throw new ApiError({ status: 426, code: 'UPDATE_REQUIRED', extras: { latestVersion: '1.1.0' } });
+        throw new ApiError({ status: 426, code: 'UPDATE_REQUIRED', extras: { minAppVersion: '1.1.0', latestAppVersion: '1.1.0' } });
       case 'insecure':
         throw new ApiError({ status: 403, code: 'DEVICE_INSECURE' });
       case 'idle':
@@ -104,13 +105,15 @@ export const mockAuthApi: AuthApi = {
         return { status: 'AUTHENTICATED', userType: UserType.Mid, passwordChangeRequired: false, passwordChangeSkippable: false };
       case 'blocked':
         throw new ApiError({ status: 403, code: 'UNSUPPORTED_LOGIN_TYPE' });
+      case 'offline':
+        throw new ApiError({ status: 0, code: 'NETWORK_ERROR' });
       case 'maint': {
         const start = new Date(Date.now() - 30 * 60 * 1000);
         const end = new Date(Date.now() + 90 * 60 * 1000);
         throw new ApiError({
           status: 503,
           code: 'MAINTENANCE',
-          extras: { startAt: start.toISOString(), endAt: end.toISOString(), retryAfterSeconds: 5400 },
+          extras: { startedAt: start.toISOString(), endsAt: end.toISOString(), retryAfterSeconds: 5400 },
         });
       }
       case 'merchant':

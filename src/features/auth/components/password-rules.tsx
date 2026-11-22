@@ -8,6 +8,8 @@ import type { PasswordRules, RuleState } from '../model/password-rules';
 
 const DOT = 18;
 const MARK: Record<RuleState, string> = { ok: '✓', wait: '·', fail: '✕' };
+/** 충족은 초록, 대기는 회색. 빨강은 서버가 거부한 줄뿐이다(입력 중에는 혼내지 않음, 디자인 1-9). */
+const TONE = { ok: 'success', wait: 'secondary', fail: 'danger' } as const satisfies Record<RuleState, string>;
 
 function Rule({ state, text }: { state: RuleState; text: string }) {
   const colors = useNativeColors();
@@ -16,16 +18,18 @@ function Rule({ state, text }: { state: RuleState; text: string }) {
   return (
     <Row alignment="center" spacing={spacing.sm}>
       <Column alignment="center" style={{ width: DOT, height: DOT, borderRadius: DOT / 2, backgroundColor: fill }}>
-        <NativeText variant="caption">{MARK[state]}</NativeText>
+        <NativeText variant="caption" tone={TONE[state]}>
+          {MARK[state]}
+        </NativeText>
       </Column>
-      <NativeText variant="caption" tone={state === 'fail' ? 'danger' : 'secondary'}>
+      <NativeText variant="caption" tone={TONE[state]}>
         {text}
       </NativeText>
     </Row>
   );
 }
 
-/** 새 비밀번호 입력란 아래의 규칙 목록. 충족하면 초록, 어기면 빨강, 아직 판단할 수 없으면 회색. 아이디를 몰라 판단할 수 없는 "아이디 포함" 줄은 숨긴다. */
+/** 새 비밀번호 입력란 아래의 규칙 목록. 처음엔 회색 `·`, 충족하면 초록 ✓, 서버가 거부한 줄만 빨강. 아이디를 몰라 판단할 수 없는 "아이디 포함" 줄은 숨긴다. */
 export function PasswordRulesList({ rules }: { rules: PasswordRules }) {
   const { t } = useTranslation();
 

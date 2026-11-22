@@ -1,25 +1,31 @@
 import { useTranslation } from '@/shared/i18n';
-import { BrandedFormScreen } from '@/shared/ui/branded-form-screen';
+import { useBlockBackButton } from '@/shared/lib/use-block-back-button';
+import { BlockingScreenLayout } from '@/shared/ui/blocking-screen-layout';
 import { icons } from '@/shared/ui/icons';
 import { NativeButton } from '@/shared/ui/native-button';
-import { StatusHeader } from '@/shared/ui/status-header';
+import { SupportContactButtons } from '@/shared/ui/support-contact-buttons';
 
 import { useAccountNoticeActions } from '../hooks/use-account-notice-actions';
 
-/** 서버가 정지된 계정이라고 알릴 때(`ACCOUNT_SUSPENDED`) 표시한다. 재시도 없이 고객센터 문의만 안내한다. */
+/** 정지된 계정(`ACCOUNT_SUSPENDED`). 잠김 화면과 같은 차단 화면 패턴: 재시도 없이 고객센터 연락 + [로그인 화면으로], 뒤로가기는 앱 종료. */
 export default function AccountSuspendedScreen() {
   const { t } = useTranslation();
-  const { back, call } = useAccountNoticeActions();
+  const { back } = useAccountNoticeActions();
+
+  useBlockBackButton(true, 'exit');
 
   return (
-    <BrandedFormScreen
-      footer={
+    <BlockingScreenLayout
+      icon={icons.accountSuspended}
+      tone="warning"
+      title={t('suspended.title')}
+      description={t('suspended.body')}
+      actions={
         <>
-          <NativeButton testID="suspended-call" label={t('suspended.call')} onPress={call} />
+          <SupportContactButtons />
           <NativeButton testID="suspended-back" variant="tonal" label={t('suspended.back')} onPress={back} />
         </>
-      }>
-      <StatusHeader tone="warning" icon={icons.accountSuspended} title={t('suspended.title')} body={t('suspended.body')} />
-    </BrandedFormScreen>
+      }
+    />
   );
 }

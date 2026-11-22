@@ -7,6 +7,7 @@ import { toErrorCode, type ApiError } from '@/shared/api/errors';
 import { useValidationMessage } from '@/shared/forms/validation';
 import { useTranslation } from '@/shared/i18n';
 import { navigateOnce } from '@/shared/lib/navigation-lock';
+import { useBlockBackButton } from '@/shared/lib/use-block-back-button';
 import { useRunOnce } from '@/shared/lib/use-run-once';
 import { showErrorToast, showSuccessToast } from '@/shared/ui/toast';
 import { useAnnounce } from '@/shared/ui/use-announce';
@@ -14,7 +15,7 @@ import { useAnnounce } from '@/shared/ui/use-announce';
 import { useAuthErrorPresenter } from './use-auth-error-presenter';
 import { authFlowActions } from '../model/auth-flow-store';
 import { passwordChangeSchema, type PasswordChangeValues } from '../model/forms';
-import { evaluatePasswordRules, passwordLooksValid } from '../model/password-rules';
+import { evaluatePasswordRules, passwordLooksValid, rulesSatisfied } from '../model/password-rules';
 import { isSignedInNow, markPasswordChanged, usePasswordChangeSkippable, useSignedInUserId } from '../model/session-store';
 import { clearTempPasswordToken, getTempPasswordReason, getTempPasswordToken, getTempPasswordUserId } from '../model/temp-password-vault';
 import { useChangePassword, type PasswordChangeVariant } from '../mutations/use-change-password';
@@ -63,6 +64,7 @@ export function usePasswordChange(variant: PasswordChangeVariant = 'expired') {
   // 규칙 목록 강조(위반 항목, 재사용)는 오류 문장이 아닌 힌트라 따로 보관한다.
   const [violations, setViolations] = useState<readonly string[]>([]);
   const [reused, setReused] = useState(false);
+  const [confirmBlurred, setConfirmBlurred] = useState(false);
 
   const { control, handleSubmit, formState, setFocus, setError, clearErrors } = useForm<PasswordChangeValues>({
     resolver: zodResolver(passwordChangeSchema),
@@ -79,11 +81,8 @@ export function usePasswordChange(variant: PasswordChangeVariant = 'expired') {
   // 문장은 렌더 때 번역한다: 언어를 바꾸면 표시 중인 오류도 다시 번역된다.
   const messageOf = (error: FieldError | undefined): string | null => {
     if (error?.type !== SERVER_ERROR) return validationMessage(error);
-    const text = t(`errors.${toErrorCode(error.message)}`);
-    const remaining = Number(error.types?.remainingAttempts);
-    return Number.isInteger(remaining) && remaining > 0
-      ? `${text} ${t('auth.passwordChange.remainingAttempts', { count: remaining })}`
-      : text;
+    // 남은 시도 횟수(`remainingAttempts`)는 어디에도 보여주지 않는다(디자인 공통 규칙).
+    return t(`errors.${toErrorCode(error.message)}`);
   };
   const currentError = messageOf(formState.errors.currentPassword);
   const newError = messageOf(formState.errors.newPassword);
@@ -113,15 +112,13 @@ export function usePasswordChange(variant: PasswordChangeVariant = 'expired') {
     return () => queueMicrotask(unsubscribe);
   }, [temporary, navigation]);
 
+  // "다음에"를 허용하지 않는 만료 변경은 Android 뒤로가기로도 빠져나갈 수 없다(디자인 1-9). 임시비밀번호·설정은 뒤로가기 = 취소.
+  useBlockBackButton(variant === 'expired' && !skippable);
+
   const presentInline = useAuthErrorPresenter({
     onInline: ({ code, extras }) => {
       if (code === 'CURRENT_PASSWORD_INVALID') {
-        const remaining = Number(extras.remainingAttempts);
-        setError('currentPassword', {
-          type: SERVER_ERROR,
-          message: code,
-          types: Number.isInteger(remaining) ? { remainingAttempts: String(remaining) } : undefined,
-        });
+        setError('currentPassword', { type: SERVER_ERROR, message: code });
         return;
       }
       if (code === 'PASSWORD_POLICY_VIOLATION') {
@@ -154,9 +151,14 @@ export function usePasswordChange(variant: PasswordChangeVariant = 'expired') {
     onError: presentError,
   });
 
-  const matches = confirmPassword.length > 0 && confirmPassword === newPassword;
-  const mismatch = confirmPassword.length > 0 && confirmPassword !== newPassword;
-  const canSubmit = formState.isValid && passwordLooksValid(newPassword) && matches && !change.isPending;
+  const rules = evaluatePasswordRules(newPassword, { violations, reused, userId });
+  const same = confirmPassword.length > 0 && confirmPassword === newPassword;
+  // 확인 칸 결과는 새 비밀번호 길이만큼 입력했거나 칸을 벗어났을 때만 보인다(입력 도중 "일치하지 않아요"로 혼내지 않음).
+  const showMatch = confirmPassword.length > 0 && (confirmPassword.length >= newPassword.length || confirmBlurred);
+  const matches = showMatch && same;
+  const mismatch = showMatch && !same;
+  // 버튼: 앱이 판단할 수 있는 규칙을 모두 만족하고 확인 칸까지 같을 때만 활성.
+  const canSubmit = formState.isValid && passwordLooksValid(newPassword) && rulesSatisfied(rules) && same && !change.isPending;
 
   const submit = handleSubmit(({ currentPassword, newPassword: next }) => {
     // 키보드 "완료"로도 들어오므로 버튼과 같은 조건을 다시 확인한다(규칙·일치 검사는 스키마 밖에 있다).
@@ -177,7 +179,7 @@ export function usePasswordChange(variant: PasswordChangeVariant = 'expired') {
   return {
     control,
     copy,
-    rules: evaluatePasswordRules(newPassword, { violations, reused, userId }),
+    rules,
     matches,
     mismatch,
     currentError,
@@ -190,6 +192,7 @@ export function usePasswordChange(variant: PasswordChangeVariant = 'expired') {
     changeNew: clearNewServerError,
     focusNew: () => setFocus('newPassword'),
     focusConfirm: () => setFocus('confirmPassword'),
+    blurConfirm: () => setConfirmBlurred(true),
     /** 서버가 허용하는 경우에만. 아무것도 바꾸지 않고 게이트를 푼다. */
     skip: skippable ? () => navigateOnce(markPasswordChanged) : undefined,
     /** 임시비밀번호는 변경을 취소하고 로그인으로, 설정에서 연 변경은 설정으로 돌아간다. */

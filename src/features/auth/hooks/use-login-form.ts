@@ -2,15 +2,16 @@ import type { TextInputRef } from '@expo/ui';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { Keyboard } from 'react-native';
 
 import { loginSchema, type LoginValues } from '../model/forms';
 
 type Options = {
   pending: boolean;
-  /** 값을 올리면 비밀번호 입력란을 비운다(로그인 거부 후). 마운트 시점 값은 무시한다. 포커스는 옮기지 않는다. */
+  /** 값을 올리면 비밀번호 입력란을 비우고 그 칸에 포커스한다(로그인 거부 후, 키보드가 다시 올라온다). 마운트 시점 값은 무시한다. */
   passwordResetKey: number;
   onSubmit: (input: LoginValues) => void;
-  /** 사용자가 입력을 고치기 시작함: 이전 시도에 대한 폼 오류를 지운다. */
+  /** 사용자가 입력을 고치기 시작함: 이전 시도에 대한 폼 오류·네트워크 스낵바를 지운다. */
   onEdit: () => void;
 };
 
@@ -50,16 +51,24 @@ export function useLoginForm({ pending, passwordResetKey, onSubmit, onEdit }: Op
     // 거부 오류는 로그인 화면이 보일 때 나므로 입력란이 구성돼 있다. 네이티브 텍스트를 먼저 지운다: 빈 값을 보고하면 아래 리셋이 그로 인한 오류도 함께 지운다.
     passwordRef.current?.clear();
     resetField('password');
+    // 요청 중에는 입력란이 잠겨(`editable={false}`) 있다. 잠금이 풀린 값이 네이티브에 반영된 다음 프레임에 포커스해 키보드를 다시 올린다.
+    const frame = requestAnimationFrame(() => passwordRef.current?.focus());
+    return () => cancelAnimationFrame(frame);
   }, [passwordResetKey, resetField]);
 
+  // 제출하면 키보드를 내린다(요청 중에는 입력란이 잠긴다). 앞뒤 공백 제거는 스키마(`trim`)가 한다: `values.userId`는 다듬어진 값이다.
   const submit = handleSubmit((values) => {
-    if (!pending) onSubmit(values);
+    if (pending) return;
+    Keyboard.dismiss();
+    onSubmit(values);
   });
 
+  // 지워도 커서는 그 칸에 남는다(디자인 1-1).
   const clearUserId = () => {
     userIdRef.current?.clear();
     resetField('userId');
     setHasUserId(false);
+    userIdRef.current?.focus();
   };
 
   const clearPassword = () => {
@@ -69,15 +78,14 @@ export function useLoginForm({ pending, passwordResetKey, onSubmit, onEdit }: Op
     passwordRef.current?.focus();
   };
 
-  const canSubmit = isValid && !pending;
-
   return {
     control,
     userIdRef,
     passwordRef,
     hasUserId,
     hasPassword,
-    canSubmit,
+    /** 두 칸이 모두 채워졌는가(버튼 활성). 요청 중 표시는 버튼의 `loading`이 맡는다. */
+    canSubmit: isValid,
     submit,
     clearUserId,
     clearPassword,

@@ -18,14 +18,14 @@ function VerifyFlow({ challenge }: { challenge: ChallengeRequired }) {
 
   if (flow.step === 'noContact') return <NoContactNotice onClose={flow.cancel} />;
   if (flow.step === 'device') {
-    return <DeviceNotice registeredUserId={challenge.registeredUserIdMasked} enteredUserId={challenge.enteredUserId} otherAccount={challenge.deviceRegisteredToOtherAccount} onContinue={flow.confirmDevice} onCancel={flow.cancel} />;
+    return <DeviceNotice registeredUserId={challenge.registeredUserIdMasked} enteredUserId={challenge.enteredUserId} onContinue={flow.confirmDevice} onCancel={flow.cancel} />;
   }
   if (flow.step === 'method') {
     return (
       <MethodChoice
         methods={challenge.methods}
         recentMethod={challenge.recentMethod}
-        pending={flow.sending}
+        sendingMethod={flow.sendingMethod}
         errorMessage={flow.errorMessage}
         onChoose={flow.send}
         onCancel={flow.cancel}
@@ -39,19 +39,22 @@ function VerifyFlow({ challenge }: { challenge: ChallengeRequired }) {
       destination={sent?.destination ?? null}
       pending={flow.verifying}
       serverError={flow.errorMessage}
+      attempt={flow.attempt}
       onEdit={flow.clearError}
       onSubmit={flow.verify}
       expiresAt={sent?.expiresAt}
       resend={
         sent
           ? {
-              availableAt: flow.resendNow ? 0 : sent.resendAt,
+              availableAt: sent.resendAt,
               pending: flow.sending,
-              onResend: () => flow.send(sent.method),
+              onResend: flow.resend,
             }
           : undefined
       }
       onBack={sent ? flow.backToMethod : undefined}
+      // 이메일 "다른 방법으로 받기"·시간 초과 링크: 이메일만 있는 계정은 고를 다른 수단이 없어 두지 않는다.
+      onOtherMethod={sent && challenge.methods.length > 1 ? flow.backToMethod : undefined}
       onSwitchToSms={challenge.methods.some((option) => option.method === 'SMS') ? () => flow.send('SMS') : undefined}
       onCancel={flow.cancel}
     />

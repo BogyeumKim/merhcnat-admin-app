@@ -6,7 +6,7 @@ import { useTranslation } from '@/shared/i18n';
 import { navigateOnce } from '@/shared/lib/navigation-lock';
 import { useRunOnce } from '@/shared/lib/use-run-once';
 import { useWindowLayout } from '@/shared/theme';
-import { showErrorToast } from '@/shared/ui/toast';
+import { showErrorToast, showSuccessToast } from '@/shared/ui/toast';
 import { useAnnounce } from '@/shared/ui/use-announce';
 
 import { useAuthErrorPresenter } from './use-auth-error-presenter';
@@ -27,16 +27,21 @@ const FULL_DETENTS = [1];
 /** 코드를 보낸 뒤 문자 코드 흐름의 진행 상태. 서버의 초 단위를 epoch ms로 변환한 값. */
 type SentCode = { method: ChallengeMethod; destination: string | null; expiresAt: number; resendAt: number };
 
-/** 화면 안에 유지되는 서버 오류. 번역 전 코드와 부가 정보(남은 시도 횟수 등). */
-type InlineError = Pick<ApiError, 'code' | 'extras'>;
+/**
+ * 화면 안에 유지되는 서버 오류(번역 전 코드). 남은 시도 횟수(`remainingAttempts`)는 서버가 보내도 쓰지 않는다:
+ * 디자인 원칙상 몇 번 남았는지·몇 번 틀리면 잠기는지는 어디에도 보이지 않는다(로그인 UX 명세 "공통").
+ */
+type InlineError = Pick<ApiError, 'code'>;
 
-/** 코드 거부(`OTP_INVALID`)일 때 서버가 알려준 남은 시도 횟수. 없거나 0이면 `null`. */
-function remainingAttemptsOf({ code, extras }: InlineError) {
-  const remaining = Number(extras.remainingAttempts);
-  return code === 'OTP_INVALID' && Number.isInteger(remaining) && remaining > 0 ? remaining : null;
-}
-
+/**
+ * 인증 시트의 단계. 코드를 너무 많이 틀리면 서버는 별도 "시도 소진" 코드 없이 비밀번호·코드 오류 합산 5회째부터
+ * 423 `ACCOUNT_LOCKED`를 준다(`OTP_ATTEMPTS_EXCEEDED`는 폐지, 계약 문서). 이 잠김은 다른 차단 오류와 같이
+ * 공용 표시기가 `/account-locked` 화면으로 보낸다(시트 안 단계가 아니다).
+ */
 export type VerifyStep = 'noContact' | 'device' | 'method' | 'code';
+
+/** "인증번호를 다시 보냈어요" 확인 토스트 id(연타해도 한 개만 갱신된다). */
+const RESENT_TOAST_ID = 'otp-resent';
 
 /** 단계가 바뀐 직후의 연타 잠금 시간: 새 단계의 같은 자리 버튼(기기 "변경" → 이메일 "인증번호 받기")이 두 번째 탭을 받지 않게 한다. */
 const STEP_SETTLE_MS = 500;
@@ -69,14 +74,13 @@ export function useVerifyFlow(challenge: ChallengeRequired) {
   const [sent, setSent] = useState<SentCode | null>(null);
   // 오류는 코드로만 보관하고 문장은 렌더 때 번역한다: 언어를 바꾸면 표시 중인 오류도 다시 번역된다.
   const [error, setError] = useState<InlineError | null>(null);
-  // 코드가 만료되거나 소진되면 다시 받기 링크 타이머와 상관없이 즉시 새 코드가 필요하다.
-  const [resendNow, setResendNow] = useState(false);
+  // 검증이 실패할 때마다 올린다: 코드 칸을 다시 마운트해 6칸을 비운다(포커스는 옮기지 않는다). 새 코드를 받으면 0으로 돌린다.
+  const [attempt, setAttempt] = useState(0);
 
-  const remaining = error ? remainingAttemptsOf(error) : null;
   const errorMessage = !error
     ? null
-    : remaining !== null
-      ? t(isTotp ? 'errors.TOTP_INVALID_REMAINING' : 'errors.OTP_INVALID_REMAINING', { count: remaining })
+    : error.code === 'OTP_INVALID'
+      ? t(isTotp ? 'auth.verify.wrongTotp' : 'auth.verify.wrongCode')
       : t(`errors.${error.code}`);
   useAnnounce(errorMessage);
 
@@ -93,10 +97,7 @@ export function useVerifyFlow(challenge: ChallengeRequired) {
   const cancel = leaveVerification;
 
   const presentError = useAuthErrorPresenter({
-    onInline: ({ code, extras }) => {
-      setError({ code, extras });
-      if (code === 'OTP_EXPIRED') setResendNow(true);
-    },
+    onInline: ({ code }) => setError({ code }),
   });
 
   const handleError = (error: ApiError) => {
@@ -110,23 +111,32 @@ export function useVerifyFlow(challenge: ChallengeRequired) {
     presentError(error);
   };
 
+  // 검증 실패: 칸을 비우고(포커스 이동 없음) 오류를 보인다. 너무 많이 틀려 잠기면(423) 공용 표시기가 `/account-locked`로 보낸다.
+  // 다시 받기는 바로 열지 않는다: 서버가 준 `resendAfterSeconds` 타이머를 그대로 따른다.
+  const handleVerifyError = (error: ApiError) => {
+    if (error.code !== 'ACCOUNT_LOCKED') setAttempt((count) => count + 1);
+    handleError(error);
+  };
+
   const clearError = () => setError(null);
   const sendCode = useSendCode({ onMutate: clearError, onError: handleError });
-  const verifyCode = useVerifyCode({ onMutate: clearError, onError: handleError });
+  const verifyCode = useVerifyCode({ onMutate: clearError, onError: handleVerifyError });
 
   /**
    * 코드를 보낸다(같은 수단 재전송 포함). 성공하면 코드 입력으로 간다. 서버는 같은 수단 대기 시간 없이
    * 챌린지당 5회까지 바로 보내므로(카카오톡 -> 문자 -> 다시 카카오톡도 즉시), 앱도 수단별 대기나 "보낸 코드 재사용"을
    * 두지 않는다. 6번째는 429 `OTP_SEND_LIMIT_EXCEEDED`(`handleError`: 토스트 + 시트 닫기).
    */
-  const send = (method: ChallengeMethod) =>
+  const send = (method: ChallengeMethod, { resend = false } = {}) =>
     runOnce((done) => {
       sendCode.mutate(
         { channel: method },
         {
           onSuccess: (result) => {
             const now = Date.now();
-            setResendNow(false);
+            // 다시 받기(코드 입력 화면에서 같은 수단): 새 `expiresAt`이 칸을 비우고 타이머를 처음부터 다시 센다. 확인 토스트를 띄운다.
+            if (resend) showSuccessToast({ id: RESENT_TOAST_ID, title: t('auth.verify.resent') });
+            setAttempt(0);
             setSent({
               method,
               destination: result.destination ?? null,
@@ -157,11 +167,18 @@ export function useVerifyFlow(challenge: ChallengeRequired) {
     step,
     sent,
     errorMessage,
-    resendNow,
+    /** 코드 칸을 다시 마운트할 키의 일부(검증 실패마다 바뀜, 새 코드면 0). 0일 때만 칸이 자동 포커스된다. */
+    attempt,
     sending: sendCode.isPending,
+    /** 발송 요청 중인 수단(카드 스피너). */
+    sendingMethod: sendCode.isPending ? (sendCode.variables?.channel ?? null) : null,
     verifying: verifyCode.isPending,
     /** 수단 카드·이메일 받기·다시 받기·문자로 받기 모두 새 코드를 보낸다. */
     send,
+    /** 코드 입력 화면의 "다시 받기": 같은 수단으로 새 코드 + 확인 토스트. */
+    resend: () => {
+      if (sent) send(sent.method, { resend: true });
+    },
     verify,
     cancel,
     // 네트워크는 없지만 발송·검증과 같은 잠금을 잠시 잡는다: 두 번째 탭이 다음 단계 버튼에 닿아 의도치 않게 코드를 보내지 않게.
@@ -172,12 +189,11 @@ export function useVerifyFlow(challenge: ChallengeRequired) {
       }),
     clearError,
     isTotp,
-    /** 코드 시간(또는 시도 횟수)이 소진됨: 새 코드를 요청해야 한다. */
+    /** 서버가 코드 시간이 지났다고 거부함: 새 코드를 요청해야 한다(화면은 남은 시간 0초도 같은 상태로 본다). */
     expired: error?.code === 'OTP_EXPIRED',
     /** 받을 곳 다시 고르기(문자 코드 전용). 입력 중이던 코드는 버린다: 다음 카드 선택이 새 코드를 보낸다. */
     backToMethod: () => {
       setSent(null);
-      setResendNow(false);
       clearError();
     },
   };

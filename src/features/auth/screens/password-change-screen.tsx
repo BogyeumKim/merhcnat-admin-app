@@ -30,7 +30,9 @@ const BODY_KEY = {
 /**
  * 비밀번호 변경 화면(세 흐름 공용): 90일 만료로 로그인 직후(`expired`, 서버가 "나중에"를 허용하지 않으면 넘어갈 수 없음),
  * 임시비밀번호·만료로 로그인 전(`temporary`, 문구는 서버 `reason`), 설정에서 스스로 변경(`voluntary`).
- * 레이아웃은 Korpay 디자인을 따르며, 현재 비밀번호 입력란만 서버가 요구해서 추가된 것이다.
+ * 레이아웃은 Korpay 디자인(1-9)을 따르며, 현재 비밀번호 입력란만 서버가 요구해서 추가된 것이다.
+ * 들어오면 첫 입력란(현재 비밀번호: 디자인의 새 비밀번호 칸보다 위에 있어 먼저 채워야 함)에 커서를 둔다.
+ * 요청 중에는 버튼에 스피너를 보이고 입력란을 잠근다.
  */
 export default function PasswordChangeScreen({ variant = 'expired' }: { variant?: PasswordChangeVariant }) {
   const { t } = useTranslation();
@@ -49,6 +51,7 @@ export default function PasswordChangeScreen({ variant = 'expired' }: { variant?
     changeNew,
     focusNew,
     focusConfirm,
+    blurConfirm,
     skip,
     leave,
   } = usePasswordChange(variant);
@@ -61,6 +64,7 @@ export default function PasswordChangeScreen({ variant = 'expired' }: { variant?
             testID="password-change-submit"
             label={t('auth.passwordChange.submit')}
             disabled={!canSubmit}
+            loading={pending}
             onPress={submit}
           />
           {skip ? <NativeButton testID="password-change-later" variant="text" label={t('auth.passwordChange.later')} disabled={pending} onPress={skip} /> : null}
@@ -97,6 +101,8 @@ export default function PasswordChangeScreen({ variant = 'expired' }: { variant?
             autoComplete="current-password"
             autoCapitalize="none"
             autoCorrect={false}
+            autoFocus
+            editable={!pending}
             returnKeyType="next"
             onChangeText={(text) => {
               changeCurrent();
@@ -122,6 +128,7 @@ export default function PasswordChangeScreen({ variant = 'expired' }: { variant?
               autoComplete="new-password"
               autoCapitalize="none"
               autoCorrect={false}
+              editable={!pending}
               returnKeyType="next"
               onChangeText={(text) => {
                 changeNew();
@@ -148,13 +155,17 @@ export default function PasswordChangeScreen({ variant = 'expired' }: { variant?
               autoComplete="new-password"
               autoCapitalize="none"
               autoCorrect={false}
-              returnKeyType="go"
+              editable={!pending}
+              returnKeyType="done"
               onChangeText={field.onChange}
-              onBlur={field.onBlur}
+              onBlur={() => {
+                field.onBlur();
+                blurConfirm();
+              }}
               onSubmitEditing={submit}
             />
             {matches || mismatch ? (
-              <NativeText variant="caption" tone={matches ? 'default' : 'danger'}>
+              <NativeText variant="caption" tone={matches ? 'success' : 'danger'}>
                 {matches ? t('auth.passwordChange.match') : t('auth.passwordChange.mismatch')}
               </NativeText>
             ) : null}

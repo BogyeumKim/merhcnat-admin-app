@@ -15,6 +15,7 @@ import { NativeText } from '@/shared/ui/native-text';
 import { pressableA11y } from '@/shared/ui/pressable-a11y';
 import { SheetFormScreen } from '@/shared/ui/sheet-form-screen';
 
+import { CardSpinner } from './card-spinner';
 import { StepHeader } from './step-header';
 import { TOP_BAR_GLYPH } from './top-bar';
 import type { ChallengeMethod, ChallengeOption } from '../model/schemas';
@@ -23,7 +24,8 @@ type MethodChoiceProps = {
   methods: ChallengeOption[];
   /** 마지막으로 인증에 성공한 수단: "최근 사용" 배지와 진한 테두리. */
   recentMethod?: ChallengeMethod;
-  pending: boolean;
+  /** 발송 요청 중인 수단: 그 카드는 셰브런 대신 스피너, 다른 카드는 흐리게 눌리지 않는다. */
+  sendingMethod: ChallengeMethod | null;
   errorMessage: string | null;
   /** 카드(또는 이메일 받기)를 누름: 같은 수단이어도 항상 새 코드를 보낸다. */
   onChoose: (method: ChallengeMethod) => void;
@@ -41,6 +43,9 @@ const GLYPHS = {
 const TILE = 44;
 const GLYPH = 22;
 const CARD_RING = 1.5;
+const TRAILING = 18;
+/** 발송 중 다른 카드: 눌리지 않음을 흐림으로 보인다(색만이 아니라 탭도 막는다). */
+const DIMMED = 0.5;
 
 function ChannelTile({ method }: { method: ChallengeMethod }) {
   const colors = useNativeColors();
@@ -100,18 +105,19 @@ function CloseButton({ onPress }: { onPress: () => void }) {
  * 일회용 코드를 받을 방식을 고른다. 서버가 제공하는 방식만 표시한다(서버가 비어 있는 연락처 컬럼은 빼고 내려준다).
  * 닫기는 그래버(아래로 끌기)와 진행 막대 줄 끝 X 둘 다 둔다(`.claude/rules/expo-ui.md` form sheet 그래버).
  */
-export function MethodChoice({ methods, recentMethod, pending, errorMessage, onChoose, onCancel }: MethodChoiceProps) {
+export function MethodChoice({ methods, recentMethod, sendingMethod, errorMessage, onChoose, onCancel }: MethodChoiceProps) {
   const { t } = useTranslation();
   const colors = useNativeColors();
   const hintOf = useChannelHint();
   const close = <CloseButton onPress={onCancel} />;
   const onlyEmail = methods.length === 1 && methods[0]?.method === 'EMAIL' ? methods[0] : null;
+  const sending = sendingMethod !== null;
 
   // 휴대폰 번호가 없고 이메일만 있는 계정(디자인): 고를 것이 없으니 받을 이메일을 보여주고 바로 보낸다.
   if (onlyEmail) {
     return (
       <SheetFormScreen grabber
-        footer={<NativeButton testID="verify-send-email" label={t('auth.verify.sendCode')} disabled={pending} onPress={() => onChoose('EMAIL')} />}>
+        footer={<NativeButton testID="verify-send-email" label={t('auth.verify.sendCode')} loading={sending} disabled={sending} onPress={() => onChoose('EMAIL')} />}>
         <StepHeader title={t('auth.verify.emailOnlyTitle')} body={t('auth.verify.chooseMethodBody')} step={{ current: 1, total: 2 }} trailing={close} />
         <Row
           alignment="center"
@@ -125,7 +131,6 @@ export function MethodChoice({ methods, recentMethod, pending, errorMessage, onC
             <NativeText variant="headline">{onlyEmail.destination ?? t('auth.method.EMAIL')}</NativeText>
           </Column>
         </Row>
-        {pending ? <NativeText tone="secondary">{t('auth.verify.sending')}</NativeText> : null}
         {errorMessage ? <FormAlert boxed message={errorMessage} /> : null}
       </SheetFormScreen>
     );
@@ -134,11 +139,10 @@ export function MethodChoice({ methods, recentMethod, pending, errorMessage, onC
   return (
     <SheetFormScreen grabber>
       <StepHeader title={t('auth.verify.chooseMethodTitle')} body={t('auth.verify.chooseMethodBody')} step={{ current: 1, total: 2 }} trailing={close} />
-      {/* 실패는 카드 바로 위에: 맨 아래에 두면 화면 밖이라 눌러도 아무 일이 없는 것처럼 보였다. */}
-      {errorMessage ? <FormAlert boxed message={errorMessage} /> : null}
       <Column spacing={spacing.sm} style={{ width: '100%', paddingTop: spacing.sm }}>
         {methods.map((option) => {
           const recent = option.method === recentMethod;
+          const spinning = option.method === sendingMethod;
           const name = t(`auth.method.${option.method}`);
           // 카드 하나를 버튼 하나로 읽는다: "카카오톡, 최근 사용, 010-****-0000 알림톡으로 받기".
           const a11yLabel = [name, recent ? t('auth.verify.recent') : null, hintOf(option)].filter((part) => part !== null).join(', ');
@@ -147,10 +151,16 @@ export function MethodChoice({ methods, recentMethod, pending, errorMessage, onC
               key={option.method}
               testID={`channel-${option.method}`}
               onPress={() => {
-                if (!pending) onChoose(option.method);
+                if (!sending) onChoose(option.method);
               }}
               modifiers={pressableA11y(a11yLabel)}
-              style={{ width: '100%', padding: CARD_RING, borderRadius: radius.card, backgroundColor: recent ? colors.ink : colors.hairline }}>
+              style={{
+                width: '100%',
+                padding: CARD_RING,
+                borderRadius: radius.card,
+                backgroundColor: recent ? colors.ink : colors.hairline,
+                opacity: sending && !spinning ? DIMMED : 1,
+              }}>
               <Row
                 alignment="center"
                 spacing={spacing.md}
@@ -166,18 +176,23 @@ export function MethodChoice({ methods, recentMethod, pending, errorMessage, onC
                     {hintOf(option)}
                   </NativeText>
                 </Column>
-                <Icon name={icons.chevronRight} size={18} color={colors.secondaryText} />
+                {spinning ? (
+                  <CardSpinner color={colors.secondaryText} size={TRAILING} />
+                ) : (
+                  <Icon name={icons.chevronRight} size={TRAILING} color={colors.secondaryText} />
+                )}
               </Row>
             </Column>
           );
         })}
       </Column>
+      {/* 실패는 카드 목록 바로 아래(디자인 1-5): 다른 카드를 다시 고를 수 있게 목록은 그대로 둔다. */}
+      {errorMessage ? <FormAlert boxed message={errorMessage} /> : null}
       <Column alignment="center" style={{ width: '100%' }}>
         <LinkText testID="verify-phone-changed" onPress={() => void openSheet({ pathname: '/login-help', params: { open: 'phone' } })}>
           {t('auth.verify.phoneChanged')}
         </LinkText>
       </Column>
-      {pending ? <NativeText tone="secondary">{t('auth.verify.sending')}</NativeText> : null}
     </SheetFormScreen>
   );
 }

@@ -31,25 +31,29 @@ type RuleContext = {
   userId?: string | null;
 };
 
-/** 아이디 줄: 서버 위반이 최우선, 아이디를 모르면 숨김(`null`), 그 외 대소문자 구분 없이 아이디 전체가 들어 있는지 본다(힌트). */
+/**
+ * 아이디 줄: 서버 위반만 `fail`, 아이디를 모르면 숨김(`null`). 입력 중 아이디가 들어 있으면 빨강 대신 회색(`wait`)으로 둔다
+ * (디자인 1-9: 입력 중에는 혼내지 않는다). 대소문자 구분 없이 아이디 전체가 들어 있는지 본다(힌트).
+ */
 function userIdRule(value: string, userId: string | null, serverViolation: boolean): RuleState | null {
   if (serverViolation) return 'fail';
   const id = userId?.trim().toLowerCase() ?? '';
   if (id === '') return null;
   if (value.length === 0) return 'wait';
-  return value.toLowerCase().includes(id) ? 'fail' : 'ok';
+  return value.toLowerCase().includes(id) ? 'wait' : 'ok';
 }
 
 /**
- * 디자인의 규칙 목록으로, 입력 중 힌트로 쓴다. 길이·문자 종류·아이디 포함은 여기서 검사하고(아이디를 알 때만),
- * "최근 비밀번호 금지"는 서버만 알 수 있어 서버가 그렇다고 할 때만 `fail`이다. 최종 판단은 항상 서버다.
+ * 디자인의 규칙 목록으로, 입력 중 힌트로 쓴다. 처음엔 모두 회색(`wait`), 만족한 줄만 초록(`ok`)으로 바뀌고
+ * **입력 중에는 빨강(`fail`)이 되지 않는다**(디자인 1-9). `fail`은 서버가 거부했을 때만(`violations`, `reused`)이며,
+ * 사용자가 새 비밀번호를 고치기 시작하면 화면 훅이 서버 판정을 지워 다시 회색/초록으로 돌아간다.
+ * "최근 비밀번호 금지"는 서버만 알 수 있어 서버가 그렇다고 할 때까지 회색이다. 최종 판단은 항상 서버다.
  */
 export function evaluatePasswordRules(value: string, { violations = [], reused = false, userId = null }: RuleContext = {}): PasswordRules {
-  const touched = value.length > 0;
   const lengthOk = value.length >= 8 && value.length <= 20;
   return {
-    length: !touched ? 'wait' : lengthOk && !violations.includes('LENGTH') ? 'ok' : 'fail',
-    charset: !touched ? 'wait' : charsetOk(value) && !violations.includes('CHARSET') ? 'ok' : 'fail',
+    length: violations.includes('LENGTH') ? 'fail' : lengthOk ? 'ok' : 'wait',
+    charset: violations.includes('CHARSET') ? 'fail' : charsetOk(value) ? 'ok' : 'wait',
     invalidChars: !onlyAllowedChars(value),
     userId: userIdRule(value, userId, violations.includes('CONTAINS_USER_ID')),
     reuse: reused ? 'fail' : 'wait',
@@ -58,3 +62,7 @@ export function evaluatePasswordRules(value: string, { violations = [], reused =
 
 /** 클라이언트 측 검사 통과 여부(최종 판단은 서버). */
 export const passwordLooksValid = (value: string) => value.length >= 8 && value.length <= 20 && charsetOk(value);
+
+/** 버튼 활성 조건: 앱이 판단할 수 있는 규칙(길이, 문자, 아는 경우 아이디)을 모두 만족. 재사용은 서버만 판단하므로 제외. */
+export const rulesSatisfied = (rules: PasswordRules) =>
+  rules.length === 'ok' && rules.charset === 'ok' && (rules.userId === null || rules.userId === 'ok');

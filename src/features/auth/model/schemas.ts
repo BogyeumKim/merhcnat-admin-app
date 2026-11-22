@@ -57,9 +57,9 @@ export const challengeRequiredSchema = z.object({
   methods: z.array(challengeOptionSchema),
   /** 이 사용자가 마지막으로 인증에 성공한 수단("최근 사용" 배지). 이력이 없으면 없다. */
   recentMethod: challengeMethodSchema.optional(),
-  /** 본인의 다른 기기가 등록돼 있을 때만: 서버가 마스킹한 본인 아이디. 다른 계정 기기면 오지 않는다. */
+  /** `CHANGED`일 때 이 기기(또는 본인의 다른 기기)에 지금 등록된 아이디(서버 마스킹). 다른 계정 기기면 그 계정의 마스킹 아이디. `NONE`/`MATCH`는 없음. */
   registeredUserIdMasked: z.string().optional(),
-  /** 이 기기가 다른 계정에 등록돼 있음(누구인지는 알려주지 않는다). */
+  /** 이 기기가 다른 계정에 등록돼 있음. 그 계정의 마스킹 아이디는 `registeredUserIdMasked`로 온다. */
   deviceRegisteredToOtherAccount: z.boolean().optional(),
   /** 서버가 아닌 앱이 설정: 사용자가 방금 입력한 ID(메모리 전용, 기기 변경 안내에 표시). */
   enteredUserId: z.string().optional(),
