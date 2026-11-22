@@ -1,7 +1,7 @@
 import { Column, ScrollView } from '@expo/ui';
 import { fillMaxWidth, imePadding, weight } from '@expo/ui/jetpack-compose/modifiers';
 
-import { spacing } from '@/shared/theme';
+import { spacing, useWindowLayout } from '@/shared/theme';
 
 import { FormColumn } from './form-column';
 import { FormFooter } from './form-footer';
@@ -24,8 +24,22 @@ const FILL_COLUMN = [fillMaxWidth(), weight(1)];
  *  커서를 화면에 보이게 한다. JS 키보드 리스너는 없다. `footer`가 있으면 `imePadding()`을 컬럼 전체에 적용해 푸터가 키보드 위로 올라온다.
  *  `bottomInset`(내비게이션 바)은 콘텐츠 안쪽 패딩이다: Host가 바 아래까지 확장되고(edge-to-edge)
  *  키보드가 닫혀 있으면 `imePadding()`은 0이다. 열려 있는 동안은 인셋이 두 번 반영되지만, 콘텐츠 끝에 스크롤 여유가 조금 늘 뿐이다.
+ *  손쉬운 사용 글꼴(`isLargeText`)에서는 `footer`를 고정하지 않고 스크롤 맨 끝에 둔다(`native-form-scroll.types.ts`).
  */
 export function NativeFormScroll({ children, bottomInset, footer }: NativeFormScrollProps) {
+  const { isLargeText } = useWindowLayout();
+
+  if (footer != null && isLargeText) {
+    return (
+      <ScrollView modifiers={SCROLL}>
+        <Column style={{ width: '100%' }}>
+          <FormColumn bottomPadding={0}>{children}</FormColumn>
+          <FormFooter bottomPadding={bottomInset + spacing.md}>{footer}</FormFooter>
+        </Column>
+      </ScrollView>
+    );
+  }
+
   if (!footer) {
     return (
       <ScrollView modifiers={SCROLL}>

@@ -3,7 +3,7 @@ import { Column, Icon, Row } from '@expo/ui';
 import { SUPPORT } from '@/shared/config/support';
 import { useTranslation } from '@/shared/i18n';
 import { openSupportChat, openSupportPhone } from '@/shared/lib/support-contact';
-import { spacing, useNativeColors } from '@/shared/theme';
+import { spacing, useNativeColors, useWindowLayout } from '@/shared/theme';
 
 import { FILL_ROW } from './fill-row';
 import { icons } from './icons';
@@ -19,6 +19,7 @@ const MARK_PADDING = 5;
 const MARK_STYLE = { padding: MARK_PADDING, borderRadius: (MARK_GLYPH + MARK_PADDING * 2) / 2, backgroundColor: KAKAO_YELLOW } as const;
 const PHONE_GLYPH = 20;
 const FULL_WIDTH = { width: '100%' } as const;
+const NO_MODIFIERS: typeof FILL_ROW = [];
 
 /**
  * 카카오 마크를 네이티브로 그린다(노란 원 + 말풍선 글리프). SVG(`expo-image`)는 `RNHostView`가 필요한데,
@@ -40,11 +41,16 @@ type SupportContactButtonsProps = {
 /**
  * 고객센터 연락 버튼 한 쌍: [카카오톡 상담] [전화 상담]을 반반 나란히(PDF p3, p8, p33~42). 고르는 창을 따로 띄우지 않는다.
  *  두 칸은 `FILL_ROW`로 부모 폭을 똑같이 나눠 시트·차단 화면·분할 창 어디서든 맞는다(창 폭으로 계산하지 않는다).
+ *  손쉬운 사용 글꼴(`isLargeText`)에서는 위아래로 쌓는다: 반 폭에서는 라벨이 한 글자씩 줄바꿈되어 버튼이 매우 높아지고, 시트 하단에서 잘렸다.
  *  `@expo/ui` 요소이므로 `NativeHost`/폼 셸 안에서 쓴다. 연타와 실패 토스트는 `openSupportChat`/`openSupportPhone`이 처리한다.
  */
 export function SupportContactButtons({ header = false }: SupportContactButtonsProps) {
   const { t } = useTranslation();
   const colors = useNativeColors();
+  const { isLargeText } = useWindowLayout();
+  const Pair = isLargeText ? Column : Row;
+  // 나란히: 두 칸이 폭을 반씩(`FILL_ROW`). 세로로 쌓기: 각 칸이 전체 폭.
+  const cell = isLargeText ? { style: FULL_WIDTH, modifiers: NO_MODIFIERS } : { modifiers: FILL_ROW };
 
   return (
     <Column
@@ -62,10 +68,10 @@ export function SupportContactButtons({ header = false }: SupportContactButtonsP
           </NativeText>
         </Column>
       ) : null}
-      <Row
+      <Pair
         spacing={spacing.sm}
         style={FULL_WIDTH}>
-        <Column modifiers={FILL_ROW}>
+        <Column {...cell}>
           <NativeButton
             variant="tonal"
             label={t('support.kakao')}
@@ -75,7 +81,7 @@ export function SupportContactButtons({ header = false }: SupportContactButtonsP
             testID="support-kakao"
           />
         </Column>
-        <Column modifiers={FILL_ROW}>
+        <Column {...cell}>
           <NativeButton
             variant="tonal"
             label={t('support.phone')}
@@ -91,7 +97,7 @@ export function SupportContactButtons({ header = false }: SupportContactButtonsP
             testID="support-phone"
           />
         </Column>
-      </Row>
+      </Pair>
     </Column>
   );
 }

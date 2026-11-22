@@ -2,7 +2,7 @@ import type { NativeStackNavigationOptions } from 'expo-router';
 import { Stack } from 'expo-router/stack';
 
 import { useIsSignedIn, useMustChangePassword, useSessionEndedRedirect } from '@/features/auth';
-import { SHEET_CORNER_RADIUS, SHEET_MAX_WIDTH, useNativeColors, useWindowLayout } from '@/shared/theme';
+import { SHEET_CORNER_RADIUS, useNativeColors, useWindowLayout } from '@/shared/theme';
 
 import { useTrackCurrentPath } from './current-path';
 
@@ -12,11 +12,10 @@ import { useTrackCurrentPath } from './current-path';
  * iOS는 네이티브 그래버. Android는 react-native-screens 4.30.1이 이 값을 그리지 않아 시트 내용이 `SheetGrabber`(`SheetFormScreen grabber`)를 그린다.
  * 시트는 `openSheet()`(`shared/lib/open-sheet`)로만 연다: 포커스된 입력란을 먼저 블러해 닫힐 때 키보드가 되살아나지 않게 한다.
  *
- * `floating`(Android, 창 폭 > `SHEET_MAX_WIDTH`): M3는 넓은 화면에서 바텀 시트를 640dp로 가운데 둔다. react-native-screens 4.30.1
- * Android 시트(CoordinatorLayout + BottomSheetBehavior)는 항상 창 전체 폭이고 최대 폭 옵션이 없어, 네이티브 시트를 투명·그림자 없이 두고
- * 시트 내용의 `SheetSurface`가 640dp 가운데 카드를 그린다(양옆은 스크림이 비친다). 네이티브는 이 두 값(배경 tint, elevation)을
- * 시트가 만들어질 때 한 번만 읽는다: 시트를 연 채로 접기/펼치기를 하면 연 시점의 모양이 유지된다(내용 카드는 폭을 따라간다).
- * 폰(창 ≤ 640)은 기존과 같다(불투명 배경, 기본 elevation 24).
+ * `floating`(Android 전체): 네이티브 시트(react-native-screens 4.30.1, CoordinatorLayout + BottomSheetBehavior)는 항상 창 전체 폭이고
+ * 최대 폭·위 여백 옵션이 없다. 그래서 네이티브 시트를 투명·그림자 없이 두고 시트 내용의 `SheetSurface`가 M3 바텀 시트 카드
+ * (최대 640dp 가운데, 전체 높이 시트는 창 맨 위에서 `SHEET_TOP_GAP`만큼 띄움)를 그린다. 카드 바깥(양옆, 위)으로 스크림이 비친다.
+ * 창 폭과 상관없이 항상 투명이라, 시트를 연 채로 접기/펼치기해도 네이티브 배경이 남지 않는다(배경 tint·elevation은 생성 때 한 번만 읽힌다).
  */
 function sheetOptions(
   background: string,
@@ -36,14 +35,15 @@ function sheetOptions(
 /**
  * `verify`는 2차 인증 단계로, 로그인 화면 위에 뜨는 시트다. 아래로 드래그, 취소 탭, Android 뒤로가기 제스처로 닫으며,
  * 화면이 제거될 때마다 진행 중이던 인증 요청을 정리한다.
- * 낮은 창(펼친 폴더블 가로 등)·분할 창·큰 글꼴은 전체 높이(`useWindowLayout().prefersFullSheet`). 단계별 값은 `useVerifyFlow`가 덮어쓴다.
+ * 낮은 창(펼친 폴더블 가로 등)·분할 창·큰 글꼴은 최대 높이(`useWindowLayout().prefersFullSheet`). 단계별 값은 `useVerifyFlow`가 덮어쓴다.
+ * 최대 높이(`fullDetent`)도 창 맨 위까지 올라가지 않는다: iOS 넓은 창은 1보다 작은 비율, 그 외 1(`useWindowLayout().fullSheetDetent`).
  */
-const verifySheetOptions = (background: string, full: boolean, floating: boolean) =>
-  sheetOptions(background, full ? [1] : process.env.EXPO_OS === 'android' ? [0.72] : [0.7, 1], floating);
+const verifySheetOptions = (background: string, full: boolean, fullDetent: number, floating: boolean) =>
+  sheetOptions(background, full ? [fullDetent] : process.env.EXPO_OS === 'android' ? [0.72] : [0.7, 1], floating);
 
-/** "로그인이 안 되나요?": 답변이 길어 거의 전체 높이로 띄우는 같은 모양의 시트. */
-const helpSheetOptions = (background: string, full: boolean, floating: boolean) =>
-  sheetOptions(background, full || process.env.EXPO_OS === 'android' ? [1] : [0.92], floating);
+/** "로그인이 안 되나요?": 답변이 길어 최대 높이로 띄우는 같은 모양의 시트(iOS 휴대폰 세로는 0.92). */
+const helpSheetOptions = (background: string, full: boolean, fullDetent: number, floating: boolean) =>
+  sheetOptions(background, full ? [fullDetent] : process.env.EXPO_OS === 'android' ? [1] : [0.92], floating);
 
 /** 로그인 공지: 탭 화면 위에 내용 높이만큼만 뜨는 바텀 시트 (iOS/Android 모두 부분 높이). */
 const noticeSheetOptions = (background: string, floating: boolean) => sheetOptions(background, 'fitToContents', floating);
@@ -69,9 +69,9 @@ export function RootNavigator() {
   const isSignedIn = useIsSignedIn();
   const mustChangePassword = useMustChangePassword();
   const { scheme, background } = useNativeColors();
-  const { prefersFullSheet, width } = useWindowLayout();
-  // Android 넓은 창: 시트를 640dp 가운데 카드로 띄운다(`sheetOptions`). 창 폭만 본다(기기 종류 분기 없음). iOS는 네이티브 page sheet.
-  const floatingSheet = process.env.EXPO_OS === 'android' && width > SHEET_MAX_WIDTH;
+  const { prefersFullSheet, fullSheetDetent } = useWindowLayout();
+  // Android: 시트 모양(폭, 위 여백)은 `SheetSurface` 카드가 그린다(`sheetOptions`). iOS는 네이티브 시트.
+  const floatingSheet = process.env.EXPO_OS === 'android';
 
   return (
     <Stack screenOptions={scheme === 'dark' ? SCREEN_DEFAULTS_DARK : SCREEN_DEFAULTS_LIGHT}>
@@ -88,8 +88,8 @@ export function RootNavigator() {
       </Stack.Protected>
       <Stack.Protected guard={!isSignedIn}>
         <Stack.Screen name="sign-in" />
-        <Stack.Screen name="verify" options={verifySheetOptions(background, prefersFullSheet, floatingSheet)} />
-        <Stack.Screen name="login-help" options={helpSheetOptions(background, prefersFullSheet, floatingSheet)} />
+        <Stack.Screen name="verify" options={verifySheetOptions(background, prefersFullSheet, fullSheetDetent, floatingSheet)} />
+        <Stack.Screen name="login-help" options={helpSheetOptions(background, prefersFullSheet, fullSheetDetent, floatingSheet)} />
         <Stack.Screen name="temp-password" options={NO_GESTURE} />
       </Stack.Protected>
       <Stack.Screen name="maintenance" options={BLOCKING_SCREEN} />

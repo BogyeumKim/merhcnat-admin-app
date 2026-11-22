@@ -8,14 +8,17 @@ import {
   Text,
   TextButton,
 } from '@expo/ui/jetpack-compose';
-import { alpha, fillMaxWidth, height, semantics, size, testID as testIDModifier } from '@expo/ui/jetpack-compose/modifiers';
+import { alpha, defaultMinSize, fillMaxWidth, semantics, size, testID as testIDModifier } from '@expo/ui/jetpack-compose/modifiers';
 
 import { spacing, useNativeColors } from '@/shared/theme';
 
 import type { NativeButtonProps } from './native-button.types';
 
-/** 56dp: Korpay 디자인 pill 버튼 높이 (Material 최소 터치 영역 48dp보다 큼). */
-const FULL_WIDTH = [fillMaxWidth(), height(56)];
+/**
+ * 56dp: Korpay 디자인 pill 버튼 높이 (Material 최소 터치 영역 48dp보다 큼). 고정 `height`가 아니라 최소 높이다:
+ * 큰 글꼴에서 라벨이 두 줄이 되면 버튼이 늘어난다(고정 56이면 두 번째 줄이 잘렸다, font_scale 2.0 실측).
+ */
+const FULL_WIDTH = [fillMaxWidth(), defaultMinSize({ minHeight: 56 })];
 /** 로딩 중에도 라벨을 투명하게 남겨 버튼 크기가 바뀌지 않게 한다(스피너는 가운데 겹침). */
 const HIDDEN = [alpha(0)];
 /**

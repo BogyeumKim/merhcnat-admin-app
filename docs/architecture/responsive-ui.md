@@ -69,12 +69,34 @@
 - Android는 `viewBox`를 지우지 않아야 한다 (Expo SVG 문서). 로고를 고치면 `brand-logo.tsx`의 `LOGO_ASPECT_RATIO`(168.6/56)도 같이 맞춘다. **XML 주석 안에 `--`(연속 하이픈)를 쓰면 네이티브 SVG 파서가 파일 전체를 거부해 아무것도 안 그려진다** (macOS 미리보기는 통과하므로 앱에서 확인한다).
 - 로컬 미리보기: `qlmanage -t -s 900 -o <dir> assets/images/korpay-logo.svg`.
 
+## 4-1. 폼 시트 높이 (위 여백) · 글꼴 최대
+
+**문제(2026-11):** 펼친 iPhone Duo·Galaxy Fold에서 `verify`·`login-help` 시트가 창 맨 위까지 올라왔다(iOS large detent 위 끝 8pt, Android 상태 표시줄 바로 아래). 접힌 Duo도 위 safe area가 0이라 같았다.
+
+**플랫폼 가이드(출처):**
+- Apple HIG Sheets: large detent는 "fully expanded sheet" 높이, medium은 그 절반. 시트는 부모 화면으로 돌아가기 전 짧은 작업용이며, 복잡하거나 긴 흐름은 full-screen 모달 등 다른 방식을 고려. iPadOS는 page/form sheet(기본 크기, 흐린 배경 위 가운데). visionOS는 "Avoid displaying a sheet that covers most or all of its window". https://developer.apple.com/design/human-interface-guidelines/sheets
+- UIKit `UIModalPresentationStyle.formSheet`/`pageSheet`: regular 폭·높이에서는 가운데 카드이고 "A part of the background content always remains visible", compact 폭·regular 높이에서는 "part of the background content visible near the top of the screen", compact 높이에서는 `fullScreen`과 같다. `prefersEdgeAttachedInCompactHeight` 기본 false(=compact 높이에서 전체 화면). https://developer.apple.com/documentation/uikit/uimodalpresentationstyle/formsheet · https://developer.apple.com/documentation/uikit/uisheetpresentationcontroller/prefersedgeattachedincompactheight
+- Material 3 바텀 시트 사양: 위 여백 72dp, 창 폭이 640dp를 넘으면 위·옆 여백 56dp, 최대 폭 640dp. https://m3.material.io/components/bottom-sheets/specs (SPA라 검색 결과 인용으로 확인). MDC Android `BottomSheet.md` 표: Max width 640dp. https://github.com/material-components/material-components-android/blob/master/docs/components/BottomSheet.md · Compose `BottomSheetDefaults.SheetMaxWidth` 640dp.
+- Expo Router 모달 문서: `sheetAllowedDetents`(숫자 배열 / `'fitToContents'`, `flex: 1` 불가), Android 최대 3개, `sheetInitialDetentIndex`, Android 전용 실험 `unstable_sheetFooter`. "flex: 1 works correctly on iOS when using custom numeric detents"(SDK 55+). https://docs.expo.dev/router/advanced/modals/
+- react-native-screens 4.30.1(설치본): `sheetAllowedDetents` 비율은 최대 detent 높이 기준, `sheetExpandsWhenScrolledToEdge`(iOS, 기본 true), `sheetInitialDetentIndex`, `sheetShouldOverflowTopInset`(Android, 기본 false: 비율은 상태 표시줄 아래 높이 기준). iOS는 `UIModalPresentationFormSheet` 고정이고 `prefersEdgeAttachedInCompactHeight`를 노출하지 않는다. Android는 최대 detent < 1이면 키보드가 열릴 때 시트를 위로 옮긴다(`computeSheetOffsetYWithIMEPresent`). 관련 이슈: setOptions로 detent를 바꿔도 Android는 위치를 다시 잡지 않음 https://github.com/software-mansion/react-native-screens/issues/3919
+
+**결정:**
+- 위 여백 = M3 값(창 ≤ 640: 72dp, 넓은 창: 56dp, 창 맨 위 기준)을 두 플랫폼 공통으로 쓴다(`SHEET_TOP_GAP`, `useWindowLayout().sheetTopGap`). iOS 휴대폰처럼 시스템 large detent가 이미 그보다 낮으면 손대지 않는다.
+- iOS: detent 비율로 낮춘다(`fullSheetDetent` = (창 높이 − 여백) / (창 높이 − (위 safe area + 10))). 펼친 Duo 0.92, 접힌 Duo 0.9. 1보다 작은 detent는 iOS가 아래 모서리도 둥근 떠 있는 카드로 그려 뒤 화면이 위·아래로 보인다.
+- Android: 부분 detent는 쓰지 않는다(`footer`가 화면 밖, 키보드 이중 반영). 네이티브 시트는 `[1]`·투명이고 `SheetSurface` 카드가 위 여백과 640dp 폭을 그린다. 카드 위 여백 탭은 스크림 탭처럼 닫는다.
+- 여백 0: `isShort`(낮은 창, iOS의 compact 높이 전체 화면과 같은 판단)와 `isLargeText`(배율 ≥ 1.6: iOS AX1 이상, Android 1.8·2.0).
+- 글꼴 최대: `isLargeText`에서 `NativeFormScroll`은 `footer`를 고정하지 않고 스크롤 맨 끝에 둔다. 고정하면 접힌 Duo AX5에서 하단 버튼이 시트의 80%를 차지해 본문이 한 줄만 보였고 버튼 라벨이 "카카오톡…"으로 잘렸다. 나란한 지원 버튼은 세로로 쌓는다. Android `NativeButton`은 최소 높이 56(고정 높이에서는 font_scale 2.0의 두 줄 라벨이 잘렸다).
+- 대가: 글꼴 최대에서는 키보드가 열려 있을 때 하단 버튼이 키보드 위에 고정되지 않는다(스크롤로 도달). 인증번호는 마지막 자리에서 자동 제출되어 버튼이 필수가 아니다.
+
+**실측(2026-11-22):** iPhone Duo 시뮬레이터(iOS 27.1) 접힘/펼침 × 기본·XXXL·AX5, Galaxy Fold8 에뮬레이터(API 36) 펼침 816×616dp × 1.0·2.0, 같은 에뮬레이터를 `wm size 1080x2520`(360×840dp, 휴대폰 크기 대용) × 1.0·2.0. 에뮬레이터는 접기 상태를 지원하지 않아 실제 Fold 커버 화면은 미확인.
+
 ## 5. 기기 테스트 체크리스트
 
 | 시나리오 | 확인 |
 | --- | --- |
 | iPhone SE/mini 세로 | 폼 전체 도달, 로고/제목 겹침 없음 |
-| 글꼴 최대(iOS accessibility5 / Android 200%) | 모든 문구 줄바꿈, 버튼·입력창 잘림 없음, 스크롤로 도달 |
+| 글꼴 최대(iOS accessibility5 / Android 200%) | 모든 문구 줄바꿈, 버튼·입력창 잘림 없음, 스크롤로 도달. 시트는 위 여백 없음, 하단 버튼이 스크롤 끝 |
+| 폼 시트(펼친/접힌 폴더블, 휴대폰) | 시트 위 끝이 창 맨 위에 붙지 않음(72/56dp), 하단 버튼이 키보드 위에 보임 |
 | 키보드 열림 (아이디/비밀번호/인증번호) | 입력 중인 필드와 로그인 버튼 도달 가능 |
 | 가로 폰 | 두 단 레이아웃, 로고 축소, 폼 스크롤 |
 | 폴드 접힘/펼침 전환(회전 포함) | 레이아웃 재구성, 입력 중이던 텍스트 유지 |

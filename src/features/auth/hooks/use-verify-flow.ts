@@ -22,7 +22,6 @@ import { useVerifyCode } from '../mutations/use-verify-code';
  */
 const CHOICE_DETENTS = [0.72];
 const CODE_DETENTS = process.env.EXPO_OS === 'android' ? [1] : [0.7, 1];
-const FULL_DETENTS = [1];
 
 /** 코드를 보낸 뒤 문자 코드 흐름의 진행 상태. 서버의 초 단위를 epoch ms로 변환한 값. */
 type SentCode = { method: ChallengeMethod; destination: string | null; expiresAt: number; resendAt: number };
@@ -61,7 +60,7 @@ function leaveVerification() {
 export function useVerifyFlow(challenge: ChallengeRequired) {
   const { t } = useTranslation();
   const navigation = useNavigation();
-  const { prefersFullSheet } = useWindowLayout();
+  const { prefersFullSheet, fullSheetDetent } = useWindowLayout();
   const runOnce = useRunOnce();
   const isTotp = challenge.methods.some((option) => option.method === 'TOTP');
   // 서버가 빈 `channels`를 줌: 휴대폰·이메일이 모두 없어 진행할 수 없다(고객센터 안내만).
@@ -87,10 +86,13 @@ export function useVerifyFlow(challenge: ChallengeRequired) {
   const step: VerifyStep = noContact ? 'noContact' : !deviceConfirmed ? 'device' : isTotp || sent ? 'code' : 'method';
 
   // 각 단계가 자신의 시트 detent를 정한다(라우트 기본값은 `app/_layout.tsx`).
-  const detents = prefersFullSheet ? FULL_DETENTS : step === 'code' ? CODE_DETENTS : CHOICE_DETENTS;
+  // 최대 높이도 창 맨 위까지 올리지 않는다(`fullSheetDetent`, `.claude/rules/adaptive-layout.md` 시트 높이).
+  // 의존성은 원시 값만 둔다: 배열을 렌더에서 만들면 매번 바뀐 것으로 보여 `setOptions`가 반복된다.
+  const codeStep = step === 'code';
   useEffect(() => {
+    const detents = prefersFullSheet ? [fullSheetDetent] : codeStep ? CODE_DETENTS : CHOICE_DETENTS;
     navigation.setOptions({ sheetAllowedDetents: detents });
-  }, [navigation, detents]);
+  }, [navigation, prefersFullSheet, fullSheetDetent, codeStep]);
 
   // 취소 시 challenge는 지우지 않는다: 시트가 사라지기 전에 비우면 `useVerifyRouteGuard`의 리다이렉트가 발동해
   // 닫히는 도중 라우트가 교체된다. `removed` 리스너가 비운다.

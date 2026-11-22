@@ -23,7 +23,12 @@ paths:
 - **탭 바**: Android `NativeTabs`(expo-router 58, react-native-screens 4.30)는 Material `BottomNavigationView`만 쓴다. 내비게이션 레일/adaptive navigation suite 옵션이 없다(iOS만 `sidebarAdaptable`/`preferredPlacement`). 넓은 창에서도 하단 탭을 그대로 두고, JS 레일/커스텀 탭 바를 만들지 않는다(`bottom-tabs.md`).
 - **헤더 없는 전체 화면의 위쪽 여백은 `useScreenTopInset()`**(`shared/lib`)을 쓴다. 창 모드에서는 왼쪽 위 창 컨트롤(●●●)이 safe area top만으로는 로고/제목과 겹친다.
 - **폼 시트**(`presentation: 'formSheet'`)는 넓은 창에서 시트 폭이 창보다 좁거나 넓을 수 있다. 시트 내용은 `SheetFormScreen`(→ `FormColumn` 가운데 정렬)으로만 그린다. 창 폭으로 시트 내용 폭을 계산하지 않는다(iOS는 `frame(maxWidth)`가 실제 시트 폭을 따른다). 좌우 safe area도 창 기준 `useSafeAreaInsets()`를 시트에 쓰지 않는다(창 가장자리 인셋이 시트 안쪽 여백이 되어 한쪽으로 쏠렸다, 펼친 Duo 실측): `SheetFormScreen`은 네이티브 `SafeAreaView`(시트 실제 프레임 기준)를 쓴다.
-- **시트 폭(플랫폼 관례, 창 폭 + 플랫폼으로만 분기)**: iOS는 네이티브 page sheet(넓은 창에서 시스템이 가운데 카드로 띄움, 손대지 않는다). Android는 M3 바텀 시트: 창 폭이 `SHEET_MAX_WIDTH`(640dp, M3 `BottomSheetDefaults.SheetMaxWidth`)보다 넓으면 640dp로 가운데. react-native-screens 4.30.1 Android 시트는 최대 폭 옵션이 없어(CoordinatorLayout + BottomSheetBehavior, 항상 창 전체 폭) `sheetOptions(…, floating)`이 네이티브 시트를 투명·`sheetElevation: 0`으로 두고, 내용의 `SheetSurface`(`shared/ui/sheet-surface`)가 640 카드(배경·위쪽 모서리 28)를 그린다. 닫을 수 있는 시트는 카드 양옆 탭으로 닫힌다. 시트 내용은 반드시 `SheetFormScreen` 또는 `SheetSurface` 안에 둔다. 폰(≤640)은 카드가 시트를 꽉 채워 기존과 같다. 네이티브 배경·elevation은 시트 생성 때 한 번 읽히므로 연 채로 접기/펼치기하면 연 시점 모양이 유지된다.
+- **시트 폭(플랫폼 관례, 창 폭 + 플랫폼으로만 분기)**: iOS는 네이티브 page sheet(넓은 창에서 시스템이 가운데 카드로 띄움, 손대지 않는다). Android는 M3 바텀 시트: 창 폭이 `SHEET_MAX_WIDTH`(640dp, M3 `BottomSheetDefaults.SheetMaxWidth`)보다 넓으면 640dp로 가운데. react-native-screens 4.30.1 Android 시트는 최대 폭·위 여백 옵션이 없어(CoordinatorLayout + BottomSheetBehavior, 항상 창 전체 폭) `sheetOptions(…, floating)`이 **Android에서는 창 폭과 상관없이** 네이티브 시트를 투명·`sheetElevation: 0`으로 두고, 내용의 `SheetSurface`(`shared/ui/sheet-surface`)가 카드(배경·위쪽 모서리 28, 최대 640)를 그린다. 닫을 수 있는 시트는 카드 바깥(양옆·위 여백) 탭으로 닫힌다. 시트 내용은 반드시 `SheetFormScreen` 또는 `SheetSurface` 안에 둔다. 폰(≤640)은 카드가 시트 폭을 꽉 채운다.
+- **시트 높이: 전체 높이 시트도 창 맨 위까지 올리지 않는다(위 여백 `useWindowLayout().sheetTopGap`).** 값은 M3 바텀 시트 사양: 창 맨 위에서 72dp, 창 폭 > 640dp면 56dp(`SHEET_TOP_GAP`). 근거·출처: `docs/architecture/responsive-ui.md` "폼 시트 높이".
+  - iOS: `prefersFullSheet`일 때 detent는 `[useWindowLayout().fullSheetDetent]`(숫자)다. large detent(1)의 위 끝은 위 safe area + 약 10pt라 상태 표시줄이 위에 있는 휴대폰은 1 그대로(시스템이 뒤 화면을 남긴다), 위 인셋이 0인 창(접힌·펼친 iPhone Duo)은 1이면 창 맨 위 8pt까지 올라와서 여백만큼 줄인 비율(펼친 Duo 0.92, 접힌 0.9)이 된다. 1보다 작은 detent의 iOS 시트는 아래 모서리도 둥근 떠 있는 카드로 그려진다(실측). `[1]`을 직접 쓰지 않는다(단계별로 detent를 바꾸는 `useVerifyFlow`도 같은 값을 써야 한다).
+  - Android: 네이티브 detent는 `[1]` 그대로(부분 detent는 `footer`가 화면 밖), `SheetSurface fill`이 카드에 위 여백(`sheetTopGap` − 시트 위 끝 위치, 시트 실제 높이를 재서 계산)을 준다. 부분 detent로 이미 낮은 시트에는 더하지 않는다.
+  - 여백 0: `isShort`(휴대폰 가로·분할 화면. iOS도 compact height에서는 시트를 전체 화면으로 띄운다)와 `isLargeText`(손쉬운 사용 글꼴, 배율 ≥ 1.6). 이때는 여백보다 내용이 보이는 높이가 우선이다.
+  - 연 채로 접기/펼치기·글꼴 변경: 두 플랫폼 모두 렌더마다 다시 계산되어 따라간다.
 - Android universal `ScrollView`는 폭 지정이 없으면 느슨한 제약을 받아 내용 폭으로 줄고 왼쪽에 붙는다(그 아래 `'100%'`는 정확한 폭에서만 풀린다). `NativeFormScroll`(Android)은 스크롤에 `fillMaxWidth()`를 줘 본문이 푸터와 같이 가운데 오게 한다.
 - 로고 이미지는 `BrandLogo`처럼 **폭을 명시**한다. 높이+비율+`maxWidth: '100%'`만 주면 내용 크기를 따르는 부모에서 폭이 0이 되어 사라진다.
 
@@ -40,7 +45,8 @@ paths:
 | --- | --- |
 | 접힌 폰 / 320dp 좁은 창 | 잘림·가로 스크롤 없음 |
 | 펼친 iPhone Duo·Galaxy Fold(세로/가로) | 콘텐츠가 가운데 최대 폭, 한쪽 쏠림 없음, 로고/제목 표시 |
-| 폼 시트를 펼친 상태에서 열기 | 시트 안 내용 가운데(본문·푸터 같은 축), 버튼이 시트 폭을 넘지 않음. Android는 시트가 640dp 가운데 카드 |
+| 폼 시트를 펼친 상태에서 열기 | 시트 안 내용 가운데(본문·푸터 같은 축), 버튼이 시트 폭을 넘지 않음. Android는 시트가 640dp 가운데 카드. 시트 위 끝이 창 맨 위에 붙지 않음(56/72dp) |
+| 폼 시트 + 글꼴 최대(iOS AX5, Android 2.0) | 위 여백 없음, 하단 버튼이 스크롤 맨 끝(고정 아님), 나란한 버튼은 세로로 쌓임, 잘린 글자 없음 |
 | iOS 27 창 모드, 창 크기 조절 | 창 컨트롤과 겹침 없음, 크기 바꿔도 입력값 유지 |
 | 접기↔펼치기 전환 | 레이아웃 재구성, 입력 중 텍스트 유지 |
 | 큰 글꼴 / 가로 / 다크 | `responsive-ui.md` 체크리스트 |

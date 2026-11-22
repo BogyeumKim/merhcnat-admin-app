@@ -2,7 +2,7 @@ import { Column } from '@expo/ui';
 import { ScrollView } from '@expo/ui/swift-ui';
 import { scrollDismissesKeyboard } from '@expo/ui/swift-ui/modifiers';
 
-import { spacing } from '@/shared/theme';
+import { spacing, useWindowLayout } from '@/shared/theme';
 
 import { FormColumn } from './form-column';
 import { FormFooter } from './form-footer';
@@ -15,15 +15,25 @@ import type { NativeFormScrollProps } from './native-form-scroll.types';
  *  키보드: SwiftUI `ScrollView`는 키보드 safe area를 따르고(Host는 `ignoreSafeArea`를 설정하지 않음),
  *  `scrollDismissesKeyboard`(iOS 16+)로 키보드를 드래그해 내릴 수 있다. `footer`가 있으면 컬럼 전체가 키보드 위로 줄어 푸터가 계속 보인다.
  *  홈 인디케이터 인셋은 SwiftUI가 직접 적용하므로 여기서 `bottomInset`은 쓰지 않는다.
+ *  손쉬운 사용 글꼴(`isLargeText`)에서는 `footer`를 고정하지 않고 스크롤 맨 끝에 둔다(`inlineFooter`).
  */
 export function NativeFormScroll({ children, footer }: NativeFormScrollProps) {
+  const { isLargeText } = useWindowLayout();
+  const inlineFooter = footer != null && isLargeText;
   const scroll = (
     <ScrollView modifiers={[scrollDismissesKeyboard('interactively')]}>
-      <FormColumn bottomPadding={spacing.md}>{children}</FormColumn>
+      {inlineFooter ? (
+        <Column style={{ width: '100%' }}>
+          <FormColumn bottomPadding={0}>{children}</FormColumn>
+          <FormFooter bottomPadding={spacing.md}>{footer}</FormFooter>
+        </Column>
+      ) : (
+        <FormColumn bottomPadding={spacing.md}>{children}</FormColumn>
+      )}
     </ScrollView>
   );
 
-  if (!footer) return scroll;
+  if (!footer || inlineFooter) return scroll;
 
   return (
     <Column style={{ width: '100%', height: '100%' }}>
