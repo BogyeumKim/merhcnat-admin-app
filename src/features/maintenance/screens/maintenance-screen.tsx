@@ -1,66 +1,41 @@
-import { useLocalSearchParams } from 'expo-router';
-import { Linking } from 'react-native';
-
-import { SUPPORT } from '@/shared/config/support';
-import { getCurrentLanguage, useTranslation } from '@/shared/i18n';
+import { useTranslation } from '@/shared/i18n';
 import { useBlockBackButton } from '@/shared/lib/use-block-back-button';
-import { BrandedFormScreen } from '@/shared/ui/branded-form-screen';
+import { BlockingScreenLayout } from '@/shared/ui/blocking-screen-layout';
 import { icons } from '@/shared/ui/icons';
 import { InfoRows } from '@/shared/ui/info-rows';
 import { NativeButton } from '@/shared/ui/native-button';
-import { NativeText } from '@/shared/ui/native-text';
-import { StatusHeader } from '@/shared/ui/status-header';
+import { SupportContactButtons } from '@/shared/ui/support-contact-buttons';
 
-import { formatRemaining } from '../model/maintenance';
+import { useMaintenance } from '../hooks/use-maintenance';
 
-/** 언어별로 한 번만 만든다: `Intl.DateTimeFormat` 생성은 비싸고, 점검 화면은 남은 시간 갱신으로 다시 렌더링될 수 있다. */
-const dateFormatters = new Map<string, Intl.DateTimeFormat>();
-
-function dateFormatter(language: string): Intl.DateTimeFormat {
-  let formatter = dateFormatters.get(language);
-  if (!formatter) {
-    formatter = new Intl.DateTimeFormat(language, { month: 'long', day: 'numeric', weekday: 'short', hour: 'numeric', minute: '2-digit' });
-    dateFormatters.set(language, formatter);
-  }
-  return formatter;
-}
-
-function formatDate(value: string | undefined): string | null {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return dateFormatter(getCurrentLanguage()).format(date);
-}
-
-/** 서버 점검 중에 앱을 막는다. 점검 시간대를 구조화된 필드로 받아 앱 언어로 포맷해 보여준다(서버가 준 문장은 쓰지 않음). */
+/**
+ * 서버 점검 중 앱을 막는다(디자인 1-10). 제목·설명은 앱 문구(i18n)만 쓰고, 카드에는 시작·종료 예정 시각만 보여준다
+ * (서버가 주지 않은 행은 숨김). 서버 `message`나 점검 사유는 표시하지 않는다. 닫을 수 없고 Android 뒤로가기는 앱 종료.
+ * 분할 창은 `BlockingScreenLayout`이 왼쪽(로고·아이콘·제목·설명) / 오른쪽(카드·버튼)으로 나눈다. 동작은 `useMaintenance`.
+ */
 export default function MaintenanceScreen() {
   const { t } = useTranslation();
-  const { startAt, endAt } = useLocalSearchParams<{ startAt?: string; endAt?: string }>();
-  const from = formatDate(startAt);
-  const until = formatDate(endAt);
-  const remaining = formatRemaining(endAt, t);
+  const { from, until, goHome } = useMaintenance();
 
-  useBlockBackButton();
+  useBlockBackButton(true, 'exit');
 
   const rows = [
     ...(from ? [{ label: t('maintenance.start'), value: from }] : []),
     ...(until ? [{ label: t('maintenance.end'), value: until }] : []),
-    ...(remaining ? [{ label: t('maintenance.remaining'), value: remaining }] : []),
   ];
 
   return (
-    <BrandedFormScreen
-      footer={
-        <NativeButton
-          testID="maintenance-call"
-          variant="tonal"
-          label={t('maintenance.call', { phone: SUPPORT.display })}
-          onPress={() => void Linking.openURL(`tel:${SUPPORT.phone}`)}
-        />
-      }>
-      <StatusHeader icon={icons.maintenance} title={t('maintenance.title')} body={t('maintenance.body')} />
-      {rows.length > 0 ? <InfoRows rows={rows} /> : null}
-      <NativeText tone="secondary">{t('maintenance.reopen')}</NativeText>
-    </BrandedFormScreen>
+    <BlockingScreenLayout
+      icon={icons.maintenance}
+      title={t('maintenance.title')}
+      description={t('maintenance.body')}
+      details={rows.length > 0 ? <InfoRows rows={rows} /> : null}
+      actions={
+        <>
+          <SupportContactButtons />
+          <NativeButton testID="maintenance-home" variant="ink" label={t('maintenance.home')} onPress={goHome} />
+        </>
+      }
+    />
   );
 }

@@ -1,5 +1,6 @@
 import { View } from 'react-native';
 
+import { useTranslation } from '@/shared/i18n';
 import { SheetGrabber } from '@/shared/ui/sheet-grabber';
 import { SheetSurface } from '@/shared/ui/sheet-surface';
 
@@ -15,6 +16,7 @@ import { useNoticePopup } from '../hooks/use-notice-popup';
  * Android 넓은 창에서는 `SheetSurface`가 640dp 가운데 카드로 감싼다. 페이지 폭은 내용 컨테이너를 재서 정한다(`useNoticePopup`).
  */
 export default function NoticePopupScreen() {
+  const { t } = useTranslation();
   const popup = useNoticePopup();
   const { notices, insets } = popup;
 
@@ -30,7 +32,7 @@ export default function NoticePopupScreen() {
         index={popup.index}
         onPageChange={popup.setIndex}
       />
-      {notices.length > 1 ? <PageDots count={notices.length} index={popup.index} label={`${popup.index + 1} / ${notices.length}`} /> : null}
+      {notices.length > 1 ? <PageDots count={notices.length} index={popup.index} label={t('notices.position', { index: popup.index + 1, count: notices.length })} /> : null}
       <NoticeActions onHideToday={popup.hideAndClose} onClose={popup.close} bottomInset={insets.bottom} />
       </View>
     </SheetSurface>

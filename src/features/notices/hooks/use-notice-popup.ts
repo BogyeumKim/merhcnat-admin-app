@@ -8,12 +8,11 @@ import { SHEET_MAX_WIDTH } from '@/shared/theme';
 
 import { getHiddenTodayIds, hideToday } from '../model/hidden-today';
 import { pageHeightOf } from '../model/notice-layout';
+import { sheetNoticesOf } from '../model/notice-queue';
 import { usePopupNoticesData } from '../queries/use-popup-notices-data';
 
 /** 이미지는 창 높이의 이 비율을 넘지 않는다. 그래야 시트가 부분 높이로 유지된다. */
 const MAX_IMAGE_SHARE = 0.45;
-/** 한 번에 보여줄 공지 수. 서버가 우선순위 순으로 보내므로 앞에서 자른다(계약에 개수 제한이 없어 앱이 상한을 둔다). */
-const MAX_PAGES = 5;
 
 /**
  * 공지 시트에 필요한 모든 것: 공지 목록(시트가 열릴 때 고정해 숨김 처리로 페이지가 재배열되지 않게 함),
@@ -24,10 +23,8 @@ export function useNoticePopup() {
   const { data } = usePopupNoticesData();
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  const [notices] = useState(() => {
-    const hidden = getHiddenTodayIds();
-    return (data ?? []).filter((notice) => !hidden.has(notice.id)).slice(0, MAX_PAGES);
-  });
+  // 필수 공지는 다이얼로그(`/notice-required`)가 따로 보여준다. 시트는 일반 공지만.
+  const [notices] = useState(() => sheetNoticesOf(data ?? [], getHiddenTodayIds()));
   const [index, setIndex] = useState(0);
   const [measuredWidth, setMeasuredWidth] = useState<number | null>(null);
 

@@ -1,35 +1,32 @@
 import { z } from 'zod';
 
-import type { ApiError } from '@/shared/api/errors';
-
 const isoDate = z.iso.datetime({ offset: true });
 
-/**
- * 점검 화면의 라우트 대상. `MAINTENANCE` 오류로부터 만든다. 기간은 ISO 문자열로 전달하며,
- * 한쪽 값이 잘못되어도 다른 쪽이 버려지지 않도록 양 끝을 각각 검증한다.
- */
-export function maintenanceHref(error: ApiError) {
-  const startAt = isoDate.safeParse(error.extras.startAt);
-  const endAt = isoDate.safeParse(error.extras.endAt);
-
-  return {
-    pathname: '/maintenance' as const,
-    params: {
-      ...(startAt.success ? { startAt: startAt.data } : {}),
-      ...(endAt.success ? { endAt: endAt.data } : {}),
-    },
-  };
+/** 종료 예정 시각이 아직 오지 않았는가. 시각을 모르면 `false`(끝났는지 앱이 알 수 없으므로 다음 요청이 판단하게 한다). */
+export function endsInFuture(endAt: string | undefined, now = Date.now()): boolean {
+  const end = isoDate.safeParse(endAt);
+  return end.success && new Date(end.data).getTime() > now;
 }
 
-type Translate = (key: 'maintenance.remainingHoursMinutes' | 'maintenance.remainingMinutes', options: { hours?: number; minutes: number }) => string;
+/** 언어별로 한 번만 만든다(`Intl.DateTimeFormat` 생성은 비싸다). */
+const dateFormatters = new Map<string, Intl.DateTimeFormat>();
 
-/** "약 1시간 20분" 점검 종료까지 남은 시간. 종료 시각을 모르거나 이미 지났으면 `null`. */
-export function formatRemaining(endAt: string | undefined, t: Translate, now = Date.now()): string | null {
-  const end = isoDate.safeParse(endAt);
-  if (!end.success) return null;
-  const totalMinutes = Math.ceil((new Date(end.data).getTime() - now) / 60_000);
-  if (totalMinutes <= 0) return null;
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return hours > 0 ? t('maintenance.remainingHoursMinutes', { hours, minutes }) : t('maintenance.remainingMinutes', { minutes });
+function dateFormatter(language: string): Intl.DateTimeFormat {
+  let formatter = dateFormatters.get(language);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(language, { month: 'long', day: 'numeric', weekday: 'short', hour: 'numeric', minute: '2-digit' });
+    dateFormatters.set(language, formatter);
+  }
+  return formatter;
+}
+
+/**
+ * "11월 3일(화) 오후 7:53"(en: "Tue, November 3 at 7:53 PM")처럼 앱 언어로. 값이 없거나 잘못됐으면 `null`(그 행을 숨긴다).
+ * 한국어 `Intl`은 요일 괄호 앞에 공백을 넣으므로("3일 (화)") 디자인에 맞게 붙인다.
+ */
+export function formatMaintenanceDate(value: string | undefined, language: string): string | null {
+  const parsed = isoDate.safeParse(value);
+  if (!parsed.success) return null;
+  const text = dateFormatter(language).format(new Date(parsed.data));
+  return language.startsWith('ko') ? text.replace(' (', '(') : text;
 }

@@ -1,16 +1,17 @@
 import * as Application from 'expo-application';
 import { Linking } from 'react-native';
-import { z } from 'zod';
 
-import type { ApiError } from '@/shared/api/errors';
 import { env } from '@/shared/config/env';
 
-const version = z.string().regex(/^\d+(\.\d+){0,3}$/);
-
-/** 필수 업데이트 화면의 라우트 대상. `UPDATE_REQUIRED` 오류로부터 만든다. 최신 버전은 선택 사항이다(서버가 보내지 않을 수 있음). */
-export function updateRequiredHref(error: ApiError) {
-  const latest = version.safeParse(error.extras.latestVersion);
-  return { pathname: '/update-required' as const, params: latest.success ? { latest: latest.data } : {} };
+/** 점 구분 숫자 버전을 비교한다("1.10.0" > "1.9.0"). 빠진 자리는 0. 숫자가 아닌 자리는 0으로 본다. */
+export function compareVersions(a: string, b: string): number {
+  const left = a.split('.').map((part) => Number.parseInt(part, 10) || 0);
+  const right = b.split('.').map((part) => Number.parseInt(part, 10) || 0);
+  for (let i = 0; i < Math.max(left.length, right.length); i += 1) {
+    const diff = (left[i] ?? 0) - (right[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
 }
 
 /** 이 앱의 스토어 페이지. 알 수 없으면 `null`(앱 등록 전에는 iOS App Store id가 없음). */

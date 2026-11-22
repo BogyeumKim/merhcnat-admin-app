@@ -3,10 +3,11 @@ import { View } from 'react-native';
 
 import { spacing, useNativeColors } from '@/shared/theme';
 import { NativeHost } from '@/shared/ui/native-host';
+import { NativeText } from '@/shared/ui/native-text';
 
 const DOT = 8;
 
-/** 공지 캐러셀의 페이지 표시기. 현재 점은 액션 색이며, 라벨("2 / 3")은 스크린 리더가 읽는다. */
+/** 공지 캐러셀의 페이지 표시기: 점(현재 점은 액션 색) 옆에 "2 / 3" 위치를 함께 보이고, 같은 라벨을 스크린 리더가 한 번에 읽는다. */
 export function PageDots({ count, index, label }: { count: number; index: number; label: string }) {
   const colors = useNativeColors();
 
@@ -20,6 +21,9 @@ export function PageDots({ count, index, label }: { count: number; index: number
             <Spacer />
           </Column>
         ))}
+        <NativeText variant="caption" tone="secondary" tabular>
+          {label}
+        </NativeText>
         <Spacer flexible />
       </Row>
       </NativeHost>
