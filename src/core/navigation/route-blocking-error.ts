@@ -17,6 +17,9 @@ let settlingUntil = 0;
  */
 const ENDS_SESSION: ReadonlySet<BlockingPresentation> = new Set(['maintenance', 'update']);
 
+/** 로그인 전에 받으면 진행 중이던 인증 시트·화면을 닫고 로그인 화면 위에 띄우는 계정 안내(잠김, 정지). */
+const CLEARS_TO_SIGN_IN: ReadonlySet<BlockingPresentation> = new Set(['locked', 'suspended']);
+
 /**
  * 차단 오류(점검, 업데이트, 보안 위험 기기, 잠김, 정지)를 전용 화면으로 보낸다. 앱 전체에서 이 한 곳만 한다
  * (`QueryCache`/`MutationCache` `onError`, 화면의 `useErrorPresenter` 모두 여기로 온다).
@@ -24,7 +27,12 @@ const ENDS_SESSION: ReadonlySet<BlockingPresentation> = new Set(['maintenance', 
  * - 로그인 중 점검·업데이트: 열린 시트·모달을 모두 닫고(`dismissAll`) 스택 전체를 차단 화면 하나로 바꾼 뒤(`replace`)
  *   로컬 로그아웃한다(토큰·쿼리 캐시 삭제, "로그아웃했어요" 안내 없음). 뒤에 남은 화면이 없어 뒤로가기·스와이프로 앱 화면에
  *   돌아갈 수 없다. 이동을 먼저 넣어야 `Stack.Protected`가 로그인 화면 그룹을 지울 때 포커스가 차단 화면에 있다.
- * - 그 밖(로그인 전, 또는 보안 위험 기기·잠김·정지): 지금 화면 위에 띄운다(`push`). 뒤로가기는 각 화면이 막는다(앱 종료).
+ * - 로그인 전 잠김·정지(2단계 인증 중 otp/send·otp/verify 포함): 열린 시트·모달을 로그인 화면까지 닫고(`dismissAll`) 그 위에
+ *   띄운다(`push`) → 스택은 [로그인, 안내]. 인증 시트를 남기지 않는다(시트 `removed` 정리로 challenge·토큰 폐기).
+ *   로그인 화면은 마운트된 채 남아 아이디·비밀번호가 유지된다. 로그인 화면만 있으면(로그인 요청 자체의 잠김) `push`만 한다.
+ * - 그 밖(로그인 중 잠김·정지, 보안 위험 기기, 로그인 전 점검·업데이트): 지금 화면 위에 띄운다(`push`). 뒤로가기는 각 화면이 막는다(앱 종료).
+ * 같은 틱의 `dismissAll` + `push`/`replace`는 안전하다: expo-router 58은 이동을 큐에 넣고 순서대로 상태에 적용해 한 번에 커밋하므로
+ * `push`는 닫힌 뒤의 스택 기준으로 계산되고, 네이티브는 [시트 닫기 → 안내 띄우기]를 한 번의 갱신으로 받는다.
  * 차단 오류가 아니면 `false`.
  */
 export function routeBlockingError(error: ApiError): boolean {
@@ -41,6 +49,7 @@ export function routeBlockingError(error: ApiError): boolean {
     signOutLocally();
     return true;
   }
+  if (CLEARS_TO_SIGN_IN.has(blocking.kind) && !isSignedInNow() && router.canDismiss()) router.dismissAll();
   router.push(blocking.href);
   return true;
 }

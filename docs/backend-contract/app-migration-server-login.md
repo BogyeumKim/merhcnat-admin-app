@@ -48,7 +48,7 @@ otp/verify ───────────────────────
 | HTTP / `code` | 앱 처리 |
 | --- | --- |
 | 401 `INVALID_CREDENTIALS` (login) | 폼 위 인라인 한 문장. **`data.remainingAttempts`는 로그인 화면에서 보여주지 않는다** (아래 주의) |
-| 400 `ACCOUNT_LOCKED` | 안내 화면 `/account-locked` (관리자에게 문의, **재시도 버튼 없음**). 로그인/OTP 어느 단계에서든 |
+| 400 `ACCOUNT_LOCKED` (`data: { userIdMasked, lockedAt }`) | 안내 화면 `/account-locked` (관리자에게 문의, **재시도 버튼 없음**). 로그인/OTP 어느 단계에서든. `otp/send`·`otp/verify`에서 받으면 인증 시트를 닫고 로그인 화면 위에 띄운다(스택 [로그인, 안내], 아이디·비밀번호 유지). 해제 전까지 `otp/send`·`otp/verify`·login 모두 이 코드 |
 | 400 `ACCOUNT_SUSPENDED` | 정지 안내 화면 `/account-suspended` (재시도 없음) |
 | 400 `UNSUPPORTED_LOGIN_TYPE` | 인라인 |
 | 400 `DEVICE_REQUIRED` / `DEVICE_INVALID` | 토스트 (앱 버그 성격) |

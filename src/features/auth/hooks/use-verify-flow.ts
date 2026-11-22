@@ -34,8 +34,8 @@ type InlineError = Pick<ApiError, 'code'>;
 
 /**
  * 인증 시트의 단계. 코드를 너무 많이 틀리면 서버는 별도 "시도 소진" 코드 없이 비밀번호·코드 오류 합산 5회째부터
- * 400 `ACCOUNT_LOCKED`를 준다(`OTP_ATTEMPTS_EXCEEDED`는 폐지, 계약 문서). 이 잠김은 다른 차단 오류와 같이
- * 공용 표시기가 `/account-locked` 화면으로 보낸다(시트 안 단계가 아니다).
+ * 400 `ACCOUNT_LOCKED`를 준다(`OTP_ATTEMPTS_EXCEEDED`는 폐지, 계약 문서). 이 잠김(발송 중 잠김, 정지도 같음)은
+ * 공용 표시기가 이 시트를 닫고 로그인 화면 위에 `/account-locked`를 띄운다(시트 안 단계가 아니다, `route-blocking-error.ts`).
  */
 export type VerifyStep = 'noContact' | 'device' | 'method' | 'code';
 
@@ -113,7 +113,7 @@ export function useVerifyFlow(challenge: ChallengeRequired) {
     presentError(error);
   };
 
-  // 검증 실패: 칸을 비우고(포커스 이동 없음) 오류를 보인다. 너무 많이 틀려 잠기면(400 `ACCOUNT_LOCKED`) 공용 표시기가 `/account-locked`로 보낸다.
+  // 검증 실패: 칸을 비우고(포커스 이동 없음) 오류를 보인다. 너무 많이 틀려 잠기면(400 `ACCOUNT_LOCKED`) 공용 표시기가 시트를 닫고 `/account-locked`로 보낸다.
   // 다시 받기는 바로 열지 않는다: 서버가 준 `resendAfterSeconds` 타이머를 그대로 따른다.
   const handleVerifyError = (error: ApiError) => {
     if (error.code !== 'ACCOUNT_LOCKED') setAttempt((count) => count + 1);

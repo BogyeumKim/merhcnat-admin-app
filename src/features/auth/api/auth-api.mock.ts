@@ -22,7 +22,8 @@ import { UserType } from '../model/user-type';
  *   changed    타입 1, 다른 기기 -> 기기 변경 안내, 방법 선택 후 코드
  *   totp       타입 0(인증 앱), 등록된 기기 -> 코드 입력(타입 0은 항상 코드 필요)
  *   totpnew    타입 0, 새 기기 -> 기기 안내 후 코드
- *   lockotp    타입 1 -> 코드 5회 오류: 400 ACCOUNT_LOCKED(관리자가 해제할 때까지, 재시도 불가)
+ *   lockotp    타입 1 -> 코드 5회 오류: 400 ACCOUNT_LOCKED(관리자가 해제할 때까지, 재시도 불가). 인증 시트가 닫히고
+ *              로그인 화면 위에 잠김 안내. 이후 로그인·발송·검증 모두 ACCOUNT_LOCKED(앱을 다시 시작하면 풀림)
  *   locked     -> 로그인 시 400 ACCOUNT_LOCKED
  *   suspended  -> 400 ACCOUNT_SUSPENDED(비밀번호가 맞은 뒤)   suspotp -> 코드 단계에서 400 ACCOUNT_SUSPENDED
  *   temp       -> 200 PASSWORD_CHANGE_REQUIRED(임시비밀번호, 바로)   tempotp -> 코드 통과 후 임시비밀번호 변경
@@ -60,10 +61,18 @@ const ACCOUNTS: Record<string, MockAccount> = {
 type MockChallenge = { userId: string; account: MockAccount; attempts: number };
 const challenges = new Map<string, MockChallenge>();
 const wrongInARow = new Map<string, number>();
+/** 잠긴 시각(ISO). 있으면 그 계정은 잠김. */
+const lockedAtOf = new Map<string, string>();
 
 const wait = () => new Promise<void>((resolve) => setTimeout(resolve, LATENCY_MS));
 const invalidCredentials = (remainingAttempts?: number) =>
   new ApiError({ status: 401, code: 'INVALID_CREDENTIALS', extras: remainingAttempts === undefined ? {} : { remainingAttempts } });
+
+/** 코드 오류가 5회 쌓여 잠긴 계정: 서버처럼 로그인·발송·검증 모두 400 `ACCOUNT_LOCKED`(mock은 앱을 다시 시작하면 풀림). */
+function assertNotLocked(userId: string) {
+  const lockedAt = lockedAtOf.get(userId);
+  if (lockedAt) throw new ApiError({ status: 400, code: 'ACCOUNT_LOCKED', extras: { userIdMasked: maskUserId(userId), lockedAt } });
+}
 
 function challengeOf(token: string): MockChallenge {
   const found = challenges.get(token);
@@ -127,6 +136,7 @@ export const mockAuthApi: AuthApi = {
 
     const account = ACCOUNTS[id];
     if (!account) throw invalidCredentials();
+    assertNotLocked(id);
 
     // 등록된 기기의 메시지 코드 계정은 코드가 필요 없다(서버가 결정하며 mock은 이를 따른다).
     if (account.loginType === 1 && account.deviceState === 'MATCH' && id !== 'lockotp') {
@@ -167,6 +177,7 @@ export const mockAuthApi: AuthApi = {
   async sendCode({ challengeToken, channel }) {
     await wait();
     const challenge = challengeOf(challengeToken);
+    assertNotLocked(challenge.userId);
     if (challenge.account.loginType === 0 || channel === 'TOTP') throw new ApiError({ status: 400, code: 'OTP_CHANNEL_INVALID' });
     if (challenge.userId === 'nocontact') throw new ApiError({ status: 400, code: 'OTP_CHANNEL_INVALID' });
     const destination = channel === 'EMAIL' ? 'te****@example.com' : '010-****-0000';
@@ -176,6 +187,7 @@ export const mockAuthApi: AuthApi = {
   async verifyCode({ challengeToken, code }) {
     await wait();
     const challenge = challengeOf(challengeToken);
+    assertNotLocked(challenge.userId);
 
     if (code === '999999') throw new ApiError({ status: 401, code: 'OTP_EXPIRED' });
     if (code !== '000000') {
@@ -183,7 +195,8 @@ export const mockAuthApi: AuthApi = {
       const inARow = (wrongInARow.get(challenge.userId) ?? 0) + 1;
       wrongInARow.set(challenge.userId, inARow);
       if (inARow >= MAX_ATTEMPTS) {
-        throw new ApiError({ status: 400, code: 'ACCOUNT_LOCKED', extras: { userIdMasked: maskUserId(challenge.userId), lockedAt: new Date().toISOString() } });
+        lockedAtOf.set(challenge.userId, new Date().toISOString());
+        assertNotLocked(challenge.userId);
       }
       throw new ApiError({
         status: 401,
