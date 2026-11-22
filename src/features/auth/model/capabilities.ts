@@ -40,7 +40,7 @@ const NO_CAPABILITIES: Capabilities = {
 };
 
 /** `Record<UserType, …>` 덕분에 새 계정 유형을 여기에 매핑하기 전까지는 컴파일 오류가 난다. */
-export const CAPABILITIES: Record<UserType, Capabilities> = {
+const CAPABILITIES: Record<UserType, Capabilities> = {
   [UserType.BizGroup]: { ...MERCHANT, showHierarchyFilter: false, storeInfo: 'list' },
   [UserType.Mid]: MERCHANT,
   [UserType.L3Vid]: PARTNER,

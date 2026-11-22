@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 
+import type { ErrorCode } from '@/shared/api/errors';
 import { useTranslation } from '@/shared/i18n';
 import { openSheet } from '@/shared/lib/open-sheet';
 import { useRunOnce } from '@/shared/lib/use-run-once';
@@ -20,23 +21,25 @@ import { useLogin } from '../mutations/use-login';
  */
 export function useSignIn() {
   const { t } = useTranslation();
-  const [formError, setFormError] = useState<string | null>(null);
+  // 오류는 코드로만 보관하고 문장은 렌더 때 번역한다: 언어를 바꾸면 표시 중인 오류도 다시 번역된다.
+  const [formErrorCode, setFormErrorCode] = useState<ErrorCode | null>(null);
   const [rejectedCount, setRejectedCount] = useState(0);
   const formKey = useAbandonedFlowCount();
   const runOnce = useRunOnce();
   const sessionEnded = useSessionEnded();
 
+  const formError = formErrorCode ? t(`errors.${formErrorCode}`) : null;
   useAnnounce(formError);
 
   const presentError = useAuthErrorPresenter({
     onInline: (error) => {
-      setFormError(t(`errors.${error.code}`));
+      setFormErrorCode(error.code);
       if (error.code === 'INVALID_CREDENTIALS') setRejectedCount((count) => count + 1);
     },
   });
 
   const login = useLogin({
-    onMutate: () => setFormError(null),
+    onMutate: () => setFormErrorCode(null),
     onError: presentError,
   });
 
@@ -72,7 +75,7 @@ export function useSignIn() {
     formKey,
     sessionEnded,
     submit,
-    dismissFormError: () => setFormError(null),
+    dismissFormError: () => setFormErrorCode(null),
     acknowledgeSessionEnded,
   };
 }

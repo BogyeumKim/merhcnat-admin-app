@@ -14,12 +14,7 @@ export const loginSchema = z.object({
   password: z.string().min(1, validationCode('PASSWORD_REQUIRED')),
 });
 
-export const codeSchema = z.object({
-  code: z.string().regex(new RegExp(`^\\d{${CODE_LENGTH}}$`), validationCode('CODE_INVALID_FORMAT')),
-});
-
 export type LoginValues = z.infer<typeof loginSchema>;
-export type CodeValues = z.infer<typeof codeSchema>;
 
 /** 비밀번호 변경: 모든 필드를 채워야 하며, 규칙 검사와 "두 번 동일" 검사는 훅의 힌트이고 최종 판단은 서버가 한다. */
 export const passwordChangeSchema = z.object({

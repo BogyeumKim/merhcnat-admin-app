@@ -27,6 +27,15 @@ const FULL_DETENTS = [1];
 /** 코드를 보낸 뒤 문자 코드 흐름의 진행 상태. 서버의 초 단위를 epoch ms로 변환한 값. */
 type SentCode = { method: ChallengeMethod; destination: string | null; expiresAt: number; resendAt: number };
 
+/** 화면 안에 유지되는 서버 오류. 번역 전 코드와 부가 정보(남은 시도 횟수 등). */
+type InlineError = Pick<ApiError, 'code' | 'extras'>;
+
+/** 코드 거부(`OTP_INVALID`)일 때 서버가 알려준 남은 시도 횟수. 없거나 0이면 `null`. */
+function remainingAttemptsOf({ code, extras }: InlineError) {
+  const remaining = Number(extras.remainingAttempts);
+  return code === 'OTP_INVALID' && Number.isInteger(remaining) && remaining > 0 ? remaining : null;
+}
+
 export type VerifyStep = 'noContact' | 'device' | 'method' | 'code';
 
 /** 단계가 바뀐 직후의 연타 잠금 시간: 새 단계의 같은 자리 버튼(기기 "변경" → 이메일 "인증번호 받기")이 두 번째 탭을 받지 않게 한다. */
@@ -58,11 +67,17 @@ export function useVerifyFlow(challenge: ChallengeRequired) {
   const [deviceConfirmed, setDeviceConfirmed] = useState(challenge.deviceState !== 'CHANGED');
   // 지금 입력 중인 코드. 받을 곳 다시 고르기로 돌아가면 버린다: 카드를 누르면(같은 수단이어도) 항상 새 코드를 보낸다.
   const [sent, setSent] = useState<SentCode | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [errorCode, setErrorCode] = useState<string | null>(null);
+  // 오류는 코드로만 보관하고 문장은 렌더 때 번역한다: 언어를 바꾸면 표시 중인 오류도 다시 번역된다.
+  const [error, setError] = useState<InlineError | null>(null);
   // 코드가 만료되거나 소진되면 다시 받기 링크 타이머와 상관없이 즉시 새 코드가 필요하다.
   const [resendNow, setResendNow] = useState(false);
 
+  const remaining = error ? remainingAttemptsOf(error) : null;
+  const errorMessage = !error
+    ? null
+    : remaining !== null
+      ? t(isTotp ? 'errors.TOTP_INVALID_REMAINING' : 'errors.OTP_INVALID_REMAINING', { count: remaining })
+      : t(`errors.${error.code}`);
   useAnnounce(errorMessage);
 
   const step: VerifyStep = noContact ? 'noContact' : !deviceConfirmed ? 'device' : isTotp || sent ? 'code' : 'method';
@@ -78,15 +93,9 @@ export function useVerifyFlow(challenge: ChallengeRequired) {
   const cancel = leaveVerification;
 
   const presentError = useAuthErrorPresenter({
-    onInline: (error) => {
-      const remaining = Number(error.extras.remainingAttempts);
-      setErrorCode(error.code);
-      setErrorMessage(
-        error.code === 'OTP_INVALID' && Number.isInteger(remaining) && remaining > 0
-          ? t(isTotp ? 'errors.TOTP_INVALID_REMAINING' : 'errors.OTP_INVALID_REMAINING', { count: remaining })
-          : t(`errors.${error.code}`),
-      );
-      if (error.code === 'OTP_EXPIRED') setResendNow(true);
+    onInline: ({ code, extras }) => {
+      setError({ code, extras });
+      if (code === 'OTP_EXPIRED') setResendNow(true);
     },
   });
 
@@ -101,10 +110,7 @@ export function useVerifyFlow(challenge: ChallengeRequired) {
     presentError(error);
   };
 
-  const clearError = () => {
-    setErrorMessage(null);
-    setErrorCode(null);
-  };
+  const clearError = () => setError(null);
   const sendCode = useSendCode({ onMutate: clearError, onError: handleError });
   const verifyCode = useVerifyCode({ onMutate: clearError, onError: handleError });
 
@@ -167,7 +173,7 @@ export function useVerifyFlow(challenge: ChallengeRequired) {
     clearError,
     isTotp,
     /** 코드 시간(또는 시도 횟수)이 소진됨: 새 코드를 요청해야 한다. */
-    expired: errorCode === 'OTP_EXPIRED',
+    expired: error?.code === 'OTP_EXPIRED',
     /** 받을 곳 다시 고르기(문자 코드 전용). 입력 중이던 코드는 버린다: 다음 카드 선택이 새 코드를 보낸다. */
     backToMethod: () => {
       setSent(null);

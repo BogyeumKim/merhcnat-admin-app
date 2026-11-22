@@ -46,7 +46,6 @@ const useAuthFlowStore = create(
 
 export const useAuthChallenge = () => useAuthFlowStore((store) => store.challenge);
 export const useAuthFlowId = () => useAuthFlowStore((store) => store.flowId);
-export const useAuthFlowActions = () => useAuthFlowStore((store) => store.actions);
 /** 로그인 화면용: 값이 바뀌면 인증 흐름이 성공 없이 끝났다(폼을 다시 마운트해 모두 비운다). */
 export const useAbandonedFlowCount = () => useAuthFlowStore((store) => store.abandonedCount);
 

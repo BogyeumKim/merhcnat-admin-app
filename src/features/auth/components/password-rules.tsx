@@ -30,7 +30,7 @@ export function PasswordRulesList({ rules }: { rules: PasswordRules }) {
   const { t } = useTranslation();
 
   return (
-    <Column spacing={spacing.sm - 2} style={{ width: '100%' }}>
+    <Column spacing={spacing.sm - spacing.xxs} style={{ width: '100%' }}>
       <Rule state={rules.length} text={t('auth.passwordChange.ruleLength')} />
       <Rule
         state={rules.charset}

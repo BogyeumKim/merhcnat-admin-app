@@ -1,9 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router, useNavigation } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm, useWatch, type FieldError } from 'react-hook-form';
 
-import type { ApiError } from '@/shared/api/errors';
+import { toErrorCode, type ApiError } from '@/shared/api/errors';
+import { useValidationMessage } from '@/shared/forms/validation';
 import { useTranslation } from '@/shared/i18n';
 import { navigateOnce } from '@/shared/lib/navigation-lock';
 import { useRunOnce } from '@/shared/lib/use-run-once';
@@ -34,6 +35,9 @@ function leaveToSignIn() {
   });
 }
 
+/** 서버가 내린 필드 오류의 RHF `type`. 이때 `message`는 번역 전 오류 코드다. */
+const SERVER_ERROR = 'server';
+
 /** 제목·본문 문구: 임시비밀번호, 90일 만료(로그인 전 흐름 포함), 설정에서 스스로 변경. */
 export type PasswordChangeCopy = 'temporary' | 'expired' | 'voluntary';
 
@@ -55,12 +59,12 @@ export function usePasswordChange(variant: PasswordChangeVariant = 'expired') {
   const signedInUserId = useSignedInUserId();
   const userId = temporary ? tempUserId : signedInUserId;
   const copy: PasswordChangeCopy = temporary ? (tempReason === 'PASSWORD_EXPIRED' ? 'expired' : 'temporary') : voluntary ? 'voluntary' : 'expired';
-  const [currentError, setCurrentError] = useState<string | null>(null);
-  const [newError, setNewError] = useState<string | null>(null);
+  // 서버 판정 중 입력란 오류(현재 비밀번호 오류, 새 비밀번호 거부)는 RHF 필드 오류(`type: 'server'`, `message`는 오류 코드)로 둔다.
+  // 규칙 목록 강조(위반 항목, 재사용)는 오류 문장이 아닌 힌트라 따로 보관한다.
   const [violations, setViolations] = useState<readonly string[]>([]);
   const [reused, setReused] = useState(false);
 
-  const { control, handleSubmit, formState, setFocus } = useForm<PasswordChangeValues>({
+  const { control, handleSubmit, formState, setFocus, setError, clearErrors } = useForm<PasswordChangeValues>({
     resolver: zodResolver(passwordChangeSchema),
     // 필드 오류는 제출 때만(로그인 폼과 같은 정책), 제출 뒤에는 입력마다 다시 검증한다. 규칙 목록·일치 표시는 오류가 아닌 힌트라 `useWatch`로 계속 실시간이다.
     // `isValid`는 구독 중이면 모드와 무관하게 입력마다 계산된다.
@@ -71,13 +75,30 @@ export function usePasswordChange(variant: PasswordChangeVariant = 'expired') {
   const newPassword = useWatch({ control, name: 'newPassword' });
   const confirmPassword = useWatch({ control, name: 'confirmPassword' });
 
+  const validationMessage = useValidationMessage();
+  // 문장은 렌더 때 번역한다: 언어를 바꾸면 표시 중인 오류도 다시 번역된다.
+  const messageOf = (error: FieldError | undefined): string | null => {
+    if (error?.type !== SERVER_ERROR) return validationMessage(error);
+    const text = t(`errors.${toErrorCode(error.message)}`);
+    const remaining = Number(error.types?.remainingAttempts);
+    return Number.isInteger(remaining) && remaining > 0
+      ? `${text} ${t('auth.passwordChange.remainingAttempts', { count: remaining })}`
+      : text;
+  };
+  const currentError = messageOf(formState.errors.currentPassword);
+  const newError = messageOf(formState.errors.newPassword);
+
   useAnnounce(currentError ?? newError);
 
-  const clearErrors = () => {
-    setCurrentError(null);
-    setNewError(null);
+  /** 새 비밀번호에 대한 서버 판정(오류 + 규칙 목록 강조)을 지운다. */
+  const clearNewServerError = () => {
+    clearErrors('newPassword');
     setViolations([]);
     setReused(false);
+  };
+  const clearServerErrors = () => {
+    clearErrors('currentPassword');
+    clearNewServerError();
   };
 
   // 임시비밀번호: 토큰 없이 열렸으면(오래된 링크, 만료) 로그인으로 돌려보내고, 화면이 사라지면 토큰을 폐기한다.
@@ -93,24 +114,23 @@ export function usePasswordChange(variant: PasswordChangeVariant = 'expired') {
   }, [temporary, navigation]);
 
   const presentInline = useAuthErrorPresenter({
-    onInline: (error) => {
-      if (error.code === 'CURRENT_PASSWORD_INVALID') {
-        const remaining = Number(error.extras.remainingAttempts);
-        setCurrentError(
-          Number.isInteger(remaining) && remaining > 0
-            ? `${t('errors.CURRENT_PASSWORD_INVALID')} ${t('auth.passwordChange.remainingAttempts', { count: remaining })}`
-            : t('errors.CURRENT_PASSWORD_INVALID'),
-        );
-      } else if (error.code === 'PASSWORD_POLICY_VIOLATION') {
-        const list = error.extras.violations;
-        setViolations(Array.isArray(list) ? list.filter((item): item is string => typeof item === 'string') : []);
-        setNewError(t('errors.PASSWORD_POLICY_VIOLATION'));
-      } else if (error.code === 'PASSWORD_REUSED') {
-        setReused(true);
-        setNewError(t('errors.PASSWORD_REUSED'));
-      } else {
-        setNewError(t(`errors.${error.code}`));
+    onInline: ({ code, extras }) => {
+      if (code === 'CURRENT_PASSWORD_INVALID') {
+        const remaining = Number(extras.remainingAttempts);
+        setError('currentPassword', {
+          type: SERVER_ERROR,
+          message: code,
+          types: Number.isInteger(remaining) ? { remainingAttempts: String(remaining) } : undefined,
+        });
+        return;
       }
+      if (code === 'PASSWORD_POLICY_VIOLATION') {
+        const list = extras.violations;
+        setViolations(Array.isArray(list) ? list.filter((item): item is string => typeof item === 'string') : []);
+      } else if (code === 'PASSWORD_REUSED') {
+        setReused(true);
+      }
+      setError('newPassword', { type: SERVER_ERROR, message: code });
     },
   });
 
@@ -125,7 +145,7 @@ export function usePasswordChange(variant: PasswordChangeVariant = 'expired') {
   };
 
   const change = useChangePassword(variant, {
-    onMutate: clearErrors,
+    onMutate: clearServerErrors,
     onSuccess: () => {
       // 임시비밀번호는 로그인 완료, 만료 변경은 게이트 해제로 `Stack.Protected`가 홈으로 보낸다. 설정에서 연 변경만 직접 돌아간다.
       showSuccessToast({ id: 'password-changed', title: t('auth.passwordChange.done') });
@@ -166,12 +186,8 @@ export function usePasswordChange(variant: PasswordChangeVariant = 'expired') {
     pending: change.isPending,
     submit: () => void submit(),
     /** 사용자가 고치기 시작하면 그 입력란에 대한 서버 오류를 지운다(이전 값에 대한 판정이므로). */
-    changeCurrent: () => setCurrentError(null),
-    changeNew: () => {
-      setNewError(null);
-      setViolations([]);
-      setReused(false);
-    },
+    changeCurrent: () => clearErrors('currentPassword'),
+    changeNew: clearNewServerError,
     focusNew: () => setFocus('newPassword'),
     focusConfirm: () => setFocus('confirmPassword'),
     /** 서버가 허용하는 경우에만. 아무것도 바꾸지 않고 게이트를 푼다. */

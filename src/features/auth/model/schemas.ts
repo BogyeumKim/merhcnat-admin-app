@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { isUserType, type UserType } from './user-type';
 
-export const challengeMethodSchema = z.enum(['TOTP', 'SMS', 'EMAIL', 'KAKAO']);
+const challengeMethodSchema = z.enum(['TOTP', 'SMS', 'EMAIL', 'KAKAO']);
 
 /** 인증 수단 하나와, 서버가 이미 마스킹한 수신처(`010-****-0000`, `te****@example.com`). TOTP는 수신처가 없다. */
 const challengeOptionSchema = z.object({ method: challengeMethodSchema, destination: z.string().optional() });
@@ -20,7 +20,7 @@ const serverChannelsSchema = z.array(
     })),
   ]),
 );
-export const deviceStateSchema = z.enum(['NONE', 'MATCH', 'CHANGED']);
+const deviceStateSchema = z.enum(['NONE', 'MATCH', 'CHANGED']);
 
 const userTypeSchema = z.custom<UserType>(isUserType, { message: 'Unsupported user type' });
 

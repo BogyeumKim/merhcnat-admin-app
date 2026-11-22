@@ -81,7 +81,7 @@ function RecentBadge() {
   const { t } = useTranslation();
   const colors = useNativeColors();
   return (
-    <Column style={{ paddingHorizontal: spacing.sm - 2, paddingVertical: 2, borderRadius: radius.sm, backgroundColor: colors.actionSurface }}>
+    <Column style={{ paddingHorizontal: spacing.sm - spacing.xxs, paddingVertical: spacing.xxs, borderRadius: radius.sm, backgroundColor: colors.actionSurface }}>
       <NativeText variant="caption" tone="action">
         {t('auth.verify.recent')}
       </NativeText>
@@ -116,9 +116,9 @@ export function MethodChoice({ methods, recentMethod, pending, errorMessage, onC
         <Row
           alignment="center"
           spacing={spacing.md}
-          style={{ width: '100%', padding: spacing.md, borderRadius: radius.xl - 4, backgroundColor: colors.infoSurface }}>
+          style={{ width: '100%', padding: spacing.md, borderRadius: radius.card, backgroundColor: colors.infoSurface }}>
           <ChannelTile method="EMAIL" />
-          <Column spacing={2} modifiers={FILL_ROW}>
+          <Column spacing={spacing.xxs} modifiers={FILL_ROW}>
             <NativeText variant="caption" tone="secondary">
               {t('auth.verify.emailTo')}
             </NativeText>
@@ -150,14 +150,14 @@ export function MethodChoice({ methods, recentMethod, pending, errorMessage, onC
                 if (!pending) onChoose(option.method);
               }}
               modifiers={pressableA11y(a11yLabel)}
-              style={{ width: '100%', padding: CARD_RING, borderRadius: radius.xl - 4, backgroundColor: recent ? colors.ink : colors.hairline }}>
+              style={{ width: '100%', padding: CARD_RING, borderRadius: radius.card, backgroundColor: recent ? colors.ink : colors.hairline }}>
               <Row
                 alignment="center"
                 spacing={spacing.md}
-                style={{ width: '100%', padding: spacing.md - CARD_RING, borderRadius: radius.xl - 4 - CARD_RING, backgroundColor: colors.card }}>
+                style={{ width: '100%', padding: spacing.md - CARD_RING, borderRadius: radius.card - CARD_RING, backgroundColor: colors.card }}>
                 <ChannelTile method={option.method} />
                 {/* 글 열이 남는 폭만 받아 줄바꿈된다: 긴 안내(영문 카카오톡 등)가 셰브런을 밀어내지 않게. */}
-                <Column spacing={2} modifiers={FILL_ROW}>
+                <Column spacing={spacing.xxs} modifiers={FILL_ROW}>
                   <Row alignment="center" spacing={spacing.sm}>
                     <NativeText variant="headline">{name}</NativeText>
                     {recent ? <RecentBadge /> : null}

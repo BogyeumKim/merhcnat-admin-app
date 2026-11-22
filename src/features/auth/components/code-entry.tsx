@@ -51,7 +51,7 @@ function CodeTopBar({ isTotp, onBack, onCancel }: { isTotp: boolean; onBack?: ()
   const colors = useNativeColors();
 
   const back = onBack ? (
-    <IconButton icon={icons.chevronLeft} size={TOP_BAR_GLYPH} weight="medium" color={colors.text} testID="verify-back" label={t('auth.verify.back')} onPress={onBack} />
+    <IconButton icon={icons.back} size={TOP_BAR_GLYPH} weight="medium" color={colors.text} testID="verify-back" label={t('auth.verify.back')} onPress={onBack} />
   ) : null;
   const close = (
     <IconButton icon={icons.close} size={TOP_BAR_GLYPH} weight="medium" color={colors.text} testID="verify-cancel" label={t('auth.verify.close')} onPress={onCancel} />
