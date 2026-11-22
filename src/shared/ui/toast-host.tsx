@@ -1,8 +1,8 @@
 import { Toaster } from 'sonner-native';
 
 /**
- * Mount once at the app root (inside `GestureHandlerRootView`). Top position keeps toasts clear of the keyboard and
- * the tab bar; at most three are visible, and toasts grow with the system font size.
+ * 앱 루트에 한 번만 마운트한다 (`GestureHandlerRootView` 안). 상단 위치라 토스트가 키보드와 탭바를 가리지 않으며,
+ *  동시에 최대 3개까지 보이고 시스템 글자 크기에 맞춰 커진다.
  */
 export function ToastHost() {
   return (

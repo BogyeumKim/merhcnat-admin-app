@@ -1,18 +1,19 @@
 import { ScrollView } from '@expo/ui';
-import type { PropsWithChildren } from 'react';
 
 import { spacing } from '@/shared/theme';
 
 import { FormColumn } from './form-column';
+import { FormFooter } from './form-footer';
+import type { NativeFormScrollProps } from './native-form-scroll.types';
 
-/**
- * Platform-neutral fallback (tooling and unknown platforms). The real implementations are
- * `native-form-scroll.android.tsx` (Compose `imePadding()`) and `native-form-scroll.ios.tsx` (SwiftUI).
- */
-export function NativeFormScroll({ children }: PropsWithChildren<{ bottomInset: number }>) {
+/** 플랫폼 공용 대체 구현 (iOS/Android는 각자 파일이 있어 쓰이지 않는다). */
+export function NativeFormScroll({ children, bottomInset, footer }: NativeFormScrollProps) {
   return (
-    <ScrollView>
-      <FormColumn bottomPadding={spacing.md}>{children}</FormColumn>
-    </ScrollView>
+    <>
+      <ScrollView>
+        <FormColumn bottomPadding={bottomInset + spacing.md}>{children}</FormColumn>
+      </ScrollView>
+      {footer ? <FormFooter bottomPadding={bottomInset + spacing.md}>{footer}</FormFooter> : null}
+    </>
   );
 }

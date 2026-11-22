@@ -1,4 +1,4 @@
-/** 4-point grid. Use with `gap` and padding; do not scatter literals. */
+/** 4pt 그리드. `gap`과 padding에 쓰고, 리터럴을 흩뿌리지 않는다. */
 export const spacing = {
   xs: 4,
   sm: 8,
