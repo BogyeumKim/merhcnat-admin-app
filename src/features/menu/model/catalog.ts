@@ -19,14 +19,14 @@ export type MenuItemId =
   | 'benefits'
   | 'settings';
 
-export type MenuCategoryId = 'payment' | 'lookup' | 'settlement' | 'support' | 'account';
+type MenuCategoryId = 'payment' | 'lookup' | 'settlement' | 'support' | 'account';
 
-export type MenuItemSpec = {
+type MenuItemSpec = {
   id: MenuItemId;
   requires?: keyof Pick<Capabilities, 'canPay' | 'canLookUpPreferredBusiness'>;
 };
 
-export type MenuCategorySpec = { id: MenuCategoryId; items: readonly MenuItemSpec[] };
+type MenuCategorySpec = { id: MenuCategoryId; items: readonly MenuItemSpec[] };
 
 export const MENU_CATALOG: readonly MenuCategorySpec[] = [
   {
@@ -51,7 +51,7 @@ export const MENU_CATALOG: readonly MenuCategorySpec[] = [
   { id: 'account', items: [{ id: 'settings' }] },
 ];
 
-export type VisibleCategory = { id: MenuCategoryId; items: MenuItemSpec[] };
+type VisibleCategory = { id: MenuCategoryId; items: MenuItemSpec[] };
 
 /** 한 계정용 카탈로그: 사용할 수 없는 항목과, 비게 된 카테고리는 제외한다. */
 export function visibleCatalog(capabilities: Capabilities): VisibleCategory[] {

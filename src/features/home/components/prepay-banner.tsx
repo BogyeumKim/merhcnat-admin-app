@@ -3,7 +3,7 @@ import { Column, Icon, Row, Spacer } from '@expo/ui';
 import { useCapabilities } from '@/features/auth';
 import { openMenuItem, visibleItemIds } from '@/features/menu';
 import { useTranslation } from '@/shared/i18n';
-import { useNativeColors } from '@/shared/theme';
+import { spacing, useNativeColors } from '@/shared/theme';
 import { icons } from '@/shared/ui/icons';
 import { NativeText } from '@/shared/ui/native-text';
 import { pressableA11y } from '@/shared/ui/pressable-a11y';
@@ -20,7 +20,7 @@ export function PrepayBanner({ available }: { available: boolean }) {
   return (
     <HomeCard>
       <Row testID="home-prepay" alignment="center" onPress={() => openMenuItem('prepay')} modifiers={pressableA11y()} style={{ width: '100%' }}>
-        <Column spacing={2}>
+        <Column spacing={spacing.xxs}>
           <NativeText variant="subhead" tone="secondary">
             {t('home.prepayTitle')}
           </NativeText>

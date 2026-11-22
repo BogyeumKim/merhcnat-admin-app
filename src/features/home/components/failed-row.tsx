@@ -6,8 +6,8 @@ import { icons } from '@/shared/ui/icons';
 import { NativeText } from '@/shared/ui/native-text';
 import { pressableA11y } from '@/shared/ui/pressable-a11y';
 
-import { IconBadge } from './amount-row';
 import { HomeCard } from './home-card';
+import { IconBadge } from './icon-badge';
 
 /** 얇은 한 행: 오늘의 결제 실패 건수. 누르면 결제 실패 목록이 열린다. */
 export function FailedRow({ count, onPress }: { count: number; onPress: () => void }) {
@@ -20,7 +20,9 @@ export function FailedRow({ count, onPress }: { count: number; onPress: () => vo
         <IconBadge icon={icons.paymentFailed} />
         <NativeText variant="body">{t('home.failedToday')}</NativeText>
         <Spacer flexible />
-        <NativeText variant="headline">{t('home.failedCount', { count })}</NativeText>
+        <NativeText variant="headline" tabular>
+          {t('home.failedCount', { count })}
+        </NativeText>
         <Icon name={icons.chevronRight} size={18} color={colors.secondaryText} />
       </Row>
     </HomeCard>

@@ -10,7 +10,7 @@ const imageSchema = z.object({
   alt: z.string().optional(),
 });
 
-export const noticePopupSchema = z.object({
+const noticePopupSchema = z.object({
   id: z.union([z.string(), z.number()]).transform(String),
   title: z.string().min(1),
   /** 일반 텍스트이며 비어 있을 수 있다. HTML/마크업으로 렌더링하지 않아 공지가 앱에 무언가를 주입할 수 없다. 본문이 빈 이미지 공지는 이미지만 보여준다(텍스트는 이미지 안에 있으며 이때 `title`이 접근성 라벨이 된다). */

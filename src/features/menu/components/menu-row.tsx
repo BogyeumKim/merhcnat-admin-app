@@ -4,6 +4,7 @@ import { useTranslation } from '@/shared/i18n';
 import { spacing, useNativeColors } from '@/shared/theme';
 import { icons } from '@/shared/ui/icons';
 import { NativeText } from '@/shared/ui/native-text';
+import { pressableA11y } from '@/shared/ui/pressable-a11y';
 
 import type { MenuItemId } from '../model/catalog';
 
@@ -17,6 +18,7 @@ export function MenuRow({ id, onPress }: { id: MenuItemId; onPress: (id: MenuIte
       testID={`menu-${id}`}
       alignment="center"
       onPress={() => onPress(id)}
+      modifiers={pressableA11y()}
       style={{ width: '100%', paddingVertical: spacing.md }}>
       <NativeText variant="body">{t(`menu.items.${id}.title`)}</NativeText>
       <Spacer flexible />

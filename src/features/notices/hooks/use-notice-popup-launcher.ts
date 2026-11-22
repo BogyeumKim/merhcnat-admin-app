@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 
 import { openSheet } from '@/shared/lib/open-sheet';
 
-import { isHiddenToday } from '../model/hidden-today';
+import { getHiddenTodayIds } from '../model/hidden-today';
 import { usePopupNoticesData } from '../queries/use-popup-notices-data';
 
 const POPUP_PATH = '/notice-popup';
@@ -26,7 +26,9 @@ export function useNoticePopupLauncher(): void {
   }, [pathname]);
 
   useEffect(() => {
-    if (!data || data.every((notice) => isHiddenToday(notice.id))) return;
+    if (!data) return;
+    const hidden = getHiddenTodayIds();
+    if (data.every((notice) => hidden.has(notice.id))) return;
     let attempts = 0;
     const timer = setInterval(() => {
       if (shown.current || attempts >= MAX_ATTEMPTS) {

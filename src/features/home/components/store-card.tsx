@@ -38,10 +38,12 @@ export function StoreCard({ summary, updatedAt, refreshing, onRefresh, onTransac
         <NativeText variant="subhead" tone="secondary">
           {t('home.todaySales')}
         </NativeText>
-        <NativeText variant="largeTitle">{money(summary.todaySales)}</NativeText>
+        <NativeText variant="largeTitle" tabular selectable>
+          {money(summary.todaySales)}
+        </NativeText>
       </Column>
       <Row alignment="center" spacing={spacing.sm} style={{ width: '100%' }}>
-        <NativeText variant="caption" tone="secondary">
+        <NativeText variant="caption" tone="secondary" tabular>
           {t('home.counts', { approvals: summary.approvalCount, cancellations: summary.cancellationCount })}
         </NativeText>
         <Spacer flexible />
@@ -62,7 +64,9 @@ export function StoreCard({ summary, updatedAt, refreshing, onRefresh, onTransac
           {t('home.monthSales')}
         </NativeText>
         <Spacer flexible />
-        <NativeText variant="headline">{money(summary.monthSales)}</NativeText>
+        <NativeText variant="headline" tabular selectable>
+          {money(summary.monthSales)}
+        </NativeText>
         <Icon name={icons.chevronRight} size={18} color={colors.secondaryText} />
       </Row>
       <Column testID="home-hide-amounts" onPress={() => setHidden(!hidden)} modifiers={pressableA11y()} style={{ paddingVertical: spacing.xs }}>

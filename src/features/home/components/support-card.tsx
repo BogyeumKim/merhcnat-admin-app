@@ -4,6 +4,7 @@ import { openMenuItem, type MenuItemId } from '@/features/menu';
 import { useTranslation } from '@/shared/i18n';
 import { radius, spacing, useNativeColors } from '@/shared/theme';
 import { NativeText } from '@/shared/ui/native-text';
+import { pressableA11y } from '@/shared/ui/pressable-a11y';
 
 import { HomeCard } from './home-card';
 
@@ -22,6 +23,7 @@ export function SupportCard() {
             key={id}
             testID={`home-${id}`}
             onPress={() => openMenuItem(id)}
+            modifiers={pressableA11y()}
             style={{ paddingVertical: spacing.md, paddingHorizontal: spacing.lg, borderRadius: radius.md, backgroundColor: colors.tonal }}>
             <NativeText variant="label">{t(`menu.items.${id}.title`)}</NativeText>
           </Column>

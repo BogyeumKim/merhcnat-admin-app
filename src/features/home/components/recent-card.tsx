@@ -11,6 +11,9 @@ import { formatAmount } from '../model/format';
 import { useAmountsHidden } from '../model/hide-amounts-store';
 import type { HomeSummary } from '../model/schemas';
 
+/** 홈에는 최근 몇 건만 둔다(서버 계약에 개수 제한이 없어 앱이 자른다). 전체는 "거래내역 >"에서 본다. */
+const RECENT_LIMIT = 5;
+
 /** 최근 카드 거래: 카드명, 시간 · 할부 · 상태, 금액. "거래내역 >" 누르면 전체 목록이 열린다. */
 export function RecentCard({
   items,
@@ -33,9 +36,9 @@ export function RecentCard({
         </NativeText>
         <Icon name={icons.chevronRight} size={16} color={colors.secondaryText} />
       </Row>
-      {items.map((item) => (
+      {items.slice(0, RECENT_LIMIT).map((item) => (
         <Row key={item.id} alignment="center" style={{ width: '100%', paddingVertical: spacing.xs }}>
-          <Column spacing={2}>
+          <Column spacing={spacing.xxs}>
             <NativeText variant="label">{item.cardName}</NativeText>
             <NativeText variant="caption" tone="secondary">
               {t('home.transactionMeta', {
@@ -46,7 +49,7 @@ export function RecentCard({
             </NativeText>
           </Column>
           <Spacer flexible />
-          <NativeText variant="headline">
+          <NativeText variant="headline" tabular>
             {hidden ? t('home.hiddenAmount') : t('home.amount', { amount: formatAmount(item.amount) })}
           </NativeText>
         </Row>

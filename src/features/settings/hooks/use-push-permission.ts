@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { AppState } from 'react-native';
 
 /** `checking`은 첫 읽기 전, `unavailable`은 `expo-notifications`가 없는 빌드(영원히 확인 중으로 보이지 않게 구분한다). */
-export type PushPermission = 'checking' | 'granted' | 'denied' | 'unavailable';
+type PushPermission = 'checking' | 'granted' | 'denied' | 'unavailable';
 
 /** `expo-notifications`는 선택 사항이다(`device-push.ts` 참고). 없는 빌드는 `unavailable`을 반환한다. */
 async function readPermission(): Promise<PushPermission> {
