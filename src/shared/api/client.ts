@@ -13,7 +13,7 @@ const TOKEN_RESPONSE_HEADER = 'Access-Token';
 const TIMEOUT_MS = 10_000;
 
 /**
- * 서버의 버전 차단(426 `UPDATE_REQUIRED`)용 요청 헤더. 서버는 `X-App-Version`(엄격한 major.minor.patch)과 `X-App-Platform`이
+ * 서버의 버전 차단(403 `UPDATE_REQUIRED`)용 요청 헤더. 서버는 `X-App-Version`(엄격한 major.minor.patch)과 `X-App-Platform`이
  * 함께 오거나 둘 다 없어야 하며, 한쪽만 있거나 형식이 틀리면 400 `BAD_REQUEST`다. 그래서 설치 버전을 그 형식으로 읽지 못하면
  * (일부 개발 환경에서 `null`) 둘 다 보내지 않는다. 앱 실행 중 바뀌지 않으므로 모듈 로드 때 한 번만 만든다.
  */
@@ -27,17 +27,12 @@ type RequestOptions = {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   body?: unknown;
   signal?: AbortSignal;
-  /**
-   * 200이 아닌 status로 오지만 오류가 아니라 "다음 단계"인 envelope `code`(예: 401 `MFA_REQUIRED`, 403 `PASSWORD_CHANGE_REQUIRED`).
-   * 서버는 200을 실제 성공에만 쓰므로 이런 결과는 status가 아니라 `code`로 구분한다. 여기 있는 code는 던지지 않고 반환한다.
-   */
-  outcomeCodes?: readonly string[];
 };
 
 /**
- * 서버 응답은 모두 `{ code, message, data? }`이다: 성공은 `code: "SUCCESS"`(HTTP 200만)이고,
- * 그 외는 같은 envelope에 다른 HTTP 상태가 붙는다(추가 인증 필요 401 `MFA_REQUIRED` 등은 `outcomeCodes`로 받는다). `data`는 부가 정보(`remainingAttempts`, `retryAfterSeconds`,
- * 점검 기간)를 담는다. `message`는 로그용이며 화면에 보여주지 않는다.
+ * 서버 응답은 모두 `{ code, message, data? }`이다. 200은 성공 단계(`SUCCESS`, `MFA_REQUIRED`, `PASSWORD_CHANGE_REQUIRED`)이고
+ * 오류는 status로 크게 나눈 뒤 `code`로 구분한다: 400 입력·업무 오류, 401 인증·세션, 403 `UPDATE_REQUIRED`, 503 점검·세션 저장소, 500.
+ * `data`는 부가 정보(`remainingAttempts`, `retryAfterSeconds`, 점검 기간)를 담는다. `message`는 로그용이며 화면에 보여주지 않는다.
  */
 const envelopeSchema = z.looseObject({
   code: z.string(),
@@ -56,16 +51,12 @@ function toApiError(response: Response, json: unknown): ApiError {
   const retryAfter = Number(response.headers.get('Retry-After'));
   const retryExtras = Number.isFinite(retryAfter) && retryAfter > 0 ? { retryAfterSeconds: retryAfter } : {};
 
-  // 프록시나 CDN이 HTML로 503/426을 응답할 수 있다: envelope가 아니면 503은 점검, 426은 필수 업데이트, 그 외는 알 수 없는 오류다.
-  // envelope가 있는 응답은 아래에서 서버 `code` 그대로 매핑된다: 같은 503이라도 `MAINTENANCE`(점검 화면)와
-  // `SESSION_STORE_UNAVAILABLE`(토스트·재시도)을 `code`로 구분하고, 426 `UPDATE_REQUIRED`도 서버 code를 그대로 쓴다.
+  // 프록시나 CDN이 HTML로 응답할 수 있다: envelope가 아니면 503만 점검으로 보고 그 외는 알 수 없는 오류다.
+  // 403은 envelope `code`로만 필수 업데이트로 본다(프록시·WAF의 403 HTML을 업데이트 화면으로 보내지 않는다).
+  // envelope가 있으면 서버 `code` 그대로 매핑된다: 같은 503이라도 `MAINTENANCE`(점검 화면)와 `SESSION_STORE_UNAVAILABLE`(토스트·재시도)을 구분한다.
   const parsed = errorEnvelopeSchema.safeParse(json);
   if (!parsed.success) {
-    return new ApiError({
-      status: response.status,
-      code: response.status === 503 ? 'MAINTENANCE' : response.status === 426 ? 'UPDATE_REQUIRED' : 'UNKNOWN',
-      extras: retryExtras,
-    });
+    return new ApiError({ status: response.status, code: response.status === 503 ? 'MAINTENANCE' : 'UNKNOWN', extras: retryExtras });
   }
 
   const { code, message, data } = parsed.data;
@@ -95,8 +86,6 @@ type Sent = {
   generation: number;
   /** 본문 읽기에도 같은 타임아웃이 걸린다: 헤더 뒤 본문이 멈추면 `TIMEOUT`으로 보고한다. */
   timeout: AbortSignal;
-  /** 200이 아닌 `outcomeCodes` 응답은 본문을 이미 읽었으므로 여기에 담는다. */
-  body?: unknown;
 };
 
 /** JSON 본문을 읽는다. 파싱 실패는 `null`(호출자가 `INVALID_RESPONSE`로 처리), 타임아웃으로 끊긴 본문은 `TIMEOUT`. */
@@ -148,14 +137,8 @@ async function send(path: string, options: RequestOptions): Promise<Sent> {
   const sameSession = generation === getSessionGeneration();
 
   if (!response.ok) {
-    const json = await readJson(response, timeout);
-    const outcome = envelopeSchema.safeParse(json);
-    // 오류가 아닌 다음 단계 결과: 세션 종료(401 처리)도 하지 않는다.
-    if (outcome.success && options.outcomeCodes?.includes(outcome.data.code)) {
-      return { response, refreshedToken: null, generation, timeout, body: json };
-    }
-    const error = toApiError(response, json);
-    // 401(SESSION_REPLACED, SESSION_EXPIRED, UNAUTHORIZED)만 세션을 끝낸다. 503 SESSION_STORE_UNAVAILABLE은 토큰을 유지한다.
+    const error = toApiError(response, await readJson(response, timeout));
+    // 401(SESSION_REPLACED, SESSION_EXPIRED, UNAUTHORIZED)만 세션을 끝낸다. 403 FORBIDDEN, 503 SESSION_STORE_UNAVAILABLE은 토큰을 유지한다.
     if (response.status === 401 && token && sameSession) notifyUnauthorized(error.code);
     throw error;
   }
@@ -174,7 +157,7 @@ export async function apiFetch(path: string, options: RequestOptions = {}): Prom
 
 /**
  * `{ code, message, data }` envelope용 `apiFetch`: `data`를 `dataSchema`로 검증하고 HTTP 상태, envelope `code`,
- * 검증된 `data`를 반환한다. 호출자는 status가 아니라 `code`로 분기한다(같은 401이 여러 의미로 온다).
+ * 검증된 `data`를 반환한다. 성공 단계는 모두 200이므로 호출자는 `code`로 다음 단계를 고른다.
  * 스키마와 맞지 않는 본문은 `INVALID_RESPONSE`이며, 토큰 헤더는 응답 전체가 수락된 뒤에만 적용한다(거부된 응답이 토큰을 남기면 안 된다).
  */
 export async function apiEnvelope<T>(
@@ -183,8 +166,8 @@ export async function apiEnvelope<T>(
   options: RequestOptions = {},
 ): Promise<{ status: number; code: string; data: T }> {
   const sent = await send(path, options);
-  const { response, body } = sent;
-  const envelope = envelopeSchema.safeParse(body === undefined ? await readJson(response, sent.timeout) : body);
+  const { response } = sent;
+  const envelope = envelopeSchema.safeParse(await readJson(response, sent.timeout));
   if (!envelope.success) throw new ApiError({ status: response.status, code: 'INVALID_RESPONSE' });
   const data = dataSchema.safeParse(envelope.data.data);
   if (!data.success) throw new ApiError({ status: response.status, code: 'INVALID_RESPONSE' });

@@ -66,6 +66,8 @@
 
 ## 6. 오류 코드 초안 (서버와 합의 필요, 값/상태는 제안)
 
+확정된 status 체계는 `docs/backend-contract/app-migration-server-login.md`의 "HTTP status 체계"(2026-11-22)를 따른다. 아래는 초기 제안이다.
+
 | code | status | 의미 | 앱 동작 |
 | --- | --- | --- | --- |
 | `INVALID_CREDENTIALS` | 401 | ID/비밀번호 불일치 | 입력 오류 문구 (계정 존재 여부는 드러내지 않음) |

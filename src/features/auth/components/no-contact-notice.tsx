@@ -10,7 +10,7 @@ import { SupportContactButtons } from '@/shared/ui/support-contact-buttons';
 
 /**
  * 인증 시트의 "등록된 연락처가 없어 인증할 수 없어요" 단계(디자인 p8). 휴대폰·이메일 컬럼이 모두 비어 서버가
- * `MFA_REQUIRED` + 빈 `channels`를 내려준 경우다(비밀번호 통과 여부가 status로 드러나지 않도록 409 대신 같은 401로 온다).
+ * `MFA_REQUIRED` + 빈 `channels`를 내려준 경우다(별도 오류 status 없이 같은 200 `MFA_REQUIRED`로 온다).
  * 보안상 앱에서 연락처를 등록할 수 없어 고객센터 연락 버튼([카카오톡 상담] [전화 상담])과 [닫기]만 둔다.
  */
 export function NoContactNotice({ onClose }: { onClose: () => void }) {

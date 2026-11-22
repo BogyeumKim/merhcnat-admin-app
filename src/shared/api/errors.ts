@@ -42,6 +42,8 @@ export const ERROR_CODES = [
   'SESSION_EXPIRED',
   /** 서버 세션 저장소 장애(503). 세션은 유효할 수 있으므로 로그아웃하지 않고 재시도만 안내한다(점검 아님). */
   'SESSION_STORE_UNAVAILABLE',
+  /** 로그인은 유효하지만 이 API 권한이 없음(403). 로그아웃하지 않고 일반 오류로 알린다(403은 `code`로 구분). */
+  'FORBIDDEN',
   'NETWORK_ERROR',
   'TIMEOUT',
   'INVALID_RESPONSE',

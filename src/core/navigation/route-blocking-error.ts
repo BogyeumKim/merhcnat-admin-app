@@ -12,7 +12,7 @@ const SETTLE_MS = 1000;
 let settlingUntil = 0;
 
 /**
- * 로그인 중에 받으면 세션을 끝내는 차단 오류: 점검(503 `MAINTENANCE`)과 필수 업데이트(426 `UPDATE_REQUIRED`).
+ * 로그인 중에 받으면 세션을 끝내는 차단 오류: 점검(503 `MAINTENANCE`)과 필수 업데이트(403 `UPDATE_REQUIRED`).
  * 서버 전체(모든 API)가 막혀 세션을 쓸 수 없고 15분 유휴 세션도 어차피 끝나므로, 해제 후에는 로그인부터 다시 한다.
  */
 const ENDS_SESSION: ReadonlySet<BlockingPresentation> = new Set(['maintenance', 'update']);

@@ -22,12 +22,12 @@ import { UserType } from '../model/user-type';
  *   changed    타입 1, 다른 기기 -> 기기 변경 안내, 방법 선택 후 코드
  *   totp       타입 0(인증 앱), 등록된 기기 -> 코드 입력(타입 0은 항상 코드 필요)
  *   totpnew    타입 0, 새 기기 -> 기기 안내 후 코드
- *   lockotp    타입 1 -> 코드 5회 오류: 423 ACCOUNT_LOCKED(관리자가 해제할 때까지, 재시도 불가)
- *   locked     -> 로그인 시 423 ACCOUNT_LOCKED
- *   suspended  -> 403 ACCOUNT_SUSPENDED(비밀번호가 맞은 뒤)   suspotp -> 코드 단계에서 403 ACCOUNT_SUSPENDED
- *   temp       -> 403 PASSWORD_CHANGE_REQUIRED(임시비밀번호, 바로)   tempotp -> 코드 통과 후 임시비밀번호 변경
- *   update     -> 426 UPDATE_REQUIRED     insecure -> 403 DEVICE_INSECURE     idle -> 로그인 후 6초 뒤 401
- *   blocked    -> 403 UNSUPPORTED_LOGIN_TYPE      maint -> 503 MAINTENANCE(기간 포함)
+ *   lockotp    타입 1 -> 코드 5회 오류: 400 ACCOUNT_LOCKED(관리자가 해제할 때까지, 재시도 불가)
+ *   locked     -> 로그인 시 400 ACCOUNT_LOCKED
+ *   suspended  -> 400 ACCOUNT_SUSPENDED(비밀번호가 맞은 뒤)   suspotp -> 코드 단계에서 400 ACCOUNT_SUSPENDED
+ *   temp       -> 200 PASSWORD_CHANGE_REQUIRED(임시비밀번호, 바로)   tempotp -> 코드 통과 후 임시비밀번호 변경
+ *   update     -> 403 UPDATE_REQUIRED     insecure -> 400 DEVICE_INSECURE     idle -> 로그인 후 6초 뒤 401
+ *   blocked    -> 400 UNSUPPORTED_LOGIN_TYPE      maint -> 503 MAINTENANCE(기간 포함)
  *   offline    -> 연결 실패(NETWORK_ERROR): 로그인 화면의 오류 토스트(`error:NETWORK_ERROR`) 확인용
  * 코드: 000000 = 정상, 999999 = 만료, 그 외 = 오류(남은 횟수를 오류에 담음;
  * 5회 오류 시 서버처럼 계정이 영구 잠금).
@@ -89,22 +89,22 @@ export const mockAuthApi: AuthApi = {
 
     switch (id) {
       case 'locked':
-        throw new ApiError({ status: 423, code: 'ACCOUNT_LOCKED', extras: { userIdMasked: 'loc**ed', lockedAt: new Date(Date.now() - 20 * 60 * 1000).toISOString() } });
+        throw new ApiError({ status: 400, code: 'ACCOUNT_LOCKED', extras: { userIdMasked: 'loc**ed', lockedAt: new Date(Date.now() - 20 * 60 * 1000).toISOString() } });
       case 'suspended':
-        throw new ApiError({ status: 403, code: 'ACCOUNT_SUSPENDED' });
+        throw new ApiError({ status: 400, code: 'ACCOUNT_SUSPENDED' });
       case 'temp':
         return { status: 'TEMP_PASSWORD_REQUIRED', challengeToken: `mock-temp-${Date.now()}` };
       case 'update':
-        throw new ApiError({ status: 426, code: 'UPDATE_REQUIRED', extras: { minAppVersion: '1.1.0', latestAppVersion: '1.1.0' } });
+        throw new ApiError({ status: 403, code: 'UPDATE_REQUIRED', extras: { minAppVersion: '1.1.0' } });
       case 'insecure':
-        throw new ApiError({ status: 403, code: 'DEVICE_INSECURE' });
+        throw new ApiError({ status: 400, code: 'DEVICE_INSECURE' });
       case 'idle':
         // 로그인 후 몇 초 뒤 서버가 세션을 끊어(유휴 타임아웃) 로그아웃 안내를 확인할 수 있게 한다.
         setAccessToken(MOCK_TOKEN);
         setTimeout(notifyUnauthorized, 6000);
         return { status: 'AUTHENTICATED', userType: UserType.Mid, passwordChangeRequired: false, passwordChangeSkippable: false };
       case 'blocked':
-        throw new ApiError({ status: 403, code: 'UNSUPPORTED_LOGIN_TYPE' });
+        throw new ApiError({ status: 400, code: 'UNSUPPORTED_LOGIN_TYPE' });
       case 'offline':
         throw new ApiError({ status: 0, code: 'NETWORK_ERROR' });
       case 'maint': {
@@ -179,7 +179,7 @@ export const mockAuthApi: AuthApi = {
       const inARow = (wrongInARow.get(challenge.userId) ?? 0) + 1;
       wrongInARow.set(challenge.userId, inARow);
       if (inARow >= MAX_ATTEMPTS) {
-        throw new ApiError({ status: 423, code: 'ACCOUNT_LOCKED', extras: { userIdMasked: maskUserId(challenge.userId), lockedAt: new Date().toISOString() } });
+        throw new ApiError({ status: 400, code: 'ACCOUNT_LOCKED', extras: { userIdMasked: maskUserId(challenge.userId), lockedAt: new Date().toISOString() } });
       }
       throw new ApiError({
         status: 401,
@@ -189,7 +189,7 @@ export const mockAuthApi: AuthApi = {
     }
 
     wrongInARow.set(challenge.userId, 0);
-    if (challenge.userId === 'suspotp') throw new ApiError({ status: 403, code: 'ACCOUNT_SUSPENDED' });
+    if (challenge.userId === 'suspotp') throw new ApiError({ status: 400, code: 'ACCOUNT_SUSPENDED' });
     if (challenge.userId === 'tempotp') {
       challenges.delete(challengeToken);
       return { status: 'TEMP_PASSWORD_REQUIRED', challengeToken: `mock-temp-${Date.now()}` };

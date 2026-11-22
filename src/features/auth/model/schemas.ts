@@ -67,8 +67,8 @@ export const challengeRequiredSchema = z.object({
 
 /**
  * `POST /api/auth/login`의 `data`. 200 `SUCCESS` = 로그인 완료(`Access-Token` 헤더 설정, 등록된 기기이며
- * 메시지 코드 계정). `MFA_REQUIRED`(현재 401, 이전 202) = 비밀번호는 통과했으나 코드가 아직 필요: `channels`와
- * 코드 호출이 보내는 `challengeToken`을 담는다. 로그인이 아니며, status가 아니라 `code`로 구분한다.
+ * 메시지 코드 계정). 200 `MFA_REQUIRED` = 비밀번호는 통과했으나 코드가 아직 필요: `channels`와
+ * 코드 호출이 보내는 `challengeToken`을 담는다. 로그인이 아니며, 같은 200이라 `code`로 구분한다.
  */
 export const serverLoginDataSchema = z.looseObject({
   loginType: z.union([z.literal(0), z.literal(1)]),
@@ -83,7 +83,7 @@ export const serverLoginDataSchema = z.looseObject({
   ...passwordAgeFields,
 });
 
-/** `PASSWORD_CHANGE_REQUIRED`(현재 403, 이전 202)의 `data`(로그인·코드 검증 공통): 토큰 헤더는 없다. */
+/** 200 `PASSWORD_CHANGE_REQUIRED`의 `data`(로그인·코드 검증 공통): 토큰 헤더는 없다. */
 export const serverTempPasswordDataSchema = z.looseObject({
   challengeToken: z.string().min(1),
   userId: z.string().min(1).optional(),

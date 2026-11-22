@@ -20,7 +20,7 @@ paths:
   - 필드 검증/코드 오류는 필드 아래(`LabeledField error`). **입력란에 빨간 테두리를 넣지 않는다**(`NativeField`는 `invalid`를 무시): 오류는 칸 아래 문구로만 알린다. 예외는 인증번호 6칸(`OtpBoxes`)의 옅은 오류 링.
   - **남은 시도 횟수·잠금 해제까지 남은 시간은 어디에도 표시하지 않는다**(서버가 `remainingAttempts` 등을 보내도 무시).
   - 네트워크 오류·타임아웃(로그인 포함)은 일반 오류 토스트(`showErrorToast`, `error:<code>`, 자동으로 사라짐)로만 알린다. [다시 시도] 같은 동작 스낵바나 자동으로 사라지지 않는 토스트는 두지 않고, 입력값을 유지해 사용자가 원래 버튼을 다시 누르게 한다.
-  - 인증번호 오류: 6칸을 비우고 빨간 칸 + 문구를 보이되 포커스·커서를 코드로 옮기지 않으며, 다시 받기는 서버 `resendAfterSeconds` 타이머를 그대로 따른다. 코드를 너무 많이 틀린 423 `ACCOUNT_LOCKED`는 다른 잠김과 같이 `/account-locked` 화면으로 보낸다.
+  - 인증번호 오류: 6칸을 비우고 빨간 칸 + 문구를 보이되 포커스·커서를 코드로 옮기지 않으며, 다시 받기는 서버 `resendAfterSeconds` 타이머를 그대로 따른다. 코드를 너무 많이 틀린 400 `ACCOUNT_LOCKED`는 다른 잠김과 같이 `/account-locked` 화면으로 보낸다.
 - 고객센터 연락 버튼은 `shared/ui/support-contact-buttons.tsx`(`SupportContactButtons`)를 쓰고, 개별 동작은 `shared/lib/support-contact.ts`의 `openSupportChat`(카카오톡)/`openSupportPhone`(전화)로만 연다. 화면마다 URL·번호를 직접 쓰지 않는다(값은 `shared/config/support.ts`).
 - 새 오류 코드를 만들면 `ERROR_CODES`, `error-presentation.ts`(컴파일 강제), `errors.<code>`(ko/en)를 같이 고친다.
 - **토스트는 `shared/ui/toast.ts`(`showErrorToast`/`showSuccessToast`)로만** 띄운다. `sonner-native`를 직접 import하지 않는다. `id`는 필수다: 같은 id는 기존 토스트를 갱신하므로(중복 쌓임 방지) 오류는 `error:<code>`, 성공 확인은 고정 id. 성공 토스트는 저강도 확인에만 쓴다.

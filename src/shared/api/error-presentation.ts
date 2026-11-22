@@ -44,6 +44,7 @@ const presentation: Record<ErrorCode, ErrorPresentation> = {
   SESSION_REPLACED: 'inline', // 세션 종료 401: 로그인 화면의 로그아웃 안내가 이유를 보여준다
   SESSION_EXPIRED: 'inline',
   SESSION_STORE_UNAVAILABLE: 'toast', // 일시적: 토큰을 유지한 채 잠시 후 재시도
+  FORBIDDEN: 'toast', // 권한 없음(403): 세션은 유지하고 일반 오류로 알린다
   NETWORK_ERROR: 'toast',
   TIMEOUT: 'toast',
   INVALID_RESPONSE: 'toast',

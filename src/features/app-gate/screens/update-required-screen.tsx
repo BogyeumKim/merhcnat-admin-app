@@ -17,7 +17,7 @@ import { useUpdateRequired } from '../hooks/use-update-required';
 export default function UpdateRequiredScreen() {
   const { t } = useTranslation();
   const colors = useNativeColors();
-  const { current, latest, update } = useUpdateRequired();
+  const { current, required, update } = useUpdateRequired();
 
   useBlockBackButton(true, 'exit');
 
@@ -36,11 +36,11 @@ export default function UpdateRequiredScreen() {
           <NativeText variant="subhead" tone="secondary" tabular>
             {t('updateRequired.current', { version: current })}
           </NativeText>
-          {latest ? (
+          {required ? (
             <>
               <Icon name={icons.arrowRight} size={16} color={colors.secondaryText} />
               <NativeText variant="label" tabular>
-                {t('updateRequired.latest', { version: latest })}
+                {t('updateRequired.latest', { version: required })}
               </NativeText>
             </>
           ) : null}

@@ -59,6 +59,7 @@ export const en = {
     SESSION_REPLACED: 'You were signed out because this ID signed in on another device.',
     SESSION_EXPIRED: 'Your session has ended. Please sign in again.',
     SESSION_STORE_UNAVAILABLE: 'Something went wrong for a moment. Please try again shortly.',
+    FORBIDDEN: "You don't have permission to access this.",
     NETWORK_ERROR: 'Cannot connect. Check your network and try again.',
     TIMEOUT: 'The request timed out. Please try again.',
     INVALID_RESPONSE: 'Received an unexpected response from the server.',

@@ -16,7 +16,7 @@ otp/verify ───────────────────────
 
 ## 응답 봉투
 
-모든 응답 본문은 `{ code, message, data? }`. **각 단계가 성공하면 200**이고 다음 단계는 `code`로 구분한다: `SUCCESS`(로그인 완료, `Access-Token`), `MFA_REQUIRED`, `PASSWORD_CHANGE_REQUIRED`(2026-11 확정, 200 외 2xx 미사용). 실패만 4xx/5xx(1차 status, 2차 code). 앱은 직전 계약(401/403)과 그 이전(202)도 호환한다. 그 외는 다른 HTTP status와 같은 봉투. 필수값 누락은 400 `BAD_REQUEST` + `data.fieldErrors[{field, reason}]`. `data`에는 필요할 때만 `remainingAttempts`, `retryAfterSeconds`(점검이면 기간) 등이 온다. 앱은 **HTTP status로 먼저, `code`로 다음에** 분기하고 `data`를 zod로 검증한다. `message`는 로그용이며 화면에 쓰지 않는다 (문구는 앱이 `code`로 번역).
+모든 응답 본문은 `{ code, message, data? }`. **각 단계가 성공하면 200**이고 다음 단계는 `code`로 구분한다: `SUCCESS`(로그인 완료, `Access-Token`), `MFA_REQUIRED`, `PASSWORD_CHANGE_REQUIRED`(2026-11 확정, 200 외 2xx 미사용). 실패만 4xx/5xx(1차 status, 2차 code, 아래 "HTTP status 체계"). 이전 계약의 401 `MFA_REQUIRED`·403 `PASSWORD_CHANGE_REQUIRED`·202는 더 받지 않는다(2026-11-22). 필수값 누락은 400 `BAD_REQUEST` + `data.fieldErrors[{field, reason}]`. `data`에는 필요할 때만 `remainingAttempts`, `retryAfterSeconds`(점검이면 기간) 등이 온다. 앱은 **HTTP status로 먼저, `code`로 다음에** 분기하고 `data`를 zod로 검증한다. `message`는 로그용이며 화면에 쓰지 않는다 (문구는 앱이 `code`로 번역).
 
 ## 요청 / 응답
 
@@ -34,24 +34,39 @@ otp/verify ───────────────────────
 
 ## 잠금 정책
 
-비밀번호 오류와 OTP 오류를 합쳐 `password_fail_count`를 올리고, **5가 되는 요청부터 423 `ACCOUNT_LOCKED`(영구, 관리자 해제)**. OTP 단계에 들어가도 카운트는 초기화되지 않고 **최종 로그인 성공에서만 0**. `remainingAttempts = 5 - 현재 카운트`. (`ACCOUNT_LOCKED_TEMP`, `OTP_ATTEMPTS_EXCEEDED`는 없어졌다.)
+비밀번호 오류와 OTP 오류를 합쳐 `password_fail_count`를 올리고, **5가 되는 요청부터 400 `ACCOUNT_LOCKED`(영구, 관리자 해제)**. OTP 단계에 들어가도 카운트는 초기화되지 않고 **최종 로그인 성공에서만 0**. `remainingAttempts = 5 - 현재 카운트`. (`ACCOUNT_LOCKED_TEMP`, `OTP_ATTEMPTS_EXCEEDED`는 없어졌다.)
 
 ## 오류 (앱은 `errors.<code>`로 번역한다)
 
 | HTTP / `code` | 앱 처리 |
 | --- | --- |
 | 401 `INVALID_CREDENTIALS` (login) | 폼 위 인라인 한 문장. **`data.remainingAttempts`는 로그인 화면에서 보여주지 않는다** (아래 주의) |
-| 423 `ACCOUNT_LOCKED` | 안내 화면 `/account-locked` (관리자에게 문의, **재시도 버튼 없음**). 로그인/OTP 어느 단계에서든 |
-| 403 `UNSUPPORTED_LOGIN_TYPE` | 인라인 |
+| 400 `ACCOUNT_LOCKED` | 안내 화면 `/account-locked` (관리자에게 문의, **재시도 버튼 없음**). 로그인/OTP 어느 단계에서든 |
+| 400 `ACCOUNT_SUSPENDED` | 정지 안내 화면 `/account-suspended` (재시도 없음) |
+| 400 `UNSUPPORTED_LOGIN_TYPE` | 인라인 |
 | 400 `DEVICE_REQUIRED` / `DEVICE_INVALID` | 토스트 (앱 버그 성격) |
 | 401 `OTP_INVALID` + `data.remainingAttempts` | 코드 필드 아래 "N번 더 틀리면 다시 로그인" |
 | 401 `OTP_EXPIRED` | 인라인 + 다시 받기 즉시 활성화 |
 | 401 `CHALLENGE_EXPIRED` | 토스트 + 로그인 화면으로 (토큰 만료: 처음부터) |
-| 409 `TOTP_NOT_ENROLLED` | 인라인 "관리자에게 문의" |
+| 400 `TOTP_NOT_ENROLLED` | 인라인 "관리자에게 문의" |
 | 400 `OTP_CHANNEL_INVALID` (이전 서버의 429 `OTP_RESEND_TOO_SOON`도 받으면 인라인, 현재 서버는 보내지 않음) | 인라인 |
-| 429 `OTP_SEND_LIMIT_EXCEEDED` (챌린지당 5회 초과, `data` 없음) | 토스트 + 인증 시트 닫기 (`CHALLENGE_EXPIRED`와 같음: 처음부터 로그인) |
+| 400 `OTP_SEND_LIMIT_EXCEEDED` (챌린지당 5회 초과, `data` 없음) | 토스트 + 인증 시트 닫기 (`CHALLENGE_EXPIRED`와 같음: 처음부터 로그인) |
 | 401 `UNAUTHORIZED` | 세션 만료(`TOKEN_EXPIRED`)로 취급 |
 | 400 `BAD_REQUEST`, 500 `INTERNAL_ERROR`, 모르는 `code` | `UNKNOWN`(토스트) |
+
+## HTTP status 체계 (2026-11-22 서버 확정)
+
+| status | `code` | 비고 |
+| --- | --- | --- |
+| 200 | `SUCCESS`, `MFA_REQUIRED`, `PASSWORD_CHANGE_REQUIRED` | 성공 단계. `code`로 다음 단계를 고른다 |
+| 400 | 입력·업무 오류 전부: `BAD_REQUEST`, `OTP_CHANNEL_INVALID`, `CURRENT_PASSWORD_INVALID`, `PASSWORD_POLICY_VIOLATION`, `PUSH_TOKEN_INVALID`, `DEVICE_REQUIRED`/`DEVICE_INVALID`, `ACCOUNT_LOCKED`, `ACCOUNT_SUSPENDED`, `UNSUPPORTED_LOGIN_TYPE`, `DEVICE_NOT_VERIFIED`, `DEVICE_NOT_FOUND`, `OTP_SEND_LIMIT_EXCEEDED`, `TOTP_NOT_ENROLLED`, `PASSWORD_REUSED` | 이전 423/403/429/409/404에서 400으로 옮겨진 코드는 `code`·`message`·`data`가 그대로다 |
+| 401 | `UNAUTHORIZED`, `SESSION_EXPIRED`, `SESSION_REPLACED`, `INVALID_CREDENTIALS`, `CHALLENGE_EXPIRED`, `OTP_INVALID`, `OTP_EXPIRED` | 토큰을 실은 요청의 401만 로그아웃 |
+| 403 | `UPDATE_REQUIRED`(이전 426), `FORBIDDEN` | **항상 `code`로 구분**: `UPDATE_REQUIRED`만 필수 업데이트 화면, `FORBIDDEN`(로그인했지만 권한 없음, 앞으로의 홈 API)은 일반 오류(`toast` 종류)이며 로그아웃하지 않는다. 토큰 없음·만료·무효는 계속 401 |
+| 503 | `MAINTENANCE`, `SESSION_STORE_UNAVAILABLE` | `code`로 구분 |
+| 500 | `INTERNAL_ERROR` | `UNKNOWN` |
+| 404/405/406/413/415 | Spring 프로토콜 오류 | 그대로(envelope 없으면 `UNKNOWN`) |
+
+envelope가 없는 응답(프록시·CDN·WAF HTML 등)은 503만 `MAINTENANCE`로 보고 나머지(403 포함)는 `UNKNOWN`이다. 필수 업데이트는 envelope `code`가 `UPDATE_REQUIRED`일 때만 띄운다.
 
 ## 앱이 지키는 것
 
@@ -82,13 +97,13 @@ otp/verify ───────────────────────
 
 ## 보안 변경 (2026-11, 서버 확정)
 
-- **로그인 실패 통일:** 없는 아이디·틀린 비밀번호·삭제 계정 모두 401 `INVALID_CREDENTIALS`, `data` 없음(`remainingAttempts` 제거). 423 `ACCOUNT_LOCKED`는 비밀번호가 맞았을 때만. `OTP_INVALID`·`CURRENT_PASSWORD_INVALID`의 `remainingAttempts`는 유지.
+- **로그인 실패 통일:** 없는 아이디·틀린 비밀번호·삭제 계정 모두 401 `INVALID_CREDENTIALS`, `data` 없음(`remainingAttempts` 제거). 400 `ACCOUNT_LOCKED`는 비밀번호가 맞았을 때만. `OTP_INVALID`·`CURRENT_PASSWORD_INVALID`의 `remainingAttempts`는 유지.
 - **기기 비밀키 `deviceSecret`:** OTP 검증 또는 `password/temp`로 기기를 등록한 200 `SUCCESS`의 `data.deviceSecret`(43자)이 **한 번만** 온다. 앱은 `expo-secure-store`(`device.secret`, THIS_DEVICE_ONLY)에 보관하고 로그인 `device.deviceSecret`(≤128자)와 `PUT /api/devices/me`(필수)에 보낸다(`features/auth/model/device-secret.ts`). OTP 생략 조건은 메시지형 + `deviceId` 일치 + `deviceSecret` 일치. 기존 등록 기기는 비밀키가 없어 업데이트 후 첫 로그인에 OTP를 한 번 거친다.
 - **다른 계정 소유 기기:** `MFA_REQUIRED` `data: { deviceState: "CHANGED", deviceRegisteredToOtherAccount: true, registeredUserIdMasked }`. 이때 `registeredUserIdMasked`는 그 기기를 등록한 **다른 계정**의 아이디(마스킹)다(2026-11-22 변경, 기기 변경 시트의 "현재 등록된 아이디"). 본인의 다른 기기면(`CHANGED`) 본인 아이디 마스킹만 오고 `deviceRegisteredToOtherAccount`는 없다. `NONE`/`MATCH`는 두 필드 모두 없다. 마스킹 규칙: 6자 이상 앞 3자 + (길이−5)개 `*` + 끝 2자(`mer*****01`), 4~5자 첫 1자 + `*` + 끝 1자, 3자 이하 첫 1자 + `*`. 앱은 값이 있으면 표시하고 없으면 그 줄을 숨긴다.
 - **비밀번호 90일 만료:** 200 `PASSWORD_CHANGE_REQUIRED` `data: { userId, challengeToken, reason: "TEMP_PASSWORD" | "PASSWORD_EXPIRED" }`(둘 다면 TEMP_PASSWORD). 흐름은 `password/temp`로 같고 문구만 다르다.
-- **`PUT /api/devices/me`:** `{ deviceSecret, expoPushToken? }`. 403 `DEVICE_NOT_VERIFIED`(비밀키 불일치), 400(누락), 404 `DEVICE_NOT_FOUND`, 400 `PUSH_TOKEN_INVALID`. 앱은 비밀키가 없으면 호출하지 않는다.
+- **`PUT /api/devices/me`:** `{ deviceSecret, expoPushToken? }`. 400 `DEVICE_NOT_VERIFIED`(비밀키 불일치), 400(누락), 400 `DEVICE_NOT_FOUND`, 400 `PUSH_TOKEN_INVALID`. 앱은 비밀키가 없으면 호출하지 않는다.
 - **길이 상한(400 `BAD_REQUEST` + fieldErrors):** userId 30, password 64, otp 10, challengeToken 2048, channel 10, deviceId 64, platform 10, 기기 문자열 100, expoPushToken 255, deviceSecret 128. 앱은 로그인 입력란에 30/64 `maxLength`.
-- **재전송:** 같은 채널 대기(쿨다운)는 없다(2026-11 삭제, 429 `OTP_RESEND_TOO_SOON` 더는 안 보냄). 같은 채널이든 다른 채널이든 한도 안의 모든 발송은 즉시 새 코드를 보낸다(이전 코드 무효). 예: 카카오톡 → 문자 → 다시 카카오톡도 바로 발송. `otp/send` 200의 `resendAfterSeconds`는 코드 입력 화면 "N초 후 다시 받기" 링크의 UI 타이머일 뿐 서버가 강제하지 않는다. 발송 한도는 **챌린지당 모든 채널 합쳐 5회뿐**이다: 6번째 요청은 429 `OTP_SEND_LIMIT_EXCEEDED`(`data` 없음, `retryAfterSeconds` 없음). 앱은 토스트를 띄우고 인증 시트를 닫아 처음부터 로그인하게 한다(대기 시간 안내 없음). 사용자당 시간당 한도는 없어졌다(2026-11). `otp/send` 200은 선택 필드 `remainingSends`(남은 발송 횟수)를 줄 수 있다. 앱은 받아 두기만 하고 화면에 쓰지 않는다.
+- **재전송:** 같은 채널 대기(쿨다운)는 없다(2026-11 삭제, 429 `OTP_RESEND_TOO_SOON` 더는 안 보냄). 같은 채널이든 다른 채널이든 한도 안의 모든 발송은 즉시 새 코드를 보낸다(이전 코드 무효). 예: 카카오톡 → 문자 → 다시 카카오톡도 바로 발송. `otp/send` 200의 `resendAfterSeconds`는 코드 입력 화면 "N초 후 다시 받기" 링크의 UI 타이머일 뿐 서버가 강제하지 않는다. 발송 한도는 **챌린지당 모든 채널 합쳐 5회뿐**이다: 6번째 요청은 400 `OTP_SEND_LIMIT_EXCEEDED`(`data` 없음, `retryAfterSeconds` 없음). 앱은 토스트를 띄우고 인증 시트를 닫아 처음부터 로그인하게 한다(대기 시간 안내 없음). 사용자당 시간당 한도는 없어졌다(2026-11). `otp/send` 200은 선택 필드 `remainingSends`(남은 발송 횟수)를 줄 수 있다. 앱은 받아 두기만 하고 화면에 쓰지 않는다.
 
 
 ## 단일 세션 (2026-11)
@@ -113,9 +128,9 @@ otp/verify ───────────────────────
 | 응답 | `data` (모두 zod 검증, 잘못된 필드만 버림) | 앱 동작 |
 | --- | --- | --- |
 | 503 `MAINTENANCE` | `{ startedAt?, endsAt? }` (ISO-8601 + 오프셋, 예 `2026-01-01T01:00:00+09:00`. 서버 점검 테이블 `app_maintenance(fr_dt, to_dt, use_flg)`에서 `use_flg = 1`이고 `fr_dt ≤ 현재 < to_dt`인 행이 있으면 점검. 미리 등록(0) 후 1로 켜는 방식, 변경은 10초 안에 반영) | 점검 화면(`/maintenance`, 파라미터 이름 동일). 시작·종료 예정 시각만 앱 언어로 포맷해 표시(없는 값은 그 행을 숨김). 점검 사유·영향 범위·`message`는 받지도 보여주지도 않는다(제목·설명은 앱 i18n) |
-| 426 `UPDATE_REQUIRED` | `{ minAppVersion, latestAppVersion? }` | 필수 업데이트 화면(`/update-required`): "지금 x → 최신 y" 카드(`latestAppVersion` 없으면 현재 버전만), 스토어에서 돌아오면 `minAppVersion`(없으면 최신)과 비교해 통과하면 화면을 닫음 |
+| 403 `UPDATE_REQUIRED` | `{ minAppVersion }` (`latestAppVersion`은 삭제: 새 버전이 있으면 항상 필수라 최소 버전이 곧 최신 버전. 서버 설정은 키-값 테이블 `app_setting`의 `IOS_MIN_VERSION`/`ANDROID_MIN_VERSION`) | 필수 업데이트 화면(`/update-required`): "지금 x → 최신 y" 카드(y = `minAppVersion`, 없으면 현재 버전만), 스토어에서 돌아오면 `minAppVersion`과 비교해 통과하면 화면을 닫음 |
 
 - 둘 다 해당하면 서버가 **503 `MAINTENANCE`를 우선**한다.
-- 같은 503이라도 `code`로 구분한다: `MAINTENANCE`는 점검 화면, `SESSION_STORE_UNAVAILABLE`은 토스트·재시도(위 단일 세션 표). envelope가 없는 503(프록시 HTML 등)은 점검, envelope 없는 426은 `UPDATE_REQUIRED`로 본다.
+- 같은 503이라도 `code`로 구분한다: `MAINTENANCE`는 점검 화면, `SESSION_STORE_UNAVAILABLE`은 토스트·재시도(위 단일 세션 표). envelope가 없는 503(프록시 HTML 등)은 점검으로 본다. 403은 envelope `code`가 `UPDATE_REQUIRED`일 때만 필수 업데이트이고, envelope 없는 403(WAF 등)은 `UNKNOWN`이다.
 - 로그인 전(login/otp 등 인증 mutation, `useErrorPresenter`)과 로그인 후(쿼리 최종 실패, `QueryCache.onError`) 모두 같은 화면으로 보낸다(`shared/api/blocking-error-route.ts`). 점검과 4xx는 자동 재시도하지 않는다.
 - 상태만 확인하는 API(점검/버전)는 두지 않는다: 화면을 벗어날 때는 다음 요청이 다시 판단한다. [홈으로]는 `endsAt`이 아직 미래면 토스트만 보이고 머무르며, 지났거나 없으면 이전 화면(로그인)으로 돌아간다.

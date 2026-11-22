@@ -35,7 +35,7 @@ type InlineError = Pick<ApiError, 'code'>;
 
 /**
  * 인증 시트의 단계. 코드를 너무 많이 틀리면 서버는 별도 "시도 소진" 코드 없이 비밀번호·코드 오류 합산 5회째부터
- * 423 `ACCOUNT_LOCKED`를 준다(`OTP_ATTEMPTS_EXCEEDED`는 폐지, 계약 문서). 이 잠김은 다른 차단 오류와 같이
+ * 400 `ACCOUNT_LOCKED`를 준다(`OTP_ATTEMPTS_EXCEEDED`는 폐지, 계약 문서). 이 잠김은 다른 차단 오류와 같이
  * 공용 표시기가 `/account-locked` 화면으로 보낸다(시트 안 단계가 아니다).
  */
 export type VerifyStep = 'noContact' | 'device' | 'method' | 'code';
@@ -111,7 +111,7 @@ export function useVerifyFlow(challenge: ChallengeRequired) {
     presentError(error);
   };
 
-  // 검증 실패: 칸을 비우고(포커스 이동 없음) 오류를 보인다. 너무 많이 틀려 잠기면(423) 공용 표시기가 `/account-locked`로 보낸다.
+  // 검증 실패: 칸을 비우고(포커스 이동 없음) 오류를 보인다. 너무 많이 틀려 잠기면(400 `ACCOUNT_LOCKED`) 공용 표시기가 `/account-locked`로 보낸다.
   // 다시 받기는 바로 열지 않는다: 서버가 준 `resendAfterSeconds` 타이머를 그대로 따른다.
   const handleVerifyError = (error: ApiError) => {
     if (error.code !== 'ACCOUNT_LOCKED') setAttempt((count) => count + 1);
@@ -125,7 +125,7 @@ export function useVerifyFlow(challenge: ChallengeRequired) {
   /**
    * 코드를 보낸다(같은 수단 재전송 포함). 성공하면 코드 입력으로 간다. 서버는 같은 수단 대기 시간 없이
    * 챌린지당 5회까지 바로 보내므로(카카오톡 -> 문자 -> 다시 카카오톡도 즉시), 앱도 수단별 대기나 "보낸 코드 재사용"을
-   * 두지 않는다. 6번째는 429 `OTP_SEND_LIMIT_EXCEEDED`(`handleError`: 토스트 + 시트 닫기).
+   * 두지 않는다. 6번째는 400 `OTP_SEND_LIMIT_EXCEEDED`(`handleError`: 토스트 + 시트 닫기).
    */
   const send = (method: ChallengeMethod, { resend = false } = {}) =>
     runOnce((done) => {

@@ -42,13 +42,10 @@ export function blockingErrorRoute(error: ApiError) {
     case 'update':
       return {
         kind,
-        // 426 `UPDATE_REQUIRED` `data: { minAppVersion, latestAppVersion? }`: 최신 버전은 "지금 x → 최신 y" 카드, 최소 버전은 스토어에서 돌아온 뒤 다시 확인할 기준.
+        // 403 `UPDATE_REQUIRED` `data: { minAppVersion }`: "지금 x → 최신 y" 카드의 y이자 스토어에서 돌아온 뒤 다시 확인할 기준.
         href: {
           pathname: '/update-required' as const,
-          params: pickParams(error, {
-            latest: { from: 'latestAppVersion', schema: version },
-            min: { from: 'minAppVersion', schema: version },
-          }),
+          params: pickParams(error, { min: { from: 'minAppVersion', schema: version } }),
         },
       };
     case 'insecure':

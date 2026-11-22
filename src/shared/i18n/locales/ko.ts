@@ -62,6 +62,7 @@ export const ko: typeof en = {
     SESSION_REPLACED: '다른 기기에서 로그인되어 로그아웃되었습니다.',
     SESSION_EXPIRED: '세션이 만료되었습니다. 다시 로그인해 주세요.',
     SESSION_STORE_UNAVAILABLE: '일시적인 문제가 생겼어요. 잠시 후 다시 시도해 주세요.',
+    FORBIDDEN: '접근 권한이 없어요.',
     NETWORK_ERROR: '네트워크에 연결할 수 없습니다. 연결 상태를 확인한 뒤 다시 시도해 주세요.',
     TIMEOUT: '요청 시간이 초과되었습니다. 다시 시도해 주세요.',
     INVALID_RESPONSE: '서버에서 예상하지 못한 응답을 받았습니다.',
