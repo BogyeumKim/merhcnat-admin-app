@@ -13,7 +13,8 @@
         "CFBundleLocalizations": [
           "ko",
           "en"
-        ]
+        ],
+        "UIViewControllerBasedStatusBarAppearance": true
       },
       "bundleIdentifier": "com.anonymous.korpay-merchant-admin"
     },
@@ -53,7 +54,14 @@
             ]
           }
         }
-      ]
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#ff003a"
+        }
+      ],
+      "expo-image"
     ],
     "experiments": {
       "typedRoutes": true,

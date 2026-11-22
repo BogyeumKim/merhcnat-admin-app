@@ -58,3 +58,6 @@ credentials.json
 .idea/
 *.log
 coverage/
+# @generated expo skills start
+.claude/skills/expo-sqlite
+# @generated expo skills end
