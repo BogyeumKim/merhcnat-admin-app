@@ -4,7 +4,7 @@ import { View } from 'react-native';
 
 import { useTranslation } from '@/shared/i18n';
 import { openSheet } from '@/shared/lib/open-sheet';
-import { radius, spacing, useNativeColors } from '@/shared/theme';
+import { radius, spacing, useNativeColors, useWindowLayout } from '@/shared/theme';
 import { DecorativeIcon } from '@/shared/ui/decorative-icon';
 import { FILL_ROW } from '@/shared/ui/fill-row';
 import { FormAlert } from '@/shared/ui/form-alert';
@@ -110,6 +110,9 @@ export function MethodChoice({ methods, recentMethod, sendingMethod, errorMessag
   const { t } = useTranslation();
   const colors = useNativeColors();
   const hintOf = useChannelHint();
+  const { isLargeText } = useWindowLayout();
+  // 큰 글꼴: 이름 옆 "최근 사용" 배지를 아래 줄로 내린다. Compose `Row`는 자식을 순서대로 재서 긴 이름이 배지 폭을 0으로 만든다.
+  const NameLine = isLargeText ? Column : Row;
   const close = <CloseButton onPress={onCancel} />;
   const onlyEmail = methods.length === 1 && methods[0]?.method === 'EMAIL' ? methods[0] : null;
   const sending = sendingMethod !== null;
@@ -169,10 +172,10 @@ export function MethodChoice({ methods, recentMethod, sendingMethod, errorMessag
                 <ChannelTile method={option.method} />
                 {/* 글 열이 남는 폭만 받아 줄바꿈된다: 긴 안내(영문 카카오톡 등)가 셰브런을 밀어내지 않게. */}
                 <Column spacing={spacing.xxs} modifiers={FILL_ROW}>
-                  <Row alignment="center" spacing={spacing.sm}>
+                  <NameLine alignment={isLargeText ? 'start' : 'center'} spacing={isLargeText ? spacing.xxs : spacing.sm}>
                     <NativeText variant="headline">{name}</NativeText>
                     {recent ? <RecentBadge /> : null}
-                  </Row>
+                  </NameLine>
                   <NativeText variant="subhead" tone="secondary">
                     {hintOf(option)}
                   </NativeText>

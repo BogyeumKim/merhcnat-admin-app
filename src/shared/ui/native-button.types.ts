@@ -1,5 +1,7 @@
 import type { ReactElement } from 'react';
 
+import type { EqualHeightSlot } from './equal-button-heights.types';
+
 export type NativeButtonProps = {
   label: string;
   onPress: () => void;
@@ -16,4 +18,6 @@ export type NativeButtonProps = {
   /** 보이는 라벨보다 구체적인 접근성 이름("카카오톡으로 고객센터 상담하기"). */
   accessibilityLabel?: string;
   testID?: string;
+  /** 나란한 버튼 높이 맞춤. `useEqualButtonHeights().slot(i)` 값을 그대로 넘긴다. */
+  equalHeight?: EqualHeightSlot;
 };

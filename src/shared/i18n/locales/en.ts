@@ -6,6 +6,11 @@ export const en = {
     ok: 'OK',
     /** Android 뒤로가기 두 번 종료 안내. */
     pressBackAgainToExit: 'Press back again to exit',
+    /** 스크린 리더 상태 값(펼치는 행 등). */
+    a11y: {
+      expanded: 'Expanded',
+      collapsed: 'Collapsed',
+    },
   },
   support: {
     title: 'Contact support',

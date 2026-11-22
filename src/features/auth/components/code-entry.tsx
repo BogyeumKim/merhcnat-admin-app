@@ -1,8 +1,10 @@
-import { Column, Row, Spacer } from '@expo/ui';
+import { Column, Row } from '@expo/ui';
+import type { ReactNode } from 'react';
 
 import { useTranslation } from '@/shared/i18n';
 import { openSheet } from '@/shared/lib/open-sheet';
-import { spacing, useNativeColors } from '@/shared/theme';
+import { spacing, useNativeColors, useWindowLayout } from '@/shared/theme';
+import { FILL_ROW } from '@/shared/ui/fill-row';
 import { FormAlert } from '@/shared/ui/form-alert';
 import { IconButton } from '@/shared/ui/icon-button';
 import { icons } from '@/shared/ui/icons';
@@ -68,8 +70,10 @@ function CodeTopBar({ isTotp, onBack, onCancel }: { isTotp: boolean; onBack?: ()
   return (
     <Row alignment="center" style={{ width: '100%' }}>
       {back}
-      <NativeText variant="label">{t('auth.verify.twoStep')}</NativeText>
-      <Spacer flexible />
+      {/* 글이 남는 폭만 받아 줄바꿈된다: 큰 글꼴에서 X가 0 폭으로 밀려 사라지지 않게(`FILL_ROW`). */}
+      <Column modifiers={FILL_ROW}>
+        <NativeText variant="label">{t('auth.verify.twoStep')}</NativeText>
+      </Column>
       {close}
     </Row>
   );
@@ -166,11 +170,10 @@ export function CodeEntry({
             ) : null}
             {/* 남은 시간 + 다시 받기(인증 앱 코드에는 둘 다 없다). */}
             {expiresAt !== undefined || resend ? (
-              <Row alignment="center" style={{ width: '100%' }}>
-                {expiresAt !== undefined ? <CodeExpiry secondsLeft={secondsLeft} /> : null}
-                <Spacer flexible />
-                {resend ? <ResendButton key={resend.availableAt} availableAt={resend.availableAt} pending={resend.pending} onResend={resend.onResend} /> : null}
-              </Row>
+              <ExpiryRow
+                expiry={expiresAt !== undefined ? <CodeExpiry secondsLeft={secondsLeft} /> : null}
+                resend={resend ? <ResendButton key={resend.availableAt} availableAt={resend.availableAt} pending={resend.pending} onResend={resend.onResend} /> : null}
+              />
             ) : null}
           </>
         )}
@@ -181,6 +184,29 @@ export function CodeEntry({
         </LinkText>
       ) : null}
     </SheetFormScreen>
+  );
+}
+
+/**
+ * 남은 시간(왼쪽) + 다시 받기(오른쪽). 남은 시간은 `FILL_ROW`로 남는 폭만 받아 줄바꿈된다(다시 받기가 0 폭으로 밀리지 않게).
+ * 큰 글꼴(`isLargeText`)에서는 두 문구가 한 줄에 들어가지 않으므로 위아래로 쌓는다(Compose `Row`는 앞 자식이 폭을 먼저 가져간다).
+ */
+function ExpiryRow({ expiry, resend }: { expiry: ReactNode; resend: ReactNode }) {
+  const { isLargeText } = useWindowLayout();
+
+  if (isLargeText) {
+    return (
+      <Column alignment="start" spacing={spacing.xs} style={{ width: '100%' }}>
+        {expiry}
+        {resend}
+      </Column>
+    );
+  }
+  return (
+    <Row alignment="center" spacing={spacing.sm} style={{ width: '100%' }}>
+      <Column modifiers={FILL_ROW}>{expiry}</Column>
+      {resend}
+    </Row>
   );
 }
 

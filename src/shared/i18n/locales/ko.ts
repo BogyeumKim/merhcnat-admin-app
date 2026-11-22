@@ -9,6 +9,11 @@ export const ko: typeof en = {
     ok: '확인',
     /** Android 뒤로가기 두 번 종료 안내. */
     pressBackAgainToExit: '한 번 더 누르면 종료돼요',
+    /** 스크린 리더 상태 값(펼치는 행 등). */
+    a11y: {
+      expanded: '펼쳐짐',
+      collapsed: '접힘',
+    },
   },
   support: {
     title: '고객센터 연락하기',

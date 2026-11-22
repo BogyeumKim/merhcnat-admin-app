@@ -25,6 +25,8 @@ const LABEL = font({ textStyle: 'headline' });
 const LABEL_PADDING = spacing.sm + spacing.xs;
 const TONAL_STYLE = buttonStyle('bordered');
 const LABEL_FRAME = [FILL_WIDTH];
+/** 나란한 짝 버튼(`useEqualButtonHeights`): 행이 정한 높이까지 라벨 프레임을 세로로도 늘린다(배경은 라벨 프레임을 따라 그려진다). */
+const LABEL_FRAME_FILL = [frame({ maxWidth: Infinity, maxHeight: Infinity })];
 const LABEL_STYLE = { paddingVertical: LABEL_PADDING } as const;
 const FULL_WIDTH_STYLE = { width: '100%' } as const;
 /** 로딩 중에도 라벨을 투명하게 남겨 버튼 높이·폭이 바뀌지 않게 한다(스피너는 그 위에 겹친다). */
@@ -47,6 +49,7 @@ export function NativeButton({
   leading,
   accessibilityLabel,
   testID,
+  equalHeight,
 }: NativeButtonProps) {
   const colors = useNativeColors();
   const shapeModifiers =
@@ -77,7 +80,7 @@ export function NativeButton({
       style={FULL_WIDTH_STYLE}>
       <Column
         alignment="center"
-        modifiers={LABEL_FRAME}
+        modifiers={equalHeight?.fill ? LABEL_FRAME_FILL : LABEL_FRAME}
         style={LABEL_STYLE}>
         <ZStack>
           <Column modifiers={loading ? [HIDDEN] : undefined}>{content}</Column>
