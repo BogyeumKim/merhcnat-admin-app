@@ -6,7 +6,7 @@
 
 | 용도 | 선택 | 근거 |
 | --- | --- | --- |
-| 토큰/비밀 | `expo-secure-store` | Expo 문서: "small values such as tokens, keys, and other secrets" |
+| 영속 비밀(기기 ID) | `expo-secure-store` | Expo 문서: "small values such as tokens, keys, and other secrets". 로그인 토큰은 저장하지 않는다(메모리 zustand) |
 | 작은 설정값 | `expo-sqlite/kv-store` | AsyncStorage와 같은 API + **동기 API**(`getItemSync`), 별도 의존성 없음 (Expo 문서) |
 | 구조화/대량 데이터 | `expo-sqlite` | Expo 문서: 쿼리 가능한 구조화 데이터 |
 | (대안) 빠른 동기 KV | `react-native-mmkv` v4 | 서드파티, 네이티브 모듈이라 Expo Go 불가, `react-native-nitro-modules` 필요 (블로그/가이드 근거, 공식 문서 언급 없음) |
@@ -29,7 +29,7 @@
 
 - 필수는 아니지만 **권장**한다. 이유가 Expo 동작에 있다: `EXPO_PUBLIC_*`는 빌드 시 정적으로 치환되고, 값이 없거나 `process.env[name]`/구조분해로 접근하면 에러 없이 `undefined`가 된다 (Expo 문서).
 - Expo 문서에는 검증 권장 문구가 없다. "실무에서 흔한가"는 수치로 확인하지 못했고, 팀 프로젝트에서 `zod`로 시작 시점에 한 번 파싱하는 방식이 널리 쓰인다는 일반론 수준이다.
-- 지금은 환경변수가 하나도 없어 코드를 만들지 않았다. 첫 변수를 추가할 때 `core/config/env.ts`를 만든다 (`.claude/rules/storage-env.md`).
+- 구현됨: `src/shared/config/env.ts`에서 zod로 시작 시 한 번 검증한다 (`.claude/rules/storage-env.md`).
 - 보안: `EXPO_PUBLIC_`에는 비밀 값을 넣지 않는다.
 
 ## 3. Jest

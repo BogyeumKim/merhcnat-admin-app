@@ -12,27 +12,29 @@
 - 기기 정보(기기 값, push token 등)는 새 테이블에 저장한다. PK는 `userId`. DB는 MySQL.
 - 기기 키쌍과 루팅 탐지는 이번에 구현하지 않는다.
 
-## 재설치를 같은 기기로 알아보려면 (이전 권장안 변경)
+## 재설치 = 새 기기 (2026-11 사용자 결정)
 
-이전에는 "재설치 = 새 기기"를 권장했다. 그건 모든 로그인에 OTP가 있다는 잘못된 전제였다. **그 외(1) 사용자는 최초 1회만 인증하므로 재설치를 새 기기로 취급하면 매번 재인증이 필요해 비용이 크다.** 그래서 재설치 후에도 알아보는 쪽으로 바꾼다.
+**재설치는 iOS/Android 모두 새 기기로 취급하고 다시 인증한다.** 결제 앱이므로 "앱을 지웠다 깔면 처음부터"가 더 안전하고 설명하기 쉽다. 그 외(1) 사용자는 재설치 후 한 번 더 인증하는 비용을 감수한다. (2026-10의 "재설치를 같은 기기로 알아본다" 결정을 대체한다.)
 
-| 플랫폼 | 수단 | 재설치 후 | 근거 |
-| --- | --- | --- | --- |
-| Android | `getAndroidId()` (`expo-application`) | **유지된다.** 앱 서명 키·사용자·기기 조합별 값. 공장 초기화/서명 키 변경 시 바뀜 | Expo Application 문서 |
-| iOS | Keychain에 저장한 UUID (`expo-secure-store`) | **대개 남는다. 그러나 보장되지 않는다.** Apple DTS가 "구현 세부사항이며 문서화된 기능이 아니다"라고 했고, Expo 문서도 의존하지 말라고 한다 | Expo SecureStore 문서, Apple 개발자 포럼, Expo GitHub 이슈 |
-| iOS | IDFV (`getIosIdForVendorAsync`) | **이 앱이 해당 벤더의 유일한 앱이면 재설치 때 바뀐다** (벤더의 앱이 모두 삭제되면 변경) | Expo Application 문서 |
+| 플랫폼 | 앱 삭제 시 기기 값(`device.id`, `device.secret`) | 앱의 처리 |
+| --- | --- | --- |
+| Android | SharedPreferences + Keystore 키가 함께 지워진다(백업 규칙도 SecureStore 제외) | 추가 처리 없이 재인증 |
+| iOS | Keychain 항목이 **앱 삭제 후에도 남는다**(문서화되지 않은 동작이라 보장도 안 됨) | 설치 후 첫 실행에 지운다(아래) |
 
-결론: **Android는 안정적으로 가능하고, iOS는 "대개 가능하지만 보장 불가"다.** iOS는 IDFV로는 안 되고 Keychain UUID가 현실적인 유일한 수단이다.
+**구현 (`features/auth/model/fresh-install.ts`)**
+- 설치 표식을 앱 삭제 때 함께 지워지는 `shared/lib/storage`(kv-store, `STORAGE_KEYS.installMarker`)에 둔다.
+- 표식이 없으면(설치 후 첫 실행) SecureStore의 `device.id`, `device.secret`, 레거시 `login.savedUserId`를 지우고 표식을 쓴다. 앱 시작 시(`src/app/_layout.tsx`) 호출하고, `getDeviceInfo()`·`loadDeviceSecret()`·`saveDeviceSecret()`도 같은 promise를 기다린다(동시 호출 경쟁 방지, 실패는 캐시하지 않음).
+- 삭제가 실패하면 표식을 쓰지 않고 다음 접근에서 다시 시도하며, 로그인은 막지 않는다(남은 값이 쓰여도 서버가 판단한다).
+- iOS IDFV는 쓰지 않는다. `androidId`는 서버가 제거해서 보내지 않는다.
 
-**서버가 기준이고, 못 알아본 경우의 안전한 폴백이 있다**: 식별자가 사라져 못 알아보면 "기기 변경"과 같은 경로(안내 + 인증)로 처리한다. 즉 보존은 편의이고 틀려도 안전하다.
+**서버가 기준이다**: 앱이 보내는 `deviceId`/`deviceSecret`이 없거나 맞지 않으면 "기기 변경"과 같은 경로(안내 + 인증)로 처리한다.
 
 **클라이언트가 보내는 신호**
 - `deviceId`: 앱이 처음 만든 랜덤 UUID(v4). `expo-secure-store`에 저장, iOS는 `keychainAccessible: WHEN_UNLOCKED_THIS_DEVICE_ONLY`(백업 복원으로 다른 기기에 따라가지 않음).
-- `androidId`: Android만, `getAndroidId()` 값. **서버가 해시(HMAC)로만 저장**한다 (원본 저장 금지).
-- 서버 판정: `deviceId` 일치 **또는** Android에서 `androidId` 해시 일치 → 같은 기기.
-- 위조 위험: 보안 벤더 글은 식별자 바인딩이 위조에 약하다고 한다. 다만 `ANDROID_ID`는 앱 서명 키별로 범위가 정해진 값이라 다른 앱이 같은 값을 읽을 수 없고, 공격자가 피해자 기기의 값을 알아야 한다. 루팅된 피해자 기기에서의 추출은 막지 못한다 (이번에 구현하지 않는 항목).
-- 개발 중 주의: 디버그/릴리스 빌드는 서명 키가 달라 `ANDROID_ID`가 다르다. 빌드를 바꾸면 새 기기로 보일 수 있다.
-- **스토어 정책:** `ANDROID_ID` 등 기기 식별자는 Google Play/Apple의 개인정보·사용자 데이터 정책과 앱 개인정보 고지 요건이 있을 수 있다. 이 세션에서는 확인하지 못했다. 출시 전에 확인한다.
+- `androidId`: 서버가 제거해서 더는 보내지 않는다.
+- 서버 판정: `deviceId` 일치 → 같은 기기.
+- 위조 위험: 보안 벤더 글은 식별자 바인딩이 위조에 약하다고 한다. 그래서 등록 때 서버가 주는 `deviceSecret`을 함께 보낸다. 루팅된 기기에서의 추출은 막지 못한다 (이번에 구현하지 않는 항목).
+- **스토어 정책:** 기기 식별자는 Google Play/Apple의 개인정보·사용자 데이터 정책과 앱 개인정보 고지 요건이 있을 수 있다. 이 세션에서는 확인하지 못했다. 출시 전에 확인한다.
 - 식별자 값은 로그/커밋/문서/예시에 남기지 않는다.
 
 ## 한 기기 = 한 userId (1:1) 정책
@@ -72,7 +74,7 @@
 - 챌린지는 사용자·기기에 묶인다. 다른 시도에서 받은 코드는 통과하지 않는다.
 - **발송 목적지는 서버가 유저 테이블에서 꺼낸다.** 앱은 수단(`SMS|EMAIL|KAKAO`)만 고르고 번호/주소를 보내지 않는다. 화면에 보이는 목적지는 서버가 마스킹해서 준다.
 - 앱은 "인증됨"을 판단하지 않는다. 서버만 판단한다. 인증 단계에서 요청을 자동 재시도하지 않는다.
-- 입력 화면: 숫자 키패드, SMS 자동 입력(`textContentType="oneTimeCode"`, Android `autoComplete="sms-otp"`), 재전송 버튼(쿨다운), 입력값 로그 금지.
+- 입력 화면: 숫자 키패드, SMS 자동 입력(`textContentType="oneTimeCode"`, Android `autoComplete="sms-otp"`), 재전송 버튼(`resendAfterSeconds` UI 타이머, 서버의 같은 채널 대기는 없음), 입력값 로그 금지.
 
 ## 앱 구현 위치 (예정)
 

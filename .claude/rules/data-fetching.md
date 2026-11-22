@@ -52,3 +52,15 @@ export type UseMutationCallback<TData = void> = {
 - 전역 `fetch` 래퍼(`shared/api/client.ts`)만 네트워크를 호출한다. `axios`를 쓰지 않는다 (expo-data-fetching skill 권장과 사용자 결정).
 - 로그아웃 시 `QueryClient.clear()`는 `core/providers/query-provider.tsx`가 `registerSignOutHandler`로 등록한다 (feature가 core를 import하지 않도록).
 - `focusManager`는 `AppState`와 연결돼 있다 (`onlineManager`는 NetInfo 도입 시).
+- `shared/api/client.ts`: 15초 타임아웃은 본문 읽기까지 포함(`TIMEOUT`), 오류 envelope의 `data: null` 허용(서버 `code` 유지), 연장 토큰은 적용 직전에 세션 generation을 다시 확인한다(로그아웃 뒤 토큰 부활 방지).
+
+## 연타(따닥) 방지 (구현됨)
+
+버튼의 `disabled={isPending}`만으로는 부족하다: `isPending`은 다시 렌더링된 뒤에야 바뀌어 그 전에 들어온 두 번째 탭/Enter가 통과한다. 동기 잠금을 쓴다. 두 가지뿐이다.
+
+- **네트워크 작업(mutation, 수동 `refetch`)**: `useRunOnce()`(`shared/lib/use-run-once`). `runOnce((done) => mutation.mutate(vars, { onSettled: done }))`. 한 화면/흐름의 요청들은 러너 하나를 같이 쓴다(인증 흐름은 발송·검증·기기 확인이 한 잠금). 화면을 떠나는 성공은 이동을 시작한 뒤에 풀거나(로그인: `openSheet` 완료 후) 아예 풀지 않는다(비밀번호 변경: 실패만 `done`). `refetch()`는 기본값이 진행 중 요청을 취소하고 새로 보내므로 반드시 감싼다.
+- **사용자 탭으로 시작하는 이동(push/back/replace/로그아웃)**: `navigateOnce(() => router.push(...))`(`shared/lib/navigation-lock`, 앱 전체 600ms 잠금). `back()` 연타는 아래 화면까지 닫는다. 시트는 `openSheet`(블러 대기 + 같은 잠금). 서버 응답이 정하는 이동(오류 화면, 라우트 가드)은 감싸지 않는다.
+- 단계가 바뀌며 같은 자리에 다른 버튼이 나타나면(기기 "변경" → 이메일 "인증번호 받기") 단계 전환도 같은 러너로 잠깐(`STEP_SETTLE_MS`) 잠근다.
+- 자동 제출(인증번호 6자리)은 값이 바뀐 경우에만 알린다(`use-otp-code-field`): 7번째 입력이 같은 코드를 다시 보내지 않게.
+- 새 버튼/행/링크가 요청이나 이동을 시작하면 위 둘 중 하나를 반드시 거친다. 로컬 상태만 바꾸는 탭(펼치기, 금액 숨기기, 지우기)은 필요 없다.
+

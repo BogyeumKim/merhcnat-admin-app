@@ -13,10 +13,11 @@ paths:
 
 | 데이터 | 사용 | 위치 |
 | --- | --- | --- |
-| 기기 ID(iOS 키체인), 비밀 값 | `expo-secure-store` | 기기 값(`deviceId`)은 `features/auth/model/device-id`. **로그인 토큰은 저장하지 않는다** (메모리 전용, `auth-jwt.md`) |
+| 기기 ID·기기 비밀키(iOS 키체인/Android Keystore) | `expo-secure-store` | `deviceId`(`device-info.ts`), 서버가 등록 때 한 번 주는 `deviceSecret`(`device-secret.ts`, THIS_DEVICE_ONLY, 로그·화면 금지). 재설치 후 첫 실행에 `fresh-install.ts`가 지운다(iOS Keychain은 앱 삭제 후에도 남음, 표식은 kv-store `installMarker`). **로그인 토큰은 저장하지 않는다** (메모리 전용, `auth-jwt.md`) |
 | 앱 설정(언어 등 작은 값), 렌더 전에 읽어야 하는 값 | `expo-sqlite/kv-store` (동기 API) | `shared/lib/storage` — 키는 `STORAGE_KEYS`에만 추가 |
 | 구조화/대량/오프라인 데이터 | `expo-sqlite` (필요해질 때) | 해당 feature의 `api/` |
 
+- **"아이디 저장" 기능은 없다** (삭제됨). 앱은 아이디·비밀번호를 저장하지 않는다. 아이디/비밀번호 자동 채움은 OS 비밀번호 관리자(Google/Samsung Pass/iCloud 키체인)의 몫이며, 앱은 `autoComplete`(`username`/`current-password`/`new-password`)만 지정하고 로그인 성공 전에 비밀번호 칸을 비우지 않는다.
 - 로그인 토큰은 어디에도 영속 저장하지 않는다. 토큰이나 개인정보를 `shared/lib/storage`(암호화되지 않음)에 저장하지 않는다.
 - **TanStack Query 캐시를 디스크에 persist하지 않는다** (결제/정산 데이터가 평문으로 남음). 필요하면 `shouldDehydrateQuery`로 비민감 쿼리만 골라 별도 결정 후 도입한다.
 

@@ -10,7 +10,7 @@ src/
   app/                  # Expo Router 라우트 (얇게)
     _layout.tsx, sign-in.tsx, (tabs)/…
   core/                 # 앱 조립
-    navigation/app-tabs/   # iOS NativeTabs / Android Compose 플로팅 바
+    navigation/app-tabs/   # iOS/Android 공통 NativeTabs
     providers/             # (필요 시) QueryClient, 모달 호스트
   features/
     auth/               # 현재 존재: 세션, 토큰 저장, 로그인 화면

@@ -1,6 +1,7 @@
 # korpay-merchant-admin
 
 Expo **SDK 58** (React Native 0.88, React 19.3) 모바일 앱. UI는 **`@expo/ui`** 를 기본으로 사용한다.
+**네이티브 우선:** `@expo/ui`(SwiftUI/Jetpack Compose)와 네이티브 모듈(`NativeTabs`, form sheet 등)을 먼저 쓰고, 네이티브로 해결되지 않는 경우에만 JS 구현 라이브러리를 쓴다.
 모바일 우선, 성능을 우선한다. 대상 플랫폼은 **iOS/Android뿐**이다 (web 미사용). 데이터가 많은 화면은 별도 React 웹 프로젝트를 WebView로 연다.
 
 ## 문서를 신뢰하는 순서
@@ -33,18 +34,20 @@ npx expo install --fix       # 호환되지 않는 버전 수정
 - 의존 방향 `app → core → features → shared`. 다른 feature는 그 feature의 `index.ts`로만 import (ESLint 강제). 상세: `docs/architecture/feature-first.md`
 - 서버 상태: TanStack Query. UI는 화면 동작(toast/이동)을 `UseMutationCallback`으로 넘기고, 서비스 훅은 캐시만 다룬다. 클라이언트 UI 상태(모달 등): zustand. 상세: `docs/architecture/data-fetching.md`, `.claude/rules/zustand.md`
 - 사용자 타입(0, 1, 2, 3, 4, 5, 9)별 UI 차이는 capability 맵으로 처리하고, 코드에서 타입 숫자를 직접 쓰지 않는다(`UserType` 상수). 상세: `docs/architecture/user-types.md`
-- 인증: JWT, refresh token 없음, 앱 실행마다 로그인(토큰 영속 저장 금지). 상세 `docs/architecture/auth-jwt.md`, `device-binding.md`, `api-conventions.md`
+- 인증: JWT, refresh token 없음, 앱 실행마다 로그인. 토큰은 zustand 메모리 store에만 두고 SecureStore 등에 저장하지 않는다. 상세 `docs/architecture/auth-jwt.md`, `device-binding.md`, `api-conventions.md`
 - UI는 `@expo/ui`(네이티브 스크롤·키보드). 반응형/시스템 글꼴/키보드/로고 규칙: `docs/architecture/responsive-ui.md`, `.claude/rules/responsive-ui.md`. 로그인 화면과 mock 시나리오: `docs/architecture/login-ui.md`. 폼/오류 표시/토스트: `docs/architecture/feedback-ux.md`, `.claude/rules/feedback-ux.md`
 - 가맹점/거래내역 등 데이터 화면은 WebView. 상세: `docs/architecture/webview.md`. 이전 대상 앱 분석: `docs/migration/mms-mobile.md`
 - 별칭 `@/*` → `./src/*`, `@/assets/*` → `./assets/*`
 - `ios/`, `android/`는 CNG로 생성됨. 직접 만들거나 수정하지 않는다. `app.json`과 config plugin으로 설정한다.
 - **개발은 로컬 prebuild 기준**: `npx expo prebuild` → `npx expo run:ios` / `run:android`. EAS development build는 쓰지 않는다. `ios/`, `android/`는 gitignore 대상이며 생성물이다.
 - (배경) SDK 58용 스토어 Expo Go는 2026-10 현재 출시 전(체인지로그: "within a few weeks")이고, 출시 후에도 SDK 58만 지원하며 운영 앱 개발 환경으로 권장되지 않는다.
-- 하단 탭: iOS `NativeTabs`(Liquid Glass), Android Compose 플로팅 바. 규칙은 `.claude/rules/bottom-tabs.md`.
+- 홈/전체메뉴: 카테고리 카탈로그(`features/menu`)와 계정 타입별 capability. `docs/architecture/home-menu.md`
+- **폴더블·넓은 창**: 모든 화면은 펼친 iPhone Duo/Galaxy Fold, 태블릿, 창 모드에서 정상이어야 한다. 콘텐츠는 `CONTENT_MAX_WIDTH`로 가운데 정렬(`FormColumn`), 로그인은 펼친 폴더블(넓고 가로·정사각형 창)에서 좌우 분할(`isSplit`, 접히는 선 기준 반반), 그 외 한 컬럼, 헤더 없는 화면 위쪽은 `useScreenTopInset()`. 규칙 `.claude/rules/adaptive-layout.md`, 훅 `check-adaptive-layout.sh`가 금지 패턴을 차단.
+- 하단 탭: iOS/Android 모두 항상 `NativeTabs`(iOS Liquid Glass, Android Material 3). JS 탭/커스텀 탭 바 금지. 규칙은 `.claude/rules/bottom-tabs.md`.
 
 ## 자동 강제 (hooks, lint)
 
-- `.claude/hooks/`: 억제 주석(`eslint-disable`, `@ts-ignore`) 쓰기 차단, 훅 우회 플래그 차단(commit/push), 코드 편집 후 `eslint --fix` + 남은 문제 보고.
+- `.claude/hooks/`: 억제 주석(`eslint-disable`, `@ts-ignore`) 쓰기 차단, 훅 우회 플래그 차단(commit/push), 코드 편집 후 `eslint --fix` + 남은 문제 보고, `.tsx` 편집 후 폴더블/넓은 창 금지 패턴 검사(`check-adaptive-layout.sh`), 인라인 아이콘 쌍 차단(`check-icon-map.sh`, 아이콘은 `shared/ui/icons.ts`).
 - `eslint.config.js`: `any`/non-null 금지, import 순서, 레이어/feature 경계, JSX 하드코딩 문자열 금지(i18n).
 - 다국어는 한국어/영어만 (`src/shared/i18n`). 인증 라우트는 `Stack.Protected` + `features/auth`.
 
@@ -56,3 +59,4 @@ npx expo install --fix       # 호환되지 않는 버전 수정
 
 - 코드, 문서, 커밋, 로그, 예제 데이터에 개인정보(실명, 이메일, 전화번호, 계정 ID 등)와 비밀 값을 넣지 않는다.
 - 예제 데이터는 명백한 더미 값만 사용한다.
+- 로그인 후 공지 팝업(바텀시트, 오늘 하루 보지 않기, 이미지): `docs/architecture/notice-popup.md`

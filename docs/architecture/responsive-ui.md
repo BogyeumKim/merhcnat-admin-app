@@ -12,8 +12,10 @@
 ## 1. 레이아웃은 "기기"가 아니라 "창 크기"를 본다
 
 - `useWindowLayout()`(`shared/theme/layout.ts`): 너비 breakpoint **600dp, 840dp** (Material window size class 구분. 일반 지식, 이번 세션에서 문서 재확인 안 함), 가로 여부, `isShort`(높이 < 520), `fontScale`.
-- **두 단(좌: 브랜드 / 우: 폼)**: 너비 ≥ 840 이거나, 너비 ≥ 600 이면서 가로. 접이식을 펼친 화면, 태블릿, 가로 폰.
-- **한 단**: 그 외. 폼 최대 너비 480dp, 가운데 정렬.
+- **모든 창에서 한 단**(2026-11 변경, 두 단 레이아웃 폐기): 로그인은 짧은 단일 작업이라 펼친 iPhone Duo(실측 창 폭 951pt)에서 브랜드/폼 두 영역으로 나누면 태그라인이 따로 떨어져 보였고 로고는 폭 0으로 사라졌다. 넓은 창(`isWide`, ≥ 600)에서는 같은 컬럼을 `CONTENT_MAX_WIDTH`(528dp, 여백 포함)로 가운데 두고 위쪽 여백을 창 높이의 10%로 늘린다.
+- 콘텐츠 최대 폭은 `FormColumn`/`FormFooter`가 iOS `frame(maxWidth)`, Android 계산 `width()`로 강제한다(범용 style에 maxWidth 없음). 폼 시트도 같은 컬럼이라 넓은 시트에서 왼쪽으로 쏠리지 않는다.
+- iOS 27 리사이즈 창 모드에서는 왼쪽 위 창 컨트롤이 safe area top만으로는 로고와 겹쳐 `useScreenTopInset()`이 24pt를 더한다. 화면을 꽉 채운 창(접힌/펼친 iPhone Duo)은 더하지 않는다.
+- iPhone Duo 실측(serve-sim 캡처): 접힘 466×678pt는 한 컬럼, 펼침 951×669pt는 좌우 분할(왼쪽 로고·문구, 오른쪽 폼, 2026-11 리디자인 PDF 기준)로 보임을 확인했다. 폼 시트는 펼친 화면에서 가운데 떠 있는 카드로 뜬다.
 - 로고는 세로 공간이 부족하면 숨긴다: `isShort`(가로 폰, 분할 화면) 또는 `fontScale > 1.5`. 제목이 브랜드 역할을 대신한다.
 - 높이를 `height`로 고정하지 않는다. 폼은 `ScrollView`(네이티브) 안에 있어 어떤 높이에서도 도달 가능하다.
 - `app.json`의 `orientation`을 `default`로 풀었다 (세로 고정이면 가로/펼침 레이아웃을 쓸 수 없다). SDK 58 changelog: iOS 27 SDK로 빌드하면 앱이 리사이즈 가능해지고 `ScreenOrientation.lockAsync`가 무효일 수 있다 → **어떤 크기에서도 깨지지 않아야 한다**.
@@ -32,7 +34,7 @@
 - Android: `fontSize`는 Compose `sp`로 변환되어(`TextView.kt`) 시스템 글꼴 크기를 따른다.
 - 그래서 `native-text.ios.tsx`는 text style 모디파이어(+ `isHeader` 접근성 trait), 기본 파일(Android)은 `fontSize`를 쓴다.
 
-**금지:** `allowFontScaling={false}`, 본문에 `maxFontSizeMultiplier` 상한, RN 텍스트 `lineHeight` 고정값(큰 글꼴에서 글자가 잘림. `type` 토큰에 lineHeight 없음), `numberOfLines`로 의미 있는 문구 자르기.
+**금지:** `allowFontScaling={false}`, 본문에 `maxFontSizeMultiplier` 상한, RN 텍스트 `lineHeight` 고정값(큰 글꼴에서 글자가 잘림. 문구는 `NativeText` variant로만 크기를 정한다), `numberOfLines`로 의미 있는 문구 자르기.
 
 미확인: iOS 접근성 최대 크기(accessibility5)와 Android 200%에서 실제 줄바꿈/스크롤 동작.
 
@@ -59,12 +61,12 @@
 ## 4. 로고(SVG)
 
 - 기존 앱 로고(`mms-mobile/src/assets/image/korpayLogo.png`: 빨간 둥근 사각형 안의 흰 K, 차콜색 `Kor` + 빨간 `pay`)의 정체성을 유지해 다시 그렸다: **빨간 원 안의 흰 K + 차콜 `Kor` + 빨간 `pay`**. 브랜드 빨강은 레거시 상수 `CustomColor.mainColor`(`#ff003a`)다.
-- `assets/images/korpay-logo.svg`(viewBox `0 0 376 88`)를 `expo-image`로 렌더한다 (`BrandLogo`). 이미 설치돼 있고 SVG를 네이티브 디코더로 그리며 캐시된다.
-- SDK 58 `svgVariables`로 색을 바꾼다: `--korpay-ink`(`Kor`와 다크 모드 대응), `--korpay-brand`(빨강). `var(--x, 기본값)`이라 변수를 안 줘도 기본색으로 그려진다 (Expo 문서).
+- `assets/images/korpay-logo.svg`(viewBox `0 0 168.6 56`: 워드마크 `Korpay`, Poppins SemiBold(SIL OFL 1.1)를 윤곽선으로 변환 + K 전체를 브랜드 빨강으로 칠함)를 `expo-image`로 렌더한다 (`BrandLogo height={…}`). 이미 설치돼 있고 SVG를 네이티브 디코더로 그리며 캐시된다.
+- SDK 58 `svgVariables`로 글자 색만 바꾼다: `--korpay-ink`(다크 모드 대응). K의 빨강은 고정 색. `var(--x, 기본값)`이라 변수를 안 줘도 기본색으로 그려진다 (Expo 문서).
 - 빨강 `#ff003a`는 흰색과 3.95:1이라 **텍스트/버튼 색으로 쓰지 않는다** (로고 같은 그래픽은 대비 규정에서 제외). 버튼/링크는 `action` 색.
-- **iOS 시스템 SVG 디코더 제약**: `A/a`(타원 호) 명령이 일부 깨질 수 있다고 문서가 경고 → 로고는 `M/L/C/V`와 `<circle>`만 쓴다. 호 명령을 추가하지 않는다.
+- **iOS 시스템 SVG 디코더 제약**: `A/a`(타원 호) 명령이 일부 깨질 수 있다고 문서가 경고 → 로고는 `M/L/H/V/C`만 쓴다 (둥근 타일도 `rect rx`가 아니라 C 곡선 path). 호 명령을 추가하지 않는다.
 - Expo의 `react-native-svg` 문서는 SVG를 컴포넌트로 바꿔 쓰는 방식(SVGR)이다. 정적 로고에는 필요 없어 로고에는 쓰지 않았다. (`react-native-svg`는 `sonner-native`의 peer 의존성으로 설치돼 있다.)
-- Android는 `viewBox`를 지우지 않아야 한다 (Expo SVG 문서). 로고를 고치면 `brand-logo.tsx`의 `LOGO_ASPECT_RATIO`(376/88)도 같이 맞춘다.
+- Android는 `viewBox`를 지우지 않아야 한다 (Expo SVG 문서). 로고를 고치면 `brand-logo.tsx`의 `LOGO_ASPECT_RATIO`(168.6/56)도 같이 맞춘다. **XML 주석 안에 `--`(연속 하이픈)를 쓰면 네이티브 SVG 파서가 파일 전체를 거부해 아무것도 안 그려진다** (macOS 미리보기는 통과하므로 앱에서 확인한다).
 - 로컬 미리보기: `qlmanage -t -s 900 -o <dir> assets/images/korpay-logo.svg`.
 
 ## 5. 기기 테스트 체크리스트

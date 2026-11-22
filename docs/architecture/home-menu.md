@@ -1,0 +1,47 @@
+# 홈 / 전체메뉴 / 탭 구성
+
+레거시(`mms-mobile`)는 홈에 카드·차트·배너를 길게 늘어놓고 타입별 분기를 화면마다 했다. 새 앱은 **카테고리로 묶고**, 홈은 짧게 둔다.
+
+## 구조
+
+- 탭 4개: 홈 · 거래내역 · 가맹점 · 전체메뉴 (`core/navigation/app-tabs/config/tabs.ts`). 거래내역/가맹점은 WebView로 채울 자리(지금은 안내 화면).
+- **홈**: 오늘 요약 카드(자리) + **바로가기**(자주 쓰는 항목 몇 개). 나머지는 전체메뉴로 보낸다.
+- **전체메뉴**: 결제 · 조회 · 정산 · 고객지원 카테고리별 목록 + 로그아웃. 카테고리가 이동 단위다 (그룹을 고르고 항목을 연다).
+- 항목은 `/feature/[id]` 안내 화면으로 열린다. 각 항목의 화면(대부분 WebView)이 생기면 `openMenuItem`의 경로만 바꾼다.
+
+## 단일 출처
+
+- `features/menu/model/catalog.ts`: 카테고리와 항목(`MENU_CATALOG`). 항목마다 필요한 capability(`requires`). 항목 열기는 `model/open-menu-item.ts`(`openMenuItem`).
+- `features/auth/model/capabilities.ts`: 계정 타입별 capability 맵(`Record<UserType, Capabilities>`). 화면은 `useCapabilities()`만 읽고 타입 숫자를 비교하지 않는다.
+- 새 항목: `MenuItemId`, `MENU_CATALOG`, i18n `menu.items.<id>`(ko/en)를 함께 추가한다(전체메뉴 행은 아이콘 없는 텍스트 행).
+
+## capability 현재 값 (레거시 분석 기준)
+
+| capability | 의미 | 타입 |
+| --- | --- | --- |
+| `canPay` | 수기결제/SMS결제/선지급 노출 | 0, 1 |
+| `canLookUpPreferredBusiness` | 우대사업자 조회 | 2, 3, 4, 5, 9 |
+| `showHierarchyFilter` | 계층 필터(L1→L2→L3→MID) | 2, 3, 4, 5, 9 |
+| `storeInfo` | `detail`(자기 가맹점 상세) / `list`(하위 가맹점 목록) | 1은 detail, 나머지 list |
+
+가맹점별로 서버가 주는 스위치(수기결제/SMS/선결제 사용 여부)는 로그인 응답 계약이 정해지면 `canPay`에 합친다. 클라이언트의 capability는 보안 경계가 아니다 (서버가 토큰으로 범위를 정한다).
+
+## 홈 / 전체메뉴 디자인 (2차 갱신)
+
+참고: Designus 레퍼런스(앱 화면 모음)에서 올리브영, 치지직, 트래블월렛 등을 확인했다. 공통 패턴은 ① 상단 바: 왼쪽 브랜드 로고, 오른쪽 알림(검색) 아이콘 ② 홈 첫 화면은 핵심 숫자/잔액 카드 하나 ③ 하단 탭 아이콘. 다음 항목은 근거가 약해 빼거나 옮겼다.
+
+- 홈(4차): 토스뱅크/신한 SOL/트래블월렛 캡처 분석(카드-온-캔버스, 굵은 제목 + `>`, 아이콘 배지 + 라벨 + 굵은 금액 + 작은 톤 버튼, 차트 없음)을 따른다. `TabScreen canvas` 위의 흰 `HomeCard`들: 가맹점 카드(가맹점명 >, 오늘 매출 [내역], 다음 입금 예정 [조회], 승인/취소 건수) → 이번 달 매출 [내역] → 선지급 프로모션 카드(선지급 가능 계정만, `PrepayBanner`) → 고객지원 카드(공지사항/FAQ 행, `SupportCard`). 아이콘 그리드는 전체메뉴와 중복이라 뺐다. 값은 `GET /api/home/summary`(`docs/backend-contract/home-summary.md`)에서 온다(서버는 아직 더미 값을 준다).
+- 색 토큰 `canvas`/`card`/`tonal`을 `shared/theme/colors.ts`에 추가했다(라이트/다크 둘 다).
+- 이전 기록: mms-mobile 홈은 공지 마키 → 오늘 매출 → 정산금액 → 결제 숏컷 → 배너 → 추이 차트 → 결제유형 → 순위 → FAQ였다. 근거 조사: 오늘얼마(오늘 매출 + 입금 예정), 쿠팡이츠 사장님, 요기요 사장님. 서버 요약 값의 형태는 확정 전이다.
+- 전체메뉴: `AppHeader` + 카테고리 제목 + 아이콘/설명 없는 텍스트 행(chevron만). 설정은 `계정 > 설정`(`/settings`: OS 알림 권한 상태, 언어, 버전). 탭은 4개 유지.
+- 알림 아이콘은 지금 공지사항 placeholder로 이동한다. 알림함 API가 생기면 별도 화면으로 바꾸고 미확인 표시(점)를 붙인다.
+- 홈 보강(5차, 토스/신한/트래블월렛 캡처 기준): 신한 홈 하단의 "금액 숨기기", 토스의 "11월 소비 ⟳", 트래블월렛의 "환율 기준 시각"에서 가져와 가맹점 카드 하단에 ① "HH:mm 기준 ⟳"(탭하면 새로고침, `dataUpdatedAt`) ② "금액 숨기기/보기"(가게 카운터에서 손님에게 금액이 보이지 않게, 기기에 기억: `model/hide-amounts-store.ts`)를 넣었다. 홈 배경은 `canvas`(라이트 #F2F4F8) 위에 흰 카드 — 토스/신한 홈의 연한 회색-파랑 배경과 흰 카드 구성이다.
+- 이번 달 무이자 혜택 배너(`BenefitBanner`): mms-mobile의 "N월 무이자 혜택 안내" 이미지 배너에서 용도만 가져오고 모양은 현재 카드 레이아웃에 맞췄다. 앱의 메인 컬러는 빨강이라 이 배너를 `action` 빨강 채움 + 흰 글자(`NativeText tone="onAction"`, 대비 4.94)로 그려 홈의 유일한 강조로 둔다(로고용 `brand`는 배경/글자에 쓰지 않는다). 탭하면 `benefits` 항목(전체메뉴 고객지원)으로 이동하며 화면은 아직 placeholder다. 혜택 내용(카드사별 무이자 안내)의 서버 데이터/이미지는 아직 정해지지 않았다.
+
+## 현재 구현 (리뷰 반영, 2026-11)
+
+- 홈 카드 순서(서버가 안 보낸 선택 블록은 생략): 매출 카드(오늘·이번 달, `HH:mm 기준 ⟳`, 금액 숨기기) → 결제 실패 → 선지급 배너 → 최근 7일 막대(`WeekCard`) → 최근 거래 → 내 가맹점 → 공지/혜택 → 고객센터 → 약관·버전. 위 4차 기록의 "차트 없음"·`BenefitBanner`는 이후 바뀌었다.
+- 동작은 `features/home/hooks/use-home-screen.ts`, 화면은 렌더링만. 쿼리 키는 `queries/query-keys.ts`(`homeQueryKeys.summary()`), `staleTime` 1분 + 앱 포그라운드 복귀 시 refetch.
+- 첫 로딩 중에는 "불러오는 중" 카드, 캐시 없이 실패하면 "다시 시도" 카드. 캐시가 있는 상태의 새로고침(⟳) 실패는 수치를 유지하고 `presentationOf`가 `toast`인 오류만 `error:<code>` 토스트로 알린다. 새로고침 중에는 기준 시각 대신 "새로고침 중".
+- `WeekCard` 막대 폭은 창 폭이 아니라 `min(창 폭 - 좌우 safe area, CONTENT_MAX_WIDTH) - 페이지·카드 패딩` 기준(펼친 폴더블에서 카드 밖으로 넘치지 않게).
+- 설정: 푸시 상태는 `checking`/`granted`/`denied`/`unavailable`(`expo-notifications` 없는 빌드), 언어는 `@expo/ui` `Picker`(메뉴), 버전은 `expo-application`의 네이티브 버전(홈 하단과 같은 값).

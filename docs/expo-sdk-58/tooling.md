@@ -32,7 +32,7 @@ Simulator.app 대체. Expo CLI가 자동 감지. 브라우저 대시보드는 `n
 
 - 빌드 방식: 로컬 `expo prebuild` + `expo run:ios|android` (EAS development build 미사용).
 - `@expo/agent-cli`: 설치 없이 `npx @expo/agent-cli <command>`. **선택 사항.** `dev`/`smoke`는 앱이 빌드·설치된 뒤에 의미가 있다. 그 전에는 `status`/`doctor` 정도만 유용(`expo-doctor`, `tsc`, `lint`로 대체 가능). `agents:setup`은 `--no-agents-md --no-plugins`로 실행했다 (AGENTS.md/CLAUDE.md는 수동 관리).
-- `expo-device-hub`: **제거함.** Xcode 27 Device Hub가 필요한데 개발 머신이 Xcode 16.4. Xcode 27로 올린 뒤 필요하면 `devDependencies`로 다시 추가.
+- `expo-device-hub`: **devDependency로 설치함**(Xcode 27.1). DevTools 플러그인이라 네이티브 재빌드 불필요. `npx expo start` 배너 링크 또는 `npx expo-device-hub`로 브라우저에서 시뮬레이터 스트림/조작. iPhone Duo 캡처·접기/펼치기는 포함된 `serve-sim`으로 한다(`.claude/rules/adaptive-layout.md`).
 - 로컬 v58 문서 사본: `~/.expo/agent-cli/docs/versions/v58.0.0` (저장소 밖).
 - 미도입: Noxcturnal(Reanimated/Worklets 사용으로 효과 제한), expo-observe, expo-hinge, PostHog.
 - prebuild 전 `app.json`에 `ios.bundleIdentifier`, `android.package` 지정 필요 (현재 미설정).

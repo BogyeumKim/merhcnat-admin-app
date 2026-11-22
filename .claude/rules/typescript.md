@@ -10,6 +10,7 @@ paths:
 - import 별칭은 `@/*` (`src/*`). 상대 경로 `../../..` 체인을 만들지 않는다.
 - RN 0.87+ Strict TypeScript API: ref 타입은 `ViewInstance`, `TextInputInstance` 등 새 타입을 쓴다. `NativeMethods`는 제거됨.
 - React Compiler가 켜져 있다 (`experiments.reactCompiler`). 불필요한 `useMemo`/`useCallback`/`React.memo`를 새로 추가하지 않고, 렌더 중 부수효과·ref 변경 같은 규칙 위반을 만들지 않는다. (단, worklet 콜백 등 안정 참조가 필요한 곳은 예외)
+- **주석은 항상 한글로, 간단명료하게** 쓴다("무엇"보다 "왜"). 코드 식별자·기술 용어는 영어 그대로 둔다.
 - 기존 파일의 네이밍·주석 밀도·스타일을 따른다. 파일명은 kebab-case, 컴포넌트는 PascalCase.
 
 ## 린트 (엄격 규칙, `eslint.config.js`)

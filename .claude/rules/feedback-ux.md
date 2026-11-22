@@ -8,9 +8,12 @@ paths:
 
 근거와 조사: `docs/architecture/feedback-ux.md`
 
-- **폼은 react-hook-form + zod(`zodResolver`)** 를 쓴다. 입력은 `@expo/ui` 필드를 `Controller`로 연결하고 `onChangeText={field.onChange}`만 쓴다. `@expo/ui` `TextInput`에 `value`로 문자열을 넘기지 않는다. 지울 때는 `resetField()` + `TextInputRef.clear()`.
+- **폼은 react-hook-form + zod(`zodResolver`)** 를 쓴다. 입력은 `@expo/ui` 필드를 `Controller`로 연결하고 `onChangeText={field.onChange}`만 쓴다. `@expo/ui` `TextInput`에 `value`로 문자열을 넘기지 않는다. 지울 때는 `resetField()` + `TextInputRef.clear()`(화면이 보일 때만: Android `clear()`는 시트에 가려진 입력란에서 거부된다). 가려진 폼을 비워야 하면 `key`로 다시 마운트한다.
+- 로그인 폼 초기화 정책: 로그인 화면을 벗어나 진행한 인증 흐름(2단계 인증, 로그인 전 비밀번호 변경)이 성공 없이 끝나 돌아오면 아이디·비밀번호를 모두 초기화한다(`abandonedCount` → `LoginForm` `key`). 도움말 시트는 값 유지, 비밀번호 오류는 비밀번호만 지운다. 상세 `docs/architecture/login-ui.md`.
+- **필드 검증 오류는 제출할 때만** 띄운다: 모든 RHF 폼은 `mode: 'onSubmit'`, `reValidateMode: 'onChange'`(제출 시도 뒤에는 입력마다 다시 검증해 고치면 바로 사라짐). 입력란을 떠나기만 해서(`onTouched`/`onBlur`) 또는 입력 중(`onChange`)에 오류를 띄우지 않는다. 버튼 활성은 `formState.isValid`(구독하면 모드와 무관하게 입력마다 계산, RHF 7.91 확인)로 계속 정하고, 키보드 완료/Go도 버튼과 같은 `handleSubmit` 경로로 제출한다. 비밀번호 규칙 목록·일치 표시처럼 오류가 아닌 힌트는 `useWatch`로 실시간 유지.
 - zod 메시지는 문장이 아니라 **검증 코드**(`shared/forms/validation.ts`의 `ValidationCode`)다. 화면에서 `useValidationMessage()`로 번역한다. 새 코드는 `VALIDATION_CODES`와 `validation.<code>`(ko/en)에 함께 추가한다.
-- 서버 실패를 어떻게 보여줄지는 `presentationOf(error.code)`(`shared/api/error-presentation.ts`)를 따른다: `inline`(지속, 필드/폼 알림), `toast`(일시적 시스템 오류), `maintenance`(점검 화면). 화면마다 임의로 정하지 않는다.
+- 서버 실패를 어떻게 보여줄지는 `presentationOf(error.code)`(`shared/api/error-presentation.ts`)를 따른다: `inline`(지속, 필드/폼 알림), `toast`(일시적 시스템 오류), `maintenance`(점검 화면: 전체 화면, 스와이프·뒤로가기·버튼 모두 막아 아무것도 할 수 없다), `locked`(관리자 해제 전까지 잠긴 계정: 안내 화면, 재시도 버튼 없음), `suspended`(`ACCOUNT_SUSPENDED`: 정지된 사용자 안내 화면, 재시도 없음), `update`(`UPDATE_REQUIRED`: 필수 업데이트 전체 화면, 스토어만 열 수 있음), `insecure`(`DEVICE_INSECURE`: 보안 위험 기기 전체 화면). 서버가 세션을 끝낸 401은 로그인 화면이 "로그아웃했어요" 안내를 먼저 보여준다(`sessionEnded`). 화면마다 임의로 정하지 않는다.
+  - 시트 안에서 동작이 실패했을 때(예: 인증 수단 전송 실패)는 `FormAlert boxed`(옅은 오류색 카드, 채널 카드와 같은 패딩)를 쓴다.
   - 로그인 자격 증명 실패처럼 사용자가 읽고 행동해야 하는 오류를 **토스트로만** 보여주지 않는다. 계정 존재 여부를 드러내지 않는 한 문장으로 `FormAlert`에 둔다.
   - 필드 검증/코드 오류는 필드 아래(`LabeledField error`).
 - 새 오류 코드를 만들면 `ERROR_CODES`, `error-presentation.ts`(컴파일 강제), `errors.<code>`(ko/en)를 같이 고친다.

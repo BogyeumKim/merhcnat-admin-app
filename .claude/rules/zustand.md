@@ -19,6 +19,6 @@ onebite-log의 패턴을 React Native에 맞게 옮긴 것. 설치는 첫 store�
 
 ## 이 프로젝트의 store (구현됨)
 
-- `features/auth/model/session-store.ts`: `userType`만 보관(영속 저장 없음). `useSession()`은 `useShallow`로 `{ userType, isSignedIn }`을 돌려주고, 로그인 여부는 `userType !== null`. 액션은 `completeSignIn`/`signOutLocally` 함수로 노출한다.
+- `features/auth/model/session-store.ts`: `userType`과 로그인 아이디 `userId`(비밀번호 규칙 힌트 전용, 로그·화면 출력 금지)만 보관(영속 저장 없음). `useSession()`은 `useShallow`로 `{ userType, isSignedIn }`을 돌려주고, 로그인 여부는 `userType !== null`. 액션은 `completeSignIn`/`signOutLocally` 함수로 노출한다.
 - `features/auth/model/auth-flow-store.ts`: 진행 중인 추가 인증(챌린지). 메모리 전용.
-- 토큰은 store가 아니라 `shared/api/session-token.ts`(모듈 변수)에 있다: API 클라이언트가 React 밖에서 읽고 교체해야 해서.
+- 액세스 토큰은 `shared/api/session-token.ts`의 zustand **vanilla** store(`createStore`, `persist` 없음)에 있다. API 클라이언트(shared)가 React 밖에서 읽고 교체해야 하고, shared는 feature를 import할 수 없어서 `session-store`와 분리돼 있다. 외부에서는 `getAccessToken`/`setAccessToken`만 쓴다.

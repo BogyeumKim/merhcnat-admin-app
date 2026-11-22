@@ -25,28 +25,27 @@ docs/
 │   ├── login-ui.md              # 로그인/추가 인증 UI, 개발용 mock 시나리오
 │   ├── feedback-ux.md           # 폼(react-hook-form), 오류 표시 정책, 토스트
 │   ├── styling-performance.md   # 인라인 style vs StyleSheet, React Compiler 점검
-│   └── storage-env-testing.md   # 저장소/환경변수/테스트 조사
+│   ├── storage-env-testing.md   # 저장소/환경변수/테스트 조사
+│   ├── home-menu.md             # 홈/전체메뉴/탭 구성, capability
+│   └── notice-popup.md          # 로그인 후 공지 팝업
 ├── decisions.md                 # 결정 기록
-├── backend-contract/            # 서버 제작 시 참고용 (현재 범위 아님, 앱에 집중)
-│   ├── auth-device.md           # 로그인/추가 인증/기기 등록: MySQL DDL, API
-│   ├── conventions.md           # API 이름·형식 규약 (RFC 기반)
+├── backend-contract/
+│   ├── app-migration-server-login.md  # ★ 실제 로그인/OTP/기기 계약 (앱이 따름)
+│   ├── home-summary.md          # 홈 요약 API
+│   ├── notice-popup.md          # 공지 팝업 API
 │   └── server-stack.md          # Spring Boot/JDK 25, TOTP·메일·문자·알림톡
-├── migration/
-│   └── mms-mobile.md            # 레거시 앱 분석과 Expo 이전 메모
-└── reviews/
-    ├── android-floating-tab-bar.md  # SDK 58 탭바 검토 기록
-    ├── reference-projects.md        # RNCopilot / onebite-log 검토 기록
-    └── skill-compliance.md          # Expo skill 기준 코드 검사 기록
+└── migration/
+    └── mms-mobile.md            # 레거시 앱 분석과 Expo 이전 메모
 ```
 
 ## 현재 프로젝트 기준선 (`package.json`)
 
 | 항목 | 버전 |
 | --- | --- |
-| expo | ~58.0.19 |
-| @expo/ui | ~58.0.23 |
-| expo-router | ~58.0.26 |
-| react-native | 0.88.0 |
+| expo | ~58.0.26 |
+| @expo/ui | ~58.0.29 |
+| expo-router | ~58.0.32 |
+| react-native | 0.88.1 |
 | react / react-dom | 19.3.0 |
 | react-native-reanimated / worklets | 4.7.1 / 0.13.0 |
 | typescript | ~6.0.3 |

@@ -6,7 +6,7 @@
 - React Native 0.88 (0.86에서 상향; 0.87 변경 포함)
 - iOS 27 SDK 대응, Android Gradle Plugin 9 호환
 - **macOS 미지원** (react-native-macos가 RN 0.86+로 올라올 때까지)
-- **Expo Go**: SDK 58용 스토어 버전은 릴리스 시점(2026-10-15)에 아직 없었다. 원문: "will be released within a few weeks". 출시 후에도 SDK 58만 지원하고, "Expo Go is not recommended as a development environment for production apps". → 이 프로젝트는 EAS development build 없이 **로컬 `expo prebuild` + `expo run:ios|android`**로 개발한다. 로컬 iOS 빌드는 Xcode 버전 요건을 먼저 확인할 것(SDK 58은 iOS 27 SDK 대응, 이 개발 머신은 Xcode 16.4). (출시 여부는 App Store / expo.dev/go에서 직접 확인)
+- **Expo Go**: SDK 58용 스토어 버전은 릴리스 시점(2026-10-15)에 아직 없었다. 원문: "will be released within a few weeks". 출시 후에도 SDK 58만 지원하고, "Expo Go is not recommended as a development environment for production apps". → 이 프로젝트는 EAS development build 없이 **로컬 `expo prebuild` + `expo run:ios|android`**로 개발한다. 로컬 iOS 빌드는 Xcode 버전 요건을 먼저 확인할 것(SDK 58은 iOS 27 SDK 대응, 이 개발 머신은 Xcode 27.1). (출시 여부는 App Store / expo.dev/go에서 직접 확인)
   - 새 프로젝트: `npx create-expo-app --template default@sdk-58`
 
 ## iOS 27

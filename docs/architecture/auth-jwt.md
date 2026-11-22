@@ -8,7 +8,9 @@
 - **앱을 실행하면 항상 로그인이 필요하다.** 토큰은 어디에도 저장하지 않는다 (메모리에만). 앱 종료/강제 종료 = 로그아웃.
 - 서버가 API 요청을 받을 때 토큰 만료까지 남은 시간이 약 10분 이내이면 **서버가 토큰 수명을 늘려준다** (슬라이딩 만료).
 
-현재 코드: `features/auth`의 `SessionProvider`는 토큰을 메모리에만 두고 영속 저장소를 쓰지 않는다 (이 정책에 맞게 수정함).
+현재 코드: 토큰은 `shared/api/session-token.ts`의 zustand vanilla store(메모리, `persist` 없음)에 있고, 로그인 상태(`userType`)는 `features/auth/model/session-store.ts`에 있다.
+
+**SecureStore가 아니라 메모리(zustand)인 이유:** SecureStore는 "다음 실행에도 남겨야 하는 비밀"(refresh token, 자동 로그인)용이다. 이 앱은 refresh token이 없고 실행마다 로그인하므로 토큰을 디스크에 둘 이유가 없다. 저장하면 앱 종료 후에도 Keychain/Keystore에 유효 토큰이 남아 탈취 표면만 늘고, 매 요청마다 비동기 읽기 비용도 생긴다. 앱 종료 = 메모리 소멸 = 로그아웃이 정책과 정확히 일치한다.
 
 ## 슬라이딩 만료 설계
 
@@ -21,7 +23,7 @@ JWT의 `exp`는 서명된 토큰 안에 있어서 **수명을 늘리려면 새 J
 
 | 항목 | 설계 |
 | --- | --- |
-| 새 토큰 전달 | 응답 헤더 `Access-Token`(제안, `backend-contract/conventions.md`). 클라이언트는 응답마다 헤더를 확인해 있으면 **토큰을 교체**한다. 웹(브라우저 JS)이 읽으려면 서버가 `Access-Control-Expose-Headers`를 보내야 한다 |
+| 새 토큰 전달 | 응답 헤더 `Access-Token`(`docs/backend-contract/app-migration-server-login.md`). 클라이언트는 응답마다 헤더를 확인해 있으면 **토큰을 교체**한다. 웹(브라우저 JS)이 읽으려면 서버가 `Access-Control-Expose-Headers`를 보내야 한다 |
 | 교체 위치 | API 클라이언트가 세션 저장소(메모리)를 갱신. React 밖에서도 접근 가능해야 한다 (zustand 비영속 store 등) |
 | 병렬 요청 | 응답이 겹쳐 와도 마지막 값으로 덮어쓴다. 서버는 아직 유효한 이전 토큰도 받아줘야 한다 (계약 필요) |
 | 401 | 즉시 로그아웃 + 로그인 화면. 재시도/refresh 없음. 로그아웃 시 **쿼리 캐시도 비운다** (다음 사용자에게 데이터가 남지 않게) |
@@ -36,7 +38,7 @@ JWT의 `exp`는 서명된 토큰 안에 있어서 **수명을 늘리려면 새 J
 2. 이전 토큰을 만료 전까지 계속 받아주는가 (병렬 요청 안전).
 3. 로그아웃 시 서버 측 폐기(블랙리스트)가 있는가. 없으면 로그아웃해도 토큰은 만료까지 유효하다.
 4. 로그인 응답 코드 체계와 오류 형식 (`api-conventions.md`).
-5. 기기 바인딩/추가 인증 응답 (`device-binding.md`, `docs/backend-contract/auth-device.md`). 서버 계약 초안과 DDL은 `docs/backend-contract/`에 있다.
+5. 기기 바인딩/추가 인증 응답 (`device-binding.md`, `docs/backend-contract/app-migration-server-login.md`).
 
 ## 레거시 참고
 

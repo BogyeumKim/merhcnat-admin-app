@@ -68,7 +68,7 @@ shared/api/
 core/providers/query-provider.tsx     # QueryClient 기본값, focusManager/onlineManager
 ```
 
-## 미정 (결정 필요)
+## 결정됨
 
-- API 클라이언트(fetch/axios), 인증 방식, 에러 정규화 방식.
-- 쿼리 캐시 persistence(MMKV 등) 도입 여부.
+- API 클라이언트는 전역 `fetch` 래퍼(`shared/api/client.ts`), 오류는 `ApiError`(`code`)로 정규화 (`api-conventions.md`).
+- 쿼리 캐시는 디스크에 persist하지 않는다 (`.claude/rules/storage-env.md`).

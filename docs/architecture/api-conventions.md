@@ -77,7 +77,7 @@
 
 ## 7. `fetch`로 헤더 부착과 응답 헤더 토큰 저장이 되나
 
-된다. 둘 다 Fetch 표준 API다 (`Headers`, `Response.headers.get`). Expo 문서가 `expo/fetch`를 WinterTC 호환 Fetch API로 설명한다. 아래는 설계 스케치이고, **기기/시뮬레이터에서 실행해 보지는 않았다.**
+된다. 둘 다 Fetch 표준 API다 (`Headers`, `Response.headers.get`). 실제 구현은 `shared/api/client.ts`이고 아래는 처음 설계 스케치다.
 
 ```ts
 // shared/api/client.ts (설계. 서버 계약 확정 후 구현)
@@ -92,7 +92,7 @@ export async function apiFetch(path: string, init: RequestInit = {}) {
     signal: init.signal ?? AbortSignal.timeout(15_000), // SDK 56+ expo/fetch 지원
   });
 
-  const refreshed = response.headers.get('Access-Token');       // 이름은 backend-contract/conventions.md
+  const refreshed = response.headers.get('Access-Token');       // 계약: docs/backend-contract/app-migration-server-login.md
   if (refreshed) setAccessToken(refreshed);                     // 슬라이딩 만료: 메모리 토큰 교체
 
   if (!response.ok) throw await toApiError(response);           // 401이면 signOut() + 캐시 비우기
@@ -101,5 +101,5 @@ export async function apiFetch(path: string, init: RequestInit = {}) {
 ```
 
 - 헤더 이름은 대소문자를 구분하지 않는다. 같은 이름 헤더가 여러 개면 `get`은 합쳐서 돌려준다.
-- 토큰 저장소는 React 밖에서 읽고 써야 하므로 컴포넌트 상태(Context)가 아니라 **비영속 메모리 store**(zustand vanilla store 또는 모듈 변수)여야 한다. 현재 `SessionProvider`(Context)는 API 클라이언트 구현 시 이 구조로 바꾼다.
-- 새 토큰 응답 헤더 이름은 `Access-Token`으로 제안했고(`docs/backend-contract/conventions.md`, 표준 없는 커스텀 헤더, `X-` 접두 회피), 값은 `Bearer` 없이 JWT 문자열만을 제안한다. 서버와 합의 전이다.
+- 토큰 저장소는 React 밖에서 읽고 써야 하므로 컴포넌트 상태(Context)가 아니라 **비영속 zustand vanilla store**(`shared/api/session-token.ts`)다 (구현됨).
+- 새 토큰 응답 헤더 이름은 `Access-Token`으로 제안했고(`docs/backend-contract/app-migration-server-login.md`, 표준 없는 커스텀 헤더, `X-` 접두 회피), 값은 `Bearer` 없이 JWT 문자열만을 제안한다. 서버와 합의 전이다.
