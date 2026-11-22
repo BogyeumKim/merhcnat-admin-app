@@ -1,7 +1,8 @@
-import { Column, Icon, Row } from '@expo/ui';
+import { Column, Row } from '@expo/ui';
 
 import { useTranslation } from '@/shared/i18n';
 import { radius, spacing, useNativeColors } from '@/shared/theme';
+import { DecorativeIcon } from '@/shared/ui/decorative-icon';
 import { icons } from '@/shared/ui/icons';
 import { NativeButton } from '@/shared/ui/native-button';
 import { NativeText } from '@/shared/ui/native-text';
@@ -34,7 +35,7 @@ export function NoContactNotice({ onClose }: { onClose: () => void }) {
         alignment="start"
         spacing={spacing.sm}
         style={{ width: '100%', padding: spacing.md, borderRadius: radius.lg, backgroundColor: colors.warningSurface }}>
-        <Icon name={icons.caution} size={18} color={colors.warning} />
+        <DecorativeIcon name={icons.caution} size={18} color={colors.warning} />
         <NativeText variant="subhead">{t('auth.noContact.note')}</NativeText>
       </Row>
     </SheetFormScreen>

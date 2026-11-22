@@ -1,9 +1,10 @@
-import { Icon, Row, Spacer } from '@expo/ui';
+import { Row, Spacer } from '@expo/ui';
 
 import { useTranslation } from '@/shared/i18n';
 import { useBlockBackButton } from '@/shared/lib/use-block-back-button';
 import { radius, spacing, useNativeColors } from '@/shared/theme';
 import { BlockingScreenLayout } from '@/shared/ui/blocking-screen-layout';
+import { DecorativeIcon } from '@/shared/ui/decorative-icon';
 import { icons } from '@/shared/ui/icons';
 import { NativeButton } from '@/shared/ui/native-button';
 import { NativeText } from '@/shared/ui/native-text';
@@ -38,7 +39,7 @@ export default function UpdateRequiredScreen() {
           </NativeText>
           {required ? (
             <>
-              <Icon name={icons.arrowRight} size={16} color={colors.secondaryText} />
+              <DecorativeIcon name={icons.arrowRight} size={16} color={colors.secondaryText} />
               <NativeText variant="label" tabular>
                 {t('updateRequired.latest', { version: required })}
               </NativeText>

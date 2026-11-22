@@ -1,7 +1,8 @@
-import { Column, Icon, Row, Spacer } from '@expo/ui';
+import { Column, Row, Spacer } from '@expo/ui';
 
 import { useTranslation } from '@/shared/i18n';
 import { radius, spacing, useNativeColors } from '@/shared/theme';
+import { DecorativeIcon } from '@/shared/ui/decorative-icon';
 import { Divider } from '@/shared/ui/divider';
 import { icons } from '@/shared/ui/icons';
 import { NativeText } from '@/shared/ui/native-text';
@@ -24,7 +25,7 @@ export function HelpItem({ id, open, onToggle }: { id: HelpItemId; open: boolean
       <Row testID={`help-${id}`} alignment="center" onPress={onToggle} modifiers={pressableA11y()} style={{ width: '100%', paddingVertical: spacing.xs }}>
         <NativeText variant="headline">{t(`auth.help.items.${id}.title`)}</NativeText>
         <Spacer flexible />
-        <Icon name={open ? icons.chevronUp : icons.chevronDown} size={22} color={colors.secondaryText} />
+        <DecorativeIcon name={open ? icons.chevronUp : icons.chevronDown} size={22} color={colors.secondaryText} />
       </Row>
       {open ? (
         <>

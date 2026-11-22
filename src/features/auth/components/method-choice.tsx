@@ -1,10 +1,11 @@
-import { Column, Icon, RNHostView, Row, Spacer } from '@expo/ui';
+import { Column, RNHostView, Row, Spacer } from '@expo/ui';
 import { Image } from 'expo-image';
 import { View } from 'react-native';
 
 import { useTranslation } from '@/shared/i18n';
 import { openSheet } from '@/shared/lib/open-sheet';
 import { radius, spacing, useNativeColors } from '@/shared/theme';
+import { DecorativeIcon } from '@/shared/ui/decorative-icon';
 import { FILL_ROW } from '@/shared/ui/fill-row';
 import { FormAlert } from '@/shared/ui/form-alert';
 import { IconButton } from '@/shared/ui/icon-button';
@@ -66,7 +67,7 @@ function ChannelTile({ method }: { method: ChallengeMethod }) {
       alignment="center"
       style={{ width: TILE, height: TILE, borderRadius: radius.md, backgroundColor: colors.tonal }}>
       <Spacer flexible />
-      <Icon name={GLYPHS[method]} size={GLYPH} color={colors.text} />
+      <DecorativeIcon name={GLYPHS[method]} size={GLYPH} color={colors.text} />
       <Spacer flexible />
     </Column>
   );
@@ -179,7 +180,7 @@ export function MethodChoice({ methods, recentMethod, sendingMethod, errorMessag
                 {spinning ? (
                   <CardSpinner color={colors.secondaryText} size={TRAILING} />
                 ) : (
-                  <Icon name={icons.chevronRight} size={TRAILING} color={colors.secondaryText} />
+                  <DecorativeIcon name={icons.chevronRight} size={TRAILING} color={colors.secondaryText} />
                 )}
               </Row>
             </Column>

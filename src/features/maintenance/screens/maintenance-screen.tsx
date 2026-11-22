@@ -33,7 +33,7 @@ export default function MaintenanceScreen() {
       actions={
         <>
           <SupportContactButtons />
-          <NativeButton testID="maintenance-home" variant="ink" label={t('maintenance.home')} onPress={goHome} />
+          <NativeButton testID="maintenance-home" label={t('maintenance.home')} onPress={goHome} />
         </>
       }
     />

@@ -1,7 +1,8 @@
-import { Icon, Row } from '@expo/ui';
+import { Row } from '@expo/ui';
 
 import { radius, spacing, useNativeColors } from '@/shared/theme';
 
+import { DecorativeIcon } from './decorative-icon';
 import { icons } from './icons';
 import { NativeText } from './native-text';
 
@@ -25,7 +26,7 @@ export function FormAlert({ message, boxed = false }: { message: string; boxed?:
           ? { width: '100%', padding: spacing.md, borderRadius: radius.lg, backgroundColor: colors.dangerSurface }
           : { width: '100%', paddingVertical: spacing.xs }
       }>
-      <Icon name={icons.error} size={ICON_SIZE} color={colors.danger} />
+      <DecorativeIcon name={icons.error} size={ICON_SIZE} color={colors.danger} />
       <NativeText variant="subhead" tone="danger">
         {message}
       </NativeText>

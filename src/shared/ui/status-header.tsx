@@ -1,8 +1,9 @@
-import { Column, Icon, Spacer } from '@expo/ui';
+import { Column, Spacer, type Icon } from '@expo/ui';
 import type { ComponentProps, ReactNode } from 'react';
 
 import { spacing, useNativeColors } from '@/shared/theme';
 
+import { DecorativeIcon } from './decorative-icon';
 import { NativeText } from './native-text';
 
 type IconName = ComponentProps<typeof Icon>['name'];
@@ -27,7 +28,8 @@ export function StatusHeader({ icon, title, body, children, tone = 'neutral' }: 
       {icon ? (
         <Column alignment="center" style={{ width: BADGE, height: BADGE, borderRadius: BADGE / 2, backgroundColor: badge[0] }}>
           <Spacer flexible />
-          <Icon name={icon} size={ICON} color={badge[1]} />
+          {/* 장식용: 제목이 뜻을 전한다 (iOS VoiceOver가 심볼 이름을 읽지 않게) */}
+          <DecorativeIcon name={icon} size={ICON} color={badge[1]} />
           <Spacer flexible />
         </Column>
       ) : null}
