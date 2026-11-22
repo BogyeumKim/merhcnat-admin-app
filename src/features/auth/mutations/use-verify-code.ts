@@ -4,7 +4,7 @@ import { ApiError, asApiError } from '@/shared/api/errors';
 import type { UseMutationCallback } from '@/shared/api/types';
 
 import { authApi } from '../api/auth-api';
-import { authFlowActions, getAuthChallenge } from '../model/auth-flow-store';
+import { getAuthChallenge } from '../model/auth-flow-store';
 import { getChallengeToken } from '../model/challenge-vault';
 import { registerDevicePush } from '../model/device-push';
 import type { ChallengeMethod, VerifyResult } from '../model/schemas';
@@ -30,8 +30,6 @@ export function useVerifyCode(callbacks?: UseMutationCallback<VerifyResult>) {
     gcTime: 0,
     onMutate: () => callbacks?.onMutate?.(),
     onSuccess: (result) => {
-      // 성공으로 끝남을 먼저 표시한다: 이어지는 `completeSignIn`/시트 제거의 `clear()`가 이탈로 세지 않게.
-      authFlowActions().succeed();
       if (result.status === 'AUTHENTICATED') {
         completeSignIn(result, getAuthChallenge()?.enteredUserId ?? null);
         void registerDevicePush();

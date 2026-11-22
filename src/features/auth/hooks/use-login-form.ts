@@ -42,7 +42,7 @@ export function useLoginForm({ pending, passwordResetKey, onSubmit, onEdit }: Op
     defaultValues: { userId: '', password: '' },
   });
 
-  // 마운트 때의 키는 처리된 것으로 본다: 폼이 다시 마운트될 때(`key`) 새 입력란에 네이티브 `clear()`를 부르지 않는다.
+  // 마운트 때의 키는 처리된 것으로 본다: 처음 마운트된 입력란에 네이티브 `clear()`를 부르지 않는다.
   // (Android `clear()`는 Compose 내용이 구성된 뒤에만 등록되어, 그 전에 부르면 거부된다.)
   const handledResetKey = useRef(passwordResetKey);
   useEffect(() => {

@@ -13,10 +13,9 @@ import { showErrorToast, showSuccessToast } from '@/shared/ui/toast';
 import { useAnnounce } from '@/shared/ui/use-announce';
 
 import { useAuthErrorPresenter } from './use-auth-error-presenter';
-import { authFlowActions } from '../model/auth-flow-store';
 import { passwordChangeSchema, type PasswordChangeValues } from '../model/forms';
 import { evaluatePasswordRules, passwordLooksValid, rulesSatisfied } from '../model/password-rules';
-import { isSignedInNow, markPasswordChanged, usePasswordChangeSkippable, useSignedInUserId } from '../model/session-store';
+import { markPasswordChanged, usePasswordChangeSkippable, useSignedInUserId } from '../model/session-store';
 import { clearTempPasswordToken, getTempPasswordReason, getTempPasswordToken, getTempPasswordUserId } from '../model/temp-password-vault';
 import { useChangePassword, type PasswordChangeVariant } from '../mutations/use-change-password';
 
@@ -101,14 +100,11 @@ export function usePasswordChange(variant: PasswordChangeVariant = 'expired') {
   };
 
   // 임시비밀번호: 토큰 없이 열렸으면(오래된 링크, 만료) 로그인으로 돌려보내고, 화면이 사라지면 토큰을 폐기한다.
-  // 로그인 없이 사라지면(취소, 토큰 만료 등 이유 무관) 이탈로 기록해 로그인 화면이 아이디·비밀번호를 초기화하게 한다.
+  // 로그인 없이 사라져 로그인 화면으로 돌아가도 그 폼의 아이디·비밀번호는 그대로 둔다.
   useEffect(() => {
     if (!temporary) return;
     if (!getTempPasswordToken()) router.replace('/sign-in');
-    const unsubscribe = navigation.addListener('removed', () => {
-      clearTempPasswordToken();
-      if (!isSignedInNow()) authFlowActions().abandon();
-    });
+    const unsubscribe = navigation.addListener('removed', clearTempPasswordToken);
     return () => queueMicrotask(unsubscribe);
   }, [temporary, navigation]);
 
