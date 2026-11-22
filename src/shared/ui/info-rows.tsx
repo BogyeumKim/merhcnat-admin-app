@@ -16,7 +16,7 @@ export function InfoRows({ rows }: { rows: readonly InfoRow[] }) {
       {rows.map((row, index) => (
         <Column key={row.label} style={{ width: '100%' }}>
           {index > 0 ? <Divider color={colors.hairline} /> : null}
-          <Row alignment="center" style={{ width: '100%', paddingVertical: spacing.md - 2 }}>
+          <Row alignment="center" style={{ width: '100%', paddingVertical: spacing.md - spacing.xxs }}>
             <NativeText variant="subhead" tone="secondary">
               {row.label}
             </NativeText>

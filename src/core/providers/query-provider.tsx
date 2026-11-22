@@ -2,8 +2,10 @@ import { focusManager, QueryCache, QueryClient, QueryClientProvider } from '@tan
 import { useEffect, type PropsWithChildren } from 'react';
 import { AppState } from 'react-native';
 
+import { routeBlockingError } from '@/core/navigation/route-blocking-error';
 import { registerSignOutHandler } from '@/features/auth';
-import { isApiError } from '@/shared/api/errors';
+import { asApiError, isApiError, type ApiError } from '@/shared/api/errors';
+import { getAccessToken } from '@/shared/api/session-token';
 import { translate } from '@/shared/i18n';
 import { showErrorToast } from '@/shared/ui/toast';
 
@@ -17,15 +19,33 @@ function shouldRetry(failureCount: number, error: unknown) {
   return error.status >= 500 && error.code !== 'MAINTENANCE' && error.code !== 'INVALID_RESPONSE';
 }
 
+/**
+ * 쿼리 오류 타입을 앱 전체에서 `ApiError`로 고정한다. `shared/api/client.ts`가 모든 실패를 `ApiError`로 던지므로
+ * 화면/훅에서 `error as ApiError` 같은 캐스트가 필요 없다(그래도 런타임 값은 `asApiError`로 한 번 더 좁힌다).
+ */
+declare module '@tanstack/react-query' {
+  interface Register {
+    defaultError: ApiError;
+  }
+}
+
+/**
+ * 모든 쿼리의 최종 실패(재시도 후)를 한 곳에서 처리한다.
+ * - 차단 오류(점검, 업데이트, 보안 위험 기기, 잠김, 정지)는 로그인 후라면 전용 화면으로 보낸다(`routeBlockingError`, 중복 이동 방지).
+ * - 세션 저장소 장애는 로그아웃 없이 알린다(같은 id라 여러 쿼리가 실패해도 토스트 하나).
+ * - 그 밖의 `toast` 종류는 여기서 띄우지 않는다: 캐시가 있는 새로고침 실패만 화면 훅이 알린다(`use-home-screen`). 첫 로딩 실패는 화면이 지속 표시한다.
+ * - 세션 종료 401은 `shared/api/client.ts`가 처리하므로 여기서 다루지 않는다(`inline` 종류라 아래 분기에도 걸리지 않는다).
+ */
+function onQueryError(raw: unknown) {
+  const error = asApiError(raw);
+  if (getAccessToken() !== null && routeBlockingError(error)) return;
+  if (error.code === 'SESSION_STORE_UNAVAILABLE') {
+    showErrorToast({ id: `error:${error.code}`, title: translate('errors.SESSION_STORE_UNAVAILABLE') });
+  }
+}
+
 const queryClient = new QueryClient({
-  // 세션 저장소 장애는 로그아웃 없이 재시도 후에도 실패할 때만 알린다(같은 id라 여러 쿼리가 실패해도 토스트 하나).
-  queryCache: new QueryCache({
-    onError: (error) => {
-      if (isApiError(error) && error.code === 'SESSION_STORE_UNAVAILABLE') {
-        showErrorToast({ id: `error:${error.code}`, title: translate('errors.SESSION_STORE_UNAVAILABLE') });
-      }
-    },
-  }),
+  queryCache: new QueryCache({ onError: onQueryError }),
   defaultOptions: {
     queries: {
       staleTime: 60 * 1000,

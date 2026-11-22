@@ -12,6 +12,8 @@ import { Icon } from '@expo/ui';
  */
 export const icons = {
   // 이동·펼침
+  /** 화면 뒤로 가기(커스텀 헤더). iOS HIG의 chevron, Android M3의 화살표. */
+  back: Icon.select({ ios: 'chevron.left', android: import('@expo/material-symbols/arrow_back.xml') }),
   chevronRight: Icon.select({ ios: 'chevron.right', android: import('@expo/material-symbols/chevron_right.xml') }),
   chevronLeft: Icon.select({ ios: 'chevron.left', android: import('@expo/material-symbols/chevron_left.xml') }),
   chevronUp: Icon.select({ ios: 'chevron.up', android: import('@expo/material-symbols/keyboard_arrow_up.xml') }),

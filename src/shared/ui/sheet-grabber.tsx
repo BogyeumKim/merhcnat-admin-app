@@ -1,11 +1,11 @@
 import { View } from 'react-native';
 
-import { useNativeColors } from '@/shared/theme';
+import { spacing, useNativeColors } from '@/shared/theme';
 
 /** M3 드래그 핸들: 32×4dp, 완전히 둥근 막대. */
 const HANDLE = { width: 32, height: 4, borderRadius: 2 } as const;
 /** 핸들 위 여백. `SheetFormScreen`의 상단 패딩(24) 안에 겹쳐 그려 제목 위치를 바꾸지 않는다. */
-export const SHEET_GRABBER_TOP = 8;
+export const SHEET_GRABBER_TOP = spacing.sm;
 /** 흐름 안에 둘 때(공지 시트) 차지하는 높이: 위 8 + 핸들 4 + 아래 8. */
 export const SHEET_GRABBER_ZONE = SHEET_GRABBER_TOP * 2 + HANDLE.height;
 

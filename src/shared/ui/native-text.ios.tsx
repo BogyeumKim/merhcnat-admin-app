@@ -1,5 +1,5 @@
 import { Text } from '@expo/ui';
-import { accessibilityAddTraits, font } from '@expo/ui/swift-ui/modifiers';
+import { accessibilityAddTraits, font, monospacedDigit, textSelection } from '@expo/ui/swift-ui/modifiers';
 
 import { useNativeColors } from '@/shared/theme';
 
@@ -19,15 +19,22 @@ const textStyles = {
 } as const;
 
 const headerTrait = accessibilityAddTraits(['isHeader']);
+const selectableText = textSelection(true);
+const tabularDigits = monospacedDigit();
 
-export function NativeText({ children, variant = 'body', tone = 'default', center }: NativeTextProps) {
+export function NativeText({ children, variant = 'body', tone = 'default', center, selectable, tabular }: NativeTextProps) {
   const colors = useNativeColors();
   const color = TONE_COLOR[tone](colors);
+  const isHeader = variant === 'title' || variant === 'largeTitle';
+  const modifiers = [
+    textStyles[variant],
+    ...(isHeader ? [headerTrait] : []),
+    ...(tabular ? [tabularDigits] : []),
+    ...(selectable ? [selectableText] : []),
+  ];
 
   return (
-    <Text
-      modifiers={variant === 'title' || variant === 'largeTitle' ? [textStyles[variant], headerTrait] : [textStyles[variant]]}
-      textStyle={{ color, textAlign: center ? 'center' : 'left' }}>
+    <Text modifiers={modifiers} textStyle={{ color, textAlign: center ? 'center' : 'left' }}>
       {children}
     </Text>
   );
