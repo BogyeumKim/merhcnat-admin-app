@@ -1,0 +1,182 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { router, useNavigation } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
+
+import type { ApiError } from '@/shared/api/errors';
+import { useTranslation } from '@/shared/i18n';
+import { navigateOnce } from '@/shared/lib/navigation-lock';
+import { useRunOnce } from '@/shared/lib/use-run-once';
+import { showErrorToast, showSuccessToast } from '@/shared/ui/toast';
+import { useAnnounce } from '@/shared/ui/use-announce';
+
+import { useAuthErrorPresenter } from './use-auth-error-presenter';
+import { authFlowActions } from '../model/auth-flow-store';
+import { passwordChangeSchema, type PasswordChangeValues } from '../model/forms';
+import { evaluatePasswordRules, passwordLooksValid } from '../model/password-rules';
+import { isSignedInNow, markPasswordChanged, usePasswordChangeSkippable, useSignedInUserId } from '../model/session-store';
+import { clearTempPasswordToken, getTempPasswordReason, getTempPasswordToken, getTempPasswordUserId } from '../model/temp-password-vault';
+import { useChangePassword, type PasswordChangeVariant } from '../mutations/use-change-password';
+
+/** 설정에서 연 변경 화면을 닫고 설정으로 돌아간다. */
+function backToSettings() {
+  navigateOnce(() => {
+    if (router.canGoBack()) router.back();
+  });
+}
+
+/** 로그인 화면으로 돌아간다(임시비밀번호 변경을 취소). 변경 토큰은 폐기한다. */
+function leaveToSignIn() {
+  clearTempPasswordToken();
+  navigateOnce(() => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/sign-in');
+  });
+}
+
+/** 제목·본문 문구: 임시비밀번호, 90일 만료(로그인 전 흐름 포함), 설정에서 스스로 변경. */
+export type PasswordChangeCopy = 'temporary' | 'expired' | 'voluntary';
+
+/**
+ * 비밀번호 변경 화면의 동작(`temporary`는 임시비밀번호라 로그인 전, 건너뛰기 불가): 실시간 규칙 힌트, "두 번 동일" 검사, 한 번에 하나만 제출, 그리고 서버 실패가
+ * 화면에 의미하는 바(현재 비밀번호 오류는 해당 입력란 아래, 규칙 위반/재사용 비밀번호는
+ * 새 비밀번호 아래와 규칙 목록). 화면은 이 훅이 반환한 것만 렌더링한다.
+ */
+export function usePasswordChange(variant: PasswordChangeVariant = 'expired') {
+  const { t } = useTranslation();
+  const temporary = variant === 'temporary';
+  const voluntary = variant === 'voluntary';
+  const navigation = useNavigation();
+  const skippable = usePasswordChangeSkippable() && variant === 'expired';
+  const runOnce = useRunOnce();
+  // 임시비밀번호 흐름의 사유·아이디는 vault에서 한 번만 읽는다(화면이 떠나며 vault가 비워져도 문구가 바뀌지 않게).
+  const [tempReason] = useState(getTempPasswordReason);
+  const [tempUserId] = useState(getTempPasswordUserId);
+  const signedInUserId = useSignedInUserId();
+  const userId = temporary ? tempUserId : signedInUserId;
+  const copy: PasswordChangeCopy = temporary ? (tempReason === 'PASSWORD_EXPIRED' ? 'expired' : 'temporary') : voluntary ? 'voluntary' : 'expired';
+  const [currentError, setCurrentError] = useState<string | null>(null);
+  const [newError, setNewError] = useState<string | null>(null);
+  const [violations, setViolations] = useState<readonly string[]>([]);
+  const [reused, setReused] = useState(false);
+
+  const { control, handleSubmit, formState, setFocus } = useForm<PasswordChangeValues>({
+    resolver: zodResolver(passwordChangeSchema),
+    // 필드 오류는 제출 때만(로그인 폼과 같은 정책), 제출 뒤에는 입력마다 다시 검증한다. 규칙 목록·일치 표시는 오류가 아닌 힌트라 `useWatch`로 계속 실시간이다.
+    // `isValid`는 구독 중이면 모드와 무관하게 입력마다 계산된다.
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
+    defaultValues: { currentPassword: '', newPassword: '', confirmPassword: '' },
+  });
+  const newPassword = useWatch({ control, name: 'newPassword' });
+  const confirmPassword = useWatch({ control, name: 'confirmPassword' });
+
+  useAnnounce(currentError ?? newError);
+
+  const clearErrors = () => {
+    setCurrentError(null);
+    setNewError(null);
+    setViolations([]);
+    setReused(false);
+  };
+
+  // 임시비밀번호: 토큰 없이 열렸으면(오래된 링크, 만료) 로그인으로 돌려보내고, 화면이 사라지면 토큰을 폐기한다.
+  // 로그인 없이 사라지면(취소, 토큰 만료 등 이유 무관) 이탈로 기록해 로그인 화면이 아이디·비밀번호를 초기화하게 한다.
+  useEffect(() => {
+    if (!temporary) return;
+    if (!getTempPasswordToken()) router.replace('/sign-in');
+    const unsubscribe = navigation.addListener('removed', () => {
+      clearTempPasswordToken();
+      if (!isSignedInNow()) authFlowActions().abandon();
+    });
+    return () => queueMicrotask(unsubscribe);
+  }, [temporary, navigation]);
+
+  const presentInline = useAuthErrorPresenter({
+    onInline: (error) => {
+      if (error.code === 'CURRENT_PASSWORD_INVALID') {
+        const remaining = Number(error.extras.remainingAttempts);
+        setCurrentError(
+          Number.isInteger(remaining) && remaining > 0
+            ? `${t('errors.CURRENT_PASSWORD_INVALID')} ${t('auth.passwordChange.remainingAttempts', { count: remaining })}`
+            : t('errors.CURRENT_PASSWORD_INVALID'),
+        );
+      } else if (error.code === 'PASSWORD_POLICY_VIOLATION') {
+        const list = error.extras.violations;
+        setViolations(Array.isArray(list) ? list.filter((item): item is string => typeof item === 'string') : []);
+        setNewError(t('errors.PASSWORD_POLICY_VIOLATION'));
+      } else if (error.code === 'PASSWORD_REUSED') {
+        setReused(true);
+        setNewError(t('errors.PASSWORD_REUSED'));
+      } else {
+        setNewError(t(`errors.${error.code}`));
+      }
+    },
+  });
+
+  const presentError = (error: ApiError) => {
+    // 변경 토큰이 만료됐다: 로그인부터 다시 해야 한다.
+    if (temporary && error.code === 'CHALLENGE_EXPIRED') {
+      showErrorToast({ id: `error:${error.code}`, title: t(`errors.${error.code}`) });
+      leaveToSignIn();
+      return;
+    }
+    presentInline(error);
+  };
+
+  const change = useChangePassword(variant, {
+    onMutate: clearErrors,
+    onSuccess: () => {
+      // 임시비밀번호는 로그인 완료, 만료 변경은 게이트 해제로 `Stack.Protected`가 홈으로 보낸다. 설정에서 연 변경만 직접 돌아간다.
+      showSuccessToast({ id: 'password-changed', title: t('auth.passwordChange.done') });
+      if (voluntary) backToSettings();
+    },
+    onError: presentError,
+  });
+
+  const matches = confirmPassword.length > 0 && confirmPassword === newPassword;
+  const mismatch = confirmPassword.length > 0 && confirmPassword !== newPassword;
+  const canSubmit = formState.isValid && passwordLooksValid(newPassword) && matches && !change.isPending;
+
+  const submit = handleSubmit(({ currentPassword, newPassword: next }) => {
+    // 키보드 "완료"로도 들어오므로 버튼과 같은 조건을 다시 확인한다(규칙·일치 검사는 스키마 밖에 있다).
+    if (!canSubmit) return;
+    // 성공하면 이 화면을 떠나므로(로그인 완료·게이트 해제로 홈, 설정으로 돌아감) 잠금을 풀지 않는다: 화면이 사라지는 동안
+    // `reset()`으로 다시 활성화된 버튼을 눌러도 두 번째 변경(이미 쓴 임시 토큰·바뀐 현재 비밀번호)을 보내지 않는다. 실패만 푼다.
+    runOnce((done) =>
+      change.mutate(
+        { currentPassword, newPassword: next },
+        {
+          onError: done,
+          onSettled: () => change.reset(),
+        },
+      ),
+    );
+  });
+
+  return {
+    control,
+    copy,
+    rules: evaluatePasswordRules(newPassword, { violations, reused, userId }),
+    matches,
+    mismatch,
+    currentError,
+    newError,
+    canSubmit,
+    pending: change.isPending,
+    submit: () => void submit(),
+    /** 사용자가 고치기 시작하면 그 입력란에 대한 서버 오류를 지운다(이전 값에 대한 판정이므로). */
+    changeCurrent: () => setCurrentError(null),
+    changeNew: () => {
+      setNewError(null);
+      setViolations([]);
+      setReused(false);
+    },
+    focusNew: () => setFocus('newPassword'),
+    focusConfirm: () => setFocus('confirmPassword'),
+    /** 서버가 허용하는 경우에만. 아무것도 바꾸지 않고 게이트를 푼다. */
+    skip: skippable ? () => navigateOnce(markPasswordChanged) : undefined,
+    /** 임시비밀번호는 변경을 취소하고 로그인으로, 설정에서 연 변경은 설정으로 돌아간다. */
+    leave: temporary ? leaveToSignIn : voluntary ? backToSettings : undefined,
+  };
+}

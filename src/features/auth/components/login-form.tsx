@@ -1,71 +1,96 @@
-import type { TextInputRef } from '@expo/ui';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useRef } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { Column, Row, Spacer } from '@expo/ui';
+import { Controller } from 'react-hook-form';
 
 import { useValidationMessage } from '@/shared/forms/validation';
 import { useTranslation } from '@/shared/i18n';
-import { FormAlert } from '@/shared/ui/form-alert';
+import { openSheet } from '@/shared/lib/open-sheet';
+import { useWindowLayout } from '@/shared/theme';
+import { BrandedFormScreen } from '@/shared/ui/branded-form-screen';
+import { ClearButton } from '@/shared/ui/clear-button';
 import { LabeledField } from '@/shared/ui/labeled-field';
+import { LinkText } from '@/shared/ui/link-text';
 import { NativeButton } from '@/shared/ui/native-button';
-import { NativeText } from '@/shared/ui/native-text';
 
-import { loginSchema, type LoginValues } from '../model/forms';
+import { AppVersionNote } from './app-version-note';
+import { useLoginForm } from '../hooks/use-login-form';
+import { PASSWORD_MAX_LENGTH, USER_ID_MAX_LENGTH, type LoginValues } from '../model/forms';
 
 type LoginFormProps = {
   pending: boolean;
-  /** Persistent form-level error from the server (for example wrong ID or password). */
+  /** 서버가 준 폼 단위 지속 오류(예: ID 또는 비밀번호 오류). */
   formError: string | null;
-  /** Bump to clear the password field (after a rejected login). */
+  /** 값을 올리면 비밀번호 입력란을 비운다(로그인 거부 후). 마운트 시점 값은 무시한다. 포커스는 옮기지 않는다. */
   passwordResetKey: number;
   onSubmit: (input: LoginValues) => void;
+  /** 사용자가 입력을 고치기 시작함(폼 오류를 지운다). */
+  onEdit: () => void;
 };
 
-/**
- * Renders inside an `@expo/ui` Host (see `BrandedFormScreen`). react-hook-form owns validation and the submit
- * values; the native fields keep their own text (no `value` prop), so the text is cleared through the field ref.
- */
-export function LoginForm({ pending, formError, passwordResetKey, onSubmit }: LoginFormProps) {
+/** Korpay 디자인의 로그인 화면 본문. 상태와 동작은 `useLoginForm`에 있고 여기서는 그리기만 한다. */
+export function LoginForm({ pending, formError, passwordResetKey, onSubmit, onEdit }: LoginFormProps) {
   const { t } = useTranslation();
   const messageOf = useValidationMessage();
-  const passwordRef = useRef<TextInputRef | null>(null);
+  const {
+    control,
+    userIdRef,
+    passwordRef,
+    hasUserId,
+    hasPassword,
+    canSubmit,
+    submit,
+    clearUserId,
+    clearPassword,
+    changeUserId,
+    changePassword,
+  } = useLoginForm({ pending, passwordResetKey, onSubmit, onEdit });
+  const { isSplit } = useWindowLayout();
 
-  const { control, handleSubmit, resetField } = useForm<LoginValues>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: { userId: '', password: '' },
-  });
+  const submitButton = (
+    <NativeButton
+      testID="login-submit"
+      label={pending ? t('auth.signingIn') : t('auth.signIn')}
+      disabled={!canSubmit}
+      onPress={() => void submit()}
+    />
+  );
+  const helpLink = (
+    <LinkText testID="login-help" onPress={() => void openSheet('/login-help')}>
+      {t('auth.loginHelp')}
+    </LinkText>
+  );
 
-  useEffect(() => {
-    if (passwordResetKey > 0) {
-      // Clear the native text first: if it reports an empty value, the reset below also drops the resulting error.
-      passwordRef.current?.clear();
-      resetField('password');
-    }
-  }, [passwordResetKey, resetField]);
-
-  const submit = handleSubmit((values) => {
-    if (!pending) onSubmit(values);
-  });
-
+  // 폰: 버튼은 하단 고정, 도움말은 입력란 아래 오른쪽. 좌우 분할(디자인): 버튼을 입력란 바로 아래, 도움말은 그 아래 가운데.
   return (
-    <>
-      <NativeText variant="title">{t('auth.signInTitle')}</NativeText>
-      <NativeText tone="secondary">{t('auth.signInDescription')}</NativeText>
+    <BrandedFormScreen tagline bottomNote={<AppVersionNote />} footer={isSplit ? undefined : submitButton}>
       <Controller
         control={control}
         name="userId"
         render={({ field, fieldState }) => (
           <LabeledField
-            ref={field.ref}
+            ref={(instance) => {
+              field.ref(instance);
+              userIdRef.current = instance;
+            }}
+            testID="login-user-id"
+            maxLength={USER_ID_MAX_LENGTH}
             label={t('auth.userId')}
+            placeholder={t('auth.userIdPlaceholder')}
             error={messageOf(fieldState.error)}
             autoComplete="username"
             autoCapitalize="none"
             autoCorrect={false}
             returnKeyType="next"
-            onChangeText={field.onChange}
+            onChangeText={(text) => {
+              changeUserId(text);
+              field.onChange(text);
+            }}
             onBlur={field.onBlur}
             onSubmitEditing={() => passwordRef.current?.focus()}
+            trailing={
+              hasUserId ? (
+                <ClearButton testID="login-clear-user-id" label={t('auth.clearUserId')} onPress={clearUserId} />
+              ) : undefined
+            }
           />
         )}
       />
@@ -78,25 +103,43 @@ export function LoginForm({ pending, formError, passwordResetKey, onSubmit }: Lo
               field.ref(instance);
               passwordRef.current = instance;
             }}
+            testID="login-password"
+            maxLength={PASSWORD_MAX_LENGTH}
             label={t('auth.password')}
-            error={messageOf(fieldState.error)}
+            placeholder={t('auth.passwordPlaceholder')}
+            error={formError ?? messageOf(fieldState.error)}
             secureTextEntry
             autoComplete="current-password"
             autoCapitalize="none"
             autoCorrect={false}
             returnKeyType="go"
-            onChangeText={field.onChange}
+            onChangeText={(text) => {
+              changePassword(text);
+              field.onChange(text);
+            }}
             onBlur={field.onBlur}
             onSubmitEditing={() => void submit()}
+            trailing={
+              hasPassword ? (
+                <ClearButton testID="login-clear-password" label={t('auth.clearPassword')} onPress={clearPassword} />
+              ) : undefined
+            }
           />
         )}
       />
-      {formError ? <FormAlert message={formError} /> : null}
-      <NativeButton
-        label={pending ? t('auth.signingIn') : t('auth.signIn')}
-        disabled={pending}
-        onPress={() => void submit()}
-      />
-    </>
+      {isSplit ? (
+        <>
+          {submitButton}
+          <Column alignment="center" style={{ width: '100%' }}>
+            {helpLink}
+          </Column>
+        </>
+      ) : (
+        <Row alignment="center" style={{ width: '100%' }}>
+          <Spacer flexible />
+          {helpLink}
+        </Row>
+      )}
+    </BrandedFormScreen>
   );
 }

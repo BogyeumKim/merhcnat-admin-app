@@ -1,4 +1,13 @@
 export { default as SignInScreen } from './screens/sign-in-screen';
 export { default as VerifyScreen } from './screens/verify-screen';
-export { registerSignOutHandler, signOutLocally, useIsSignedIn, useSession } from './model/session-store';
+export { default as LoginHelpScreen } from './screens/login-help-screen';
+export { default as PasswordChangeScreen } from './screens/password-change-screen';
+export { default as AccountSuspendedScreen } from './screens/account-suspended-screen';
+export { default as TempPasswordScreen } from './screens/temp-password-screen';
+export { default as SettingsPasswordScreen } from './screens/settings-password-screen';
+export { default as AccountLockedScreen } from './screens/account-locked-screen';
+export { registerSignOutHandler, signOutLocally, useIsSignedIn, useMustChangePassword, useSession } from './model/session-store';
+export { useSessionEndedRedirect } from './hooks/use-session-ended-redirect';
 export { UserType, parseUserType } from './model/user-type';
+export { useCapabilities, type Capabilities } from './model/capabilities';
+export { ensureFreshInstallHandled } from './model/fresh-install';

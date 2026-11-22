@@ -1,39 +1,42 @@
-import { useEffect, useState } from 'react';
-
 import { useTranslation } from '@/shared/i18n';
-import { NativeButton } from '@/shared/ui/native-button';
+import { LinkText } from '@/shared/ui/link-text';
+import { NativeText } from '@/shared/ui/native-text';
 
-const COOLDOWN_SECONDS = 30;
+import { useSecondsLeft } from '../hooks/use-seconds-left';
 
-const secondsUntil = (endAt: number) => Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
+type ResendButtonProps = {
+  /** 새 코드를 요청할 수 있는 시각(epoch ms). 마지막 발송 때 서버가 준 `resendAfterSeconds` 기준. */
+  availableAt: number;
+  pending: boolean;
+  onResend: () => void;
+};
 
 /**
- * "Resend code" with a cooldown, so the server's resend limits are rarely hit. The countdown is computed from an end
- * time (not by counting ticks), so it stays correct after the app was in the background.
+ * "코드 재전송": 서버가 준 `resendAfterSeconds` 동안은 조용한 "27초 후 다시 받기"로 보여(연타 방지용 UI 타이머,
+ * 서버는 같은 수단 대기를 강제하지 않는다), 이후 어두운 밑줄 링크가 된다. `key={availableAt}`로 렌더하면 새 타이머가 처음부터 카운트된다.
  */
-export function ResendButton({ onResend, pending }: { onResend: () => void; pending: boolean }) {
+export function ResendButton({ availableAt, pending, onResend }: ResendButtonProps) {
   const { t } = useTranslation();
-  const [endAt, setEndAt] = useState(() => Date.now() + COOLDOWN_SECONDS * 1000);
-  const [secondsLeft, setSecondsLeft] = useState(COOLDOWN_SECONDS);
+  const secondsLeft = useSecondsLeft(availableAt);
 
-  useEffect(() => {
-    if (secondsLeft <= 0) return;
-    const timer = setTimeout(() => setSecondsLeft(secondsUntil(endAt)), 1000);
-    return () => clearTimeout(timer);
-  }, [secondsLeft, endAt]);
-
-  const waiting = secondsLeft > 0;
-
+  // 보내는 중에는 "0초 후 다시 받기"가 아니라 진행 문구를 보인다(링크는 숨겨 연타를 막는다).
+  if (pending) {
+    return (
+      <NativeText variant="subhead" tone="secondary">
+        {t('auth.verify.sending')}
+      </NativeText>
+    );
+  }
+  if (secondsLeft > 0) {
+    return (
+      <NativeText variant="subhead" tone="secondary">
+        {t('auth.verify.resendIn', { seconds: secondsLeft })}
+      </NativeText>
+    );
+  }
   return (
-    <NativeButton
-      variant="text"
-      disabled={waiting || pending}
-      label={waiting ? t('auth.verify.resendIn', { seconds: secondsLeft }) : t('auth.verify.resend')}
-      onPress={() => {
-        setEndAt(Date.now() + COOLDOWN_SECONDS * 1000);
-        setSecondsLeft(COOLDOWN_SECONDS);
-        onResend();
-      }}
-    />
+    <LinkText testID="otp-resend" tone="strong" onPress={onResend}>
+      {t('auth.verify.resend')}
+    </LinkText>
   );
 }

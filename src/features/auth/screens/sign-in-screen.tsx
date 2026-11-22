@@ -1,69 +1,22 @@
-import { router } from 'expo-router';
-import { useRef, useState } from 'react';
-
-import { maintenanceHref } from '@/features/maintenance';
-import { presentationOf } from '@/shared/api/error-presentation';
-import { useTranslation } from '@/shared/i18n';
-import { BrandedFormScreen } from '@/shared/ui/branded-form-screen';
-import { showErrorToast } from '@/shared/ui/toast';
-import { useAnnounce } from '@/shared/ui/use-announce';
-
 import { LoginForm } from '../components/login-form';
-import { useLogin } from '../mutations/use-login';
+import { SessionEndedNotice } from '../components/session-ended-notice';
+import { useSignIn } from '../hooks/use-sign-in';
 
+/** 로그인 화면. 서버가 세션을 종료한 뒤에는 먼저 로그아웃 안내를 보여주고, 그 버튼이 폼을 드러낸다. 넓은 창(펼친 폴더블) 배치는 `BrandedLayout`이 맡는다. */
 export default function SignInScreen() {
-  const { t } = useTranslation();
-  const [formError, setFormError] = useState<string | null>(null);
-  const [passwordResetKey, setPasswordResetKey] = useState(0);
-  const inFlight = useRef(false);
+  const { pending, formError, passwordResetKey, formKey, sessionEnded, submit, dismissFormError, acknowledgeSessionEnded } = useSignIn();
 
-  useAnnounce(formError);
-
-  const login = useLogin({
-    onMutate: () => setFormError(null),
-    onSuccess: (result) => {
-      setPasswordResetKey((key) => key + 1);
-      if (result.status === 'CHALLENGE_REQUIRED') router.push('/verify');
-    },
-    onError: (error) => {
-      const title = t(`errors.${error.code}`);
-      switch (presentationOf(error.code)) {
-        case 'maintenance':
-          router.push(maintenanceHref(error));
-          return;
-        case 'toast':
-          // Same id per error code: repeated failures update one toast instead of piling up copies.
-          showErrorToast({ id: `error:${error.code}`, title });
-          return;
-        case 'inline':
-          setFormError(title);
-          if (error.code === 'INVALID_CREDENTIALS') setPasswordResetKey((key) => key + 1);
-          return;
-      }
-    },
-  });
-
-  // `inFlight` blocks a second submit fired before React re-renders with `isPending`; `reset()` drops the
-  // mutation's variables (the password) from memory as soon as the call is settled.
-  const submit = (input: { userId: string; password: string }) => {
-    if (inFlight.current) return;
-    inFlight.current = true;
-    login.mutate(input, {
-      onSettled: () => {
-        inFlight.current = false;
-        login.reset();
-      },
-    });
-  };
-
+  if (sessionEnded) return <SessionEndedNotice onContinue={acknowledgeSessionEnded} />;
+  // `key`가 바뀌면(인증 흐름이 성공 없이 끝남) 폼을 새로 마운트한다: 새 네이티브 입력란이라 네이티브 ref 호출 없이
+  // 아이디·비밀번호·폼 상태(값, 오류, touched, 지우기 버튼)가 모두 비고 자동 포커스도 없다.
   return (
-    <BrandedFormScreen>
-      <LoginForm
-        pending={login.isPending}
-        formError={formError}
-        passwordResetKey={passwordResetKey}
-        onSubmit={submit}
-      />
-    </BrandedFormScreen>
+    <LoginForm
+      key={formKey}
+      pending={pending}
+      formError={formError}
+      passwordResetKey={passwordResetKey}
+      onSubmit={submit}
+      onEdit={dismissFormError}
+    />
   );
 }
