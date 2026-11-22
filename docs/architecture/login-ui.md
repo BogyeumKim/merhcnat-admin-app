@@ -9,7 +9,7 @@
 | `/sign-in` | 로그인 폼 | `features/auth/screens/sign-in-screen.tsx`, `components/login-form.tsx` |
 | `/verify` | 2단계 인증(form sheet, 아래로 끌어 닫기 + 그래버): 기기 안내 → 인증 수단 선택 → 코드 입력 | `features/auth/screens/verify-screen.tsx`, `components/{device-notice,method-choice,code-entry,resend-button}.tsx` |
 | `/maintenance` | 점검 안내(modal) (기간은 구조화 필드를 앱 언어로 포맷) | `features/maintenance/` |
-| (오류) | 렌더 오류 폴백 | `app/_layout.tsx`의 `ErrorBoundary` → `shared/ui/error-screen.tsx` |
+| (오류) | 렌더 오류 폴백 | `app/_layout.tsx`의 `ErrorBoundary`(스택은 `core/navigation/root-stack.tsx`) → `shared/ui/error-screen.tsx` |
 
 디자인(방향 A): 가운데 정렬 한 열. 워드마크만(심벌 없음) + 한 줄 문구, 그 아래 위쪽 라벨 + 밑줄 입력창, 비밀번호 눈 아이콘, **로그인 버튼은 입력 바로 아래**(입력 전 회색 비활성), 화면 맨 아래에 앱 버전 한 줄. 참고: KREAM·아이엠그라운드·여기어때 같은 로그인 화면의 공통점(워드마크 중심, 단일 주 버튼). 이 앱은 아이디/비밀번호만 지원하므로 소셜 로그인·가입·찾기는 없다. 밑줄은 대비 3:1 이상(`fieldBorder`), 포커스/오류는 2pt로 색에만 의존하지 않는다. 로고는 `korpay-logo.svg`(Poppins SemiBold, SIL OFL 1.1, 윤곽선 변환 + K 전체 브랜드 빨강). 다른 로고로 바꾸려면 파일과 `brand-logo.tsx`의 `LOGO_ASPECT_RATIO`만 바꾼다.
 

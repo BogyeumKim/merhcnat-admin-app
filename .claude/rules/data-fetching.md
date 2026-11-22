@@ -51,6 +51,8 @@ export type UseMutationCallback<TData = void> = {
 - 비밀번호처럼 민감한 변수를 받는 mutation은 `gcTime: 0`.
 - 전역 `fetch` 래퍼(`shared/api/client.ts`)만 네트워크를 호출한다. `axios`를 쓰지 않는다 (expo-data-fetching skill 권장과 사용자 결정).
 - 로그아웃 시 `QueryClient.clear()`는 `core/providers/query-provider.tsx`가 `registerSignOutHandler`로 등록한다 (feature가 core를 import하지 않도록).
+- 쿼리/뮤테이션 오류 타입은 `Register { defaultError: ApiError }`(`core/providers/query-provider.tsx`)로 고정돼 `error as ApiError` 캐스트가 필요 없다. 런타임 경계(`onError` 콜백 등)에서는 여전히 `asApiError`로 좁힌다.
+- 쿼리의 최종 실패는 `QueryCache.onError` 한 곳에서 차단 오류(점검 등)를 화면으로 보낸다(`feedback-ux.md`).
 - `focusManager`는 `AppState`와 연결돼 있다 (`onlineManager`는 NetInfo 도입 시).
 - `shared/api/client.ts`: 15초 타임아웃은 본문 읽기까지 포함(`TIMEOUT`), 오류 envelope의 `data: null` 허용(서버 `code` 유지), 연장 토큰은 적용 직전에 세션 generation을 다시 확인한다(로그아웃 뒤 토큰 부활 방지).
 

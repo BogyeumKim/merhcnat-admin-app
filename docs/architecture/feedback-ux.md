@@ -53,7 +53,7 @@
 - 같은 `id`로 다시 호출하면 새 토스트를 쌓지 않고 **기존 토스트를 갱신하고 흔들어서**(`autoWiggleOnUpdate="always"`) "다시 실패했다"를 알린다. 오류 토스트의 `id`는 `error:<code>`라서, 같은 실패를 열 번 눌러도 토스트 하나가 갱신된다.
 - 서로 다른 오류는 다른 `id`라서 쌓인다. 동시에 최대 3개(`visibleToasts`).
 - 위치는 위쪽 중앙: 키보드와 탭바를 피한다. 닫기 버튼 포함, 오류는 6초.
-- 마운트: 루트 `GestureHandlerRootView` 안, 네비게이터 뒤 (`app/_layout.tsx`의 `ToastHost`).
+- 마운트: 루트 `GestureHandlerRootView` 안, 네비게이터 뒤 (`core/providers/app-providers.tsx`의 `ToastHost`).
 
 ## 4. 미확인 (기기/후속 확인)
 

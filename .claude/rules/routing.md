@@ -15,7 +15,7 @@ paths:
 
 ## 인증 라우트 보호
 
-- 로그인/비로그인 화면 분기는 `Stack.Protected guard`로 한다 (`src/app/_layout.tsx`). 훅에서 `router.replace`로 리다이렉트하는 방식은 쓰지 않는다 (깜빡임/경쟁 상태).
+- 로그인/비로그인 화면 분기는 `Stack.Protected guard`로 한다 (`src/core/navigation/root-stack.tsx`의 `RootNavigator`, 라우트 파일 `src/app/_layout.tsx`는 얇게 조립만). 훅에서 `router.replace`로 리다이렉트하는 방식은 쓰지 않는다 (깜빡임/경쟁 상태).
 - 세션 상태는 `features/auth`의 `useSession()`(zustand, 메모리 전용). 토큰은 저장하지 않는다 (`.claude/rules/auth-jwt.md`).
 - 보호할 화면은 `(tabs)` 같은 그룹 단위로 `Stack.Protected guard={isSignedIn}` 안에 선언한다. 비로그인 화면(`sign-in`)은 `guard={!isSignedIn}` (`isSignedIn` = `userType !== null`).
 - 로그인 완료는 `completeSignIn(userType)`, 로그아웃은 `signOutLocally()`만 쓴다.

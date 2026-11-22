@@ -24,7 +24,7 @@ otp/verify ───────────────────────
    - `device`: `{ deviceId(≤64), platform: "IOS"|"ANDROID", osVersion?, deviceModel?, appVersion? }` (`features/auth/model/device-info.ts`)
    - **200 `SUCCESS`** + `Access-Token` 헤더 = 로그인 완료 (등록 기기 + loginType 1). `data: { userId, loginType, userType, deviceState: "MATCH" }`
    - **200 `MFA_REQUIRED`** = 비밀번호 통과, 추가 인증 필요 (**로그인이 아님**). `data: { userId, loginType, userType, deviceState: "NONE"|"MATCH"|"CHANGED", channels, lastUsedChannel?, challengeToken }`. `challengeToken`은 5분이며, `otp/send`가 성공할 때마다 "새 OTP 만료 + 60초"까지 연장된다(로그인 후 최대 15분, 서버 DB가 관리, 토큰 값은 그대로). 상한을 넘기면 401 `CHALLENGE_EXPIRED` → 처음부터 로그인. 비밀번호 변경 토큰은 5분 고정.
-     - `channels`: `[{ channel, destination }]`(서버가 마스킹: `010-****-0000`, `ko****@korpay.com`). loginType 0 → `[{ channel: "TOTP" }]`(MATCH여도 항상). loginType 1 → `user.phone_number`가 NULL/''이 아니면 KAKAO·SMS, `user.email`이 NULL/''이 아니면 EMAIL(순서 KAKAO, SMS, EMAIL).
+     - `channels`: `[{ channel, destination }]`(서버가 마스킹: `010-****-0000`, `te****@example.com`). loginType 0 → `[{ channel: "TOTP" }]`(MATCH여도 항상). loginType 1 → `user.phone_number`가 NULL/''이 아니면 KAKAO·SMS, `user.email`이 NULL/''이 아니면 EMAIL(순서 KAKAO, SMS, EMAIL).
      - **둘 다 비어 있으면 `channels: []`**(같은 200 `MFA_REQUIRED`, 409 아님). 앱은 인증 시트에 "등록된 연락처가 없어요"를 보여주고 `otp/send`를 부르지 않는다.
      - `lastUsedChannel`: `user_info.last_otp_channel`(OTP 검증 성공 시 기록). 앱의 "최근 사용" 배지. 이력 없으면 생략.
      - 앱은 이전 형식(문자열 배열)도 받는다.
