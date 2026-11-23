@@ -19,7 +19,7 @@
 
 계약과 오류 표: `docs/backend-contract/app-migration-server-login.md`.
 
-1. 로그인: `POST /api/auth/login`(ID, 비밀번호, 기기 정보). HTTP 200 `SUCCESS`(등록된 기기 + 문자/카카오 계정)이면 `data.accessToken`(전환기에는 `Access-Token` 헤더 폴백)과 함께 바로 로그인 완료, 200 `MFA_REQUIRED`면(로그인이 아님, code로 판별) `challengeToken`을 메모리에 두고 `/verify` 시트로 간다. 비밀번호는 여기서 버린다.
+1. 로그인: `POST /api/auth/login`(ID, 비밀번호, 기기 정보). HTTP 200 `step: SUCCESS`(등록된 기기 + 문자/카카오 계정)이면 본문 `accessToken`과 함께 바로 로그인 완료, 200 `step: MFA_REQUIRED`면(로그인이 아님, 본문 `step`으로 판별) `challengeToken`을 메모리에 두고 `/verify` 시트로 간다. 비밀번호는 여기서 버린다.
 2. `/verify`(form sheet; 일반 시트처럼 아래로 내리거나 취소로 닫고, 닫히면 진행 중이던 챌린지가 함께 지워진다):
    - `deviceState`가 `NONE`/`CHANGED`면 먼저 새 기기 안내 + 계속/취소.
    - TOTP는 바로 코드 입력. 카카오/문자는 사용자가 채널을 고른 뒤 `otp/send` → 코드 입력 (서버가 준 `resendAfterSeconds`만큼 "N초 후 다시 받기" UI 타이머(서버 강제 아님, 받을 곳 다시 고르기에서는 대기 없이 바로 발송), `expiresInSeconds`로 남은 시간 표시). 수단 카드(같은 수단 포함)를 누를 때마다 항상 새 코드를 보낸다: 코드 입력에서 뒤로 가면 입력 중이던 코드는 버리고, "보낸 인증번호 입력하기"처럼 이전 코드를 재사용하는 카드 상태는 없다. 챌린지당 5회, 6번째 429 `OTP_SEND_LIMIT_EXCEEDED`는 토스트 + 시트 닫기. "최근 사용" 배지는 유지.
@@ -41,12 +41,12 @@
 
 ## 개발용 mock 시나리오 (`auth-api.mock.ts`, 더미 값만)
 
-아이디를 입력한다. 비밀번호는 `wrong` 외에는 아무거나. 자세한 시나리오(`1234`, `merchant`, `kakao`, `changed`, `totp`, `totpnew`, `nocontact`, `lockotp`, `suspended`, `temp`, `update`, `insecure`, `idle`, `offline`, `locked`, `blocked`, `maint`)는 `auth-api.mock.ts` 맨 위 주석. 코드 `000000` = 성공, `999999` = 만료, 그 외 = 오류(화면에 횟수 표시 없음, 5회 오류면 `ACCOUNT_LOCKED`: 인증 시트가 닫히고 로그인 화면 위에 잠김 안내, 이후 그 아이디의 로그인·발송·검증 모두 잠김, JS를 다시 불러오면 풀림). `offline`은 네트워크 오류 토스트 확인용.
+아이디를 입력한다. 비밀번호는 `wrong` 외에는 아무거나. 자세한 시나리오(`1234`, `merchant`, `kakao`, `changed`, `totp`, `totpnew`, `nocontact`, `lockotp`, `suspended`, `temp`, `update`, `insecure`, `idle`, `offline`, `locked`, `blocked`, `notallowed`, `maint`)는 `auth-api.mock.ts` 맨 위 주석. 코드 `000000` = 성공, `999999` = 만료, 그 외 = 오류(화면에 횟수 표시 없음, 5회 오류면 `ACCOUNT_LOCKED`: 인증 시트가 닫히고 로그인 화면 위에 잠김 안내, 이후 그 아이디의 로그인·발송·검증 모두 잠김, JS를 다시 불러오면 풀림). `offline`은 네트워크 오류 토스트 확인용.
 mock은 릴리스 번들에서 제거된다 (`__DEV__` 안 `require`; 릴리스 번들에서 `mock-access-token` 문자열 0건으로 확인).
 
 ## 서버 연동
 
-개발 기본값은 로컬 서버(`http://localhost:8080`, `EXPO_PUBLIC_API_MOCK=0`)다. 요청/응답 형식과 서버가 맞춰야 할 부분(`data.accessToken`, `userType`)은 `docs/backend-contract/app-migration-server-login.md`. 서버 없이 화면만 보려면 `EXPO_PUBLIC_API_MOCK=1`로 아래 mock 시나리오를 쓴다.
+개발 기본값은 로컬 서버(`http://localhost:8080`, `EXPO_PUBLIC_API_MOCK=0`)다. 요청/응답 형식과 서버가 맞춰야 할 부분(`accessToken`, `userType`)은 `docs/backend-contract/app-migration-server-login.md`. 서버 없이 화면만 보려면 `EXPO_PUBLIC_API_MOCK=1`로 아래 mock 시나리오를 쓴다.
 
 ## 환경 변수
 

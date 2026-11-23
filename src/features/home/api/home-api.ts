@@ -1,5 +1,4 @@
-import { apiEnvelope } from '@/shared/api/client';
-import { ApiError } from '@/shared/api/errors';
+import { apiJson } from '@/shared/api/client';
 import { env } from '@/shared/config/env';
 
 import { homeSummarySchema, type HomeSummary } from '../model/schemas';
@@ -36,7 +35,5 @@ export async function fetchHomeSummary(): Promise<HomeSummary> {
       store: { normal: true, bizNo: '123-45-*****', settlementCycle: 'D+N 영업일', settlementAccount: '국민은행 ••1234', services: '키인결제 · SMS결제' },
     };
   }
-  const { status, code, data } = await apiEnvelope('/api/home/summary', homeSummarySchema);
-  if (status !== 200 || code !== 'SUCCESS') throw new ApiError({ status, code: 'INVALID_RESPONSE' });
-  return data;
+  return apiJson('/api/home/summary', homeSummarySchema);
 }

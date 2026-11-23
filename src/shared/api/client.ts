@@ -7,11 +7,6 @@ import { getCurrentLanguage } from '@/shared/i18n';
 import { ApiError, toErrorCode } from './errors';
 import { getAccessToken, getSessionGeneration, notifyUnauthorized, setAccessToken } from './session-token';
 
-/**
- * 이전 계약의 토큰 응답 헤더. 새 토큰은 이제 로그인 완료·비밀번호 변경 응답의 `data.accessToken`으로 온다.
- * 서버 배포 순서와 무관하게 동작하도록 그 엔드포인트에서만 본문에 없을 때 대신 읽는다(`apiTokenEnvelope`). 서버 전환 후 제거한다.
- */
-const LEGACY_TOKEN_HEADER = 'Access-Token';
 /** 스펙: 서버 응답이 10초를 넘으면 네트워크 오류와 똑같이 처리한다(`TIMEOUT`). */
 const TIMEOUT_MS = 10_000;
 
@@ -33,16 +28,11 @@ type RequestOptions = {
 };
 
 /**
- * 서버 응답은 모두 `{ code, message, data? }`이다. 200은 성공 단계(`SUCCESS`, `MFA_REQUIRED`, `PASSWORD_CHANGE_REQUIRED`)이고
- * 오류는 status로 크게 나눈 뒤 `code`로 구분한다: 400 입력·업무 오류, 401 인증·세션, 403 `UPDATE_REQUIRED`, 503 점검·세션 저장소, 500.
+ * 성공(200)은 envelope 없이 DTO가 곧 본문이다(로그인 단계 API는 본문 `step`으로 다음 단계를 고른다, `apiJson`).
+ * 실패(4xx/5xx)만 `{ code, message, data? }` envelope이며 status로 크게 나눈 뒤 `code`로 구분한다:
+ * 400 입력·업무 오류, 401 인증·세션, 403 `UPDATE_REQUIRED`/`FORBIDDEN`, 503 점검·세션 저장소, 500.
  * `data`는 부가 정보(`remainingAttempts`, `retryAfterSeconds`, 점검 기간)를 담는다. `message`는 로그용이며 화면에 보여주지 않는다.
  */
-const envelopeSchema = z.looseObject({
-  code: z.string(),
-  message: z.string().optional(),
-  data: z.unknown().optional(),
-});
-
 const errorEnvelopeSchema = z.looseObject({
   code: z.string().optional(),
   message: z.string().optional(),
@@ -84,7 +74,7 @@ function toTransportError(error: unknown, timeout: AbortSignal, caller?: AbortSi
 
 type Sent = {
   response: Response;
-  /** 요청을 시작한 세션. 발급된 토큰은 적용 시점에도 같은 세션일 때만 쓴다(`apiTokenEnvelope`). */
+  /** 요청을 시작한 세션. 발급된 토큰은 적용 시점에도 같은 세션일 때만 쓴다(`apiTokenJson`). */
   generation: number;
   /** 본문 읽기에도 같은 타임아웃이 걸린다: 헤더 뒤 본문이 멈추면 `TIMEOUT`으로 보고한다. */
   timeout: AbortSignal;
@@ -100,7 +90,7 @@ async function readJson(response: Response, timeout: AbortSignal): Promise<unkno
   }
 }
 
-/** 요청을 보낸다. 일반 응답은 토큰을 싣지 않는다(유휴 연장은 서버가 같은 토큰으로 처리): 토큰은 `apiTokenEnvelope`만 적용한다. */
+/** 요청을 보낸다. 일반 응답은 토큰을 싣지 않는다(유휴 연장은 서버가 같은 토큰으로 처리): 토큰은 `apiTokenJson`만 적용한다. */
 async function send(path: string, options: RequestOptions): Promise<Sent> {
   const generation = getSessionGeneration();
   const token = getAccessToken();
@@ -147,45 +137,38 @@ export async function apiFetch(path: string, options: RequestOptions = {}): Prom
   return (await send(path, options)).response;
 }
 
-type Envelope<T> = { status: number; code: string; data: T };
-
-/** envelope를 읽고 `data`를 검증한다. 어긋나면 `INVALID_RESPONSE`. */
-async function receiveEnvelope<T>(sent: Sent, dataSchema: z.ZodType<T>): Promise<Envelope<T>> {
-  const { response } = sent;
-  const envelope = envelopeSchema.safeParse(await readJson(response, sent.timeout));
-  if (!envelope.success) throw new ApiError({ status: response.status, code: 'INVALID_RESPONSE' });
-  const data = dataSchema.safeParse(envelope.data.data);
-  if (!data.success) throw new ApiError({ status: response.status, code: 'INVALID_RESPONSE' });
-  return { status: response.status, code: envelope.data.code, data: data.data };
+/** 성공 본문을 읽어 `schema`로 검증한다. 성공은 200만 쓰므로 다른 2xx나 스키마와 맞지 않는 본문은 `INVALID_RESPONSE`다. */
+async function receiveJson<T>({ response, timeout }: Sent, schema: z.ZodType<T>): Promise<T> {
+  if (response.status !== 200) throw new ApiError({ status: response.status, code: 'INVALID_RESPONSE' });
+  const parsed = schema.safeParse(await readJson(response, timeout));
+  if (!parsed.success) throw new ApiError({ status: response.status, code: 'INVALID_RESPONSE' });
+  return parsed.data;
 }
 
 /**
- * `{ code, message, data }` envelope용 `apiFetch`: `data`를 `dataSchema`로 검증하고 HTTP 상태, envelope `code`,
- * 검증된 `data`를 반환한다. 성공 단계는 모두 200이므로 호출자는 `code`로 다음 단계를 고른다.
- * 스키마와 맞지 않는 본문은 `INVALID_RESPONSE`다. 토큰은 다루지 않는다.
+ * JSON API용 `apiFetch`: 200 본문(DTO)을 `schema`로 검증해 돌려준다. 실패는 `send`가 envelope `code`의 `ApiError`로 던진다.
+ * 로그인 단계 API는 `schema`에 본문 `step`을 넣어 분기한다. 토큰은 다루지 않는다.
  */
-export async function apiEnvelope<T>(path: string, dataSchema: z.ZodType<T>, options: RequestOptions = {}): Promise<Envelope<T>> {
-  return receiveEnvelope(await send(path, options), dataSchema);
+export async function apiJson<T>(path: string, schema: z.ZodType<T>, options: RequestOptions = {}): Promise<T> {
+  return receiveJson(await send(path, options), schema);
 }
 
 /**
- * 새 토큰을 발급하는 엔드포인트 전용 `apiEnvelope`(로그인 완료: login·otp/verify·password/temp, 그리고 PUT /api/users/me/password).
- * 토큰을 바로 적용하지 않고 `adoptIssuedToken`을 돌려준다: 호출자가 응답 전체(분기별 스키마, `code`)를 수락한 뒤 한 번 부른다.
- * 거부된 응답이 토큰을 남기면 안 되기 때문이다.
- * `adoptIssuedToken(bodyToken)`: 검증된 `data.accessToken`을 먼저, 없으면 이전 계약의 `Access-Token` 헤더를 쓴다(서버 전환기 폴백).
+ * 새 토큰을 발급하는 엔드포인트 전용 `apiJson`(로그인 완료: login·otp/verify·password/temp, 그리고 PUT /api/users/me/password).
+ * 토큰은 본문 최상위 `accessToken`으로 온다. 바로 적용하지 않고 `adoptIssuedToken`을 돌려준다: 호출자가 응답 전체
+ * (`step`별 스키마, `deviceSecret` 저장)를 수락한 뒤 검증된 토큰으로 한 번 부른다. 거부된 응답이 토큰을 남기면 안 되기 때문이다.
  * 요청 이후 로그아웃했으면(세션 세대가 다르면) 적용하지 않는다: 늦게 온 응답이 로그아웃된 세션을 되살리지 못한다.
- * 둘 다 없으면 아무것도 하지 않으며, 로그인 mutation의 `assertTokenIssued()`가 `INVALID_RESPONSE`로 거부한다.
+ * 이전 계약의 `Access-Token` 응답 헤더는 서버 전환이 끝나 읽지 않는다(2026-11-23).
  */
-export async function apiTokenEnvelope<T>(
+export async function apiTokenJson<T>(
   path: string,
-  dataSchema: z.ZodType<T>,
+  schema: z.ZodType<T>,
   options: RequestOptions = {},
-): Promise<Envelope<T> & { adoptIssuedToken: (bodyToken: string | undefined) => void }> {
+): Promise<{ data: T; adoptIssuedToken: (token: string) => void }> {
   const sent = await send(path, options);
-  const envelope = await receiveEnvelope(sent, dataSchema);
-  const adoptIssuedToken = (bodyToken: string | undefined) => {
-    const token = bodyToken || sent.response.headers.get(LEGACY_TOKEN_HEADER);
-    if (token && sent.generation === getSessionGeneration()) setAccessToken(token);
+  const data = await receiveJson(sent, schema);
+  const adoptIssuedToken = (token: string) => {
+    if (sent.generation === getSessionGeneration()) setAccessToken(token);
   };
-  return { ...envelope, adoptIssuedToken };
+  return { data, adoptIssuedToken };
 }

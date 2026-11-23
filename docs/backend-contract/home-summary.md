@@ -1,21 +1,18 @@
 # 홈 요약 계약 (server 세션이 구현, 앱이 연동함)
 
-`GET /api/home/summary` (Bearer, 기존 `{code,message,data}` 엔벨로프). 데이터 범위는 서버가 토큰으로 정한다(앱은 계정 정보를 보내지 않는다).
+`GET /api/home/summary` (Bearer). 성공은 envelope 없이 200 본문이 곧 DTO다(2026-11-23, 실패만 `{code,message,data}`). null 필드는 생략된다. 데이터 범위는 서버가 토큰으로 정한다(앱은 계정 정보를 보내지 않는다).
 
 ```json
 {
-  "code": "SUCCESS",
-  "data": {
-    "storeName": "테스트 가맹점",
-    "todaySales": 1250000,
-    "approvalCount": 38,
-    "cancellationCount": 2,
-    "nextDepositAmount": 3480000,
-    "nextDepositDate": "2026-11-04",
-    "monthSales": 28430000,
-    "prepayAvailable": true,
-    "latestNotice": { "id": "3", "title": "…", "date": "2026-11-03" }
-  }
+  "storeName": "테스트 가맹점",
+  "todaySales": 1250000,
+  "approvalCount": 38,
+  "cancellationCount": 2,
+  "nextDepositAmount": 3480000,
+  "nextDepositDate": "2026-11-04",
+  "monthSales": 28430000,
+  "prepayAvailable": true,
+  "latestNotice": { "id": "3", "title": "…", "date": "2026-11-03" }
 }
 ```
 

@@ -29,6 +29,7 @@ import { UserType } from '../model/user-type';
  *   temp       -> 200 PASSWORD_CHANGE_REQUIRED(임시비밀번호, 바로)   tempotp -> 코드 통과 후 임시비밀번호 변경
  *   update     -> 403 UPDATE_REQUIRED     insecure -> 400 DEVICE_INSECURE     idle -> 로그인 후 6초 뒤 401
  *   blocked    -> 400 UNSUPPORTED_LOGIN_TYPE      maint -> 503 MAINTENANCE(기간 포함)
+ *   notallowed -> 400 LOGIN_NOT_ALLOWED(비밀번호는 맞지만 계정 상태가 사용 중이 아님)
  *   offline    -> 연결 실패(NETWORK_ERROR): 로그인 화면의 오류 토스트(`error:NETWORK_ERROR`) 확인용
  * 코드: 000000 = 정상, 999999 = 만료, 그 외 = 오류(남은 횟수를 오류에 담음;
  * 5회 오류 시 서버처럼 계정이 영구 잠금).
@@ -36,8 +37,8 @@ import { UserType } from '../model/user-type';
 const LATENCY_MS = 450;
 const MAX_ATTEMPTS = 5;
 /**
- * 로그인 완료 시 서버가 `data.accessToken`으로 주는 토큰의 대역. mock은 HTTP 계층 위(`AuthApi`)에서 동작하므로
- * 실제 경로(`apiTokenEnvelope`의 `adoptIssuedToken`) 대신 바로 메모리에 넣는다.
+ * 로그인 완료 시 서버가 본문 `accessToken`으로 주는 토큰의 대역. mock은 HTTP 계층 위(`AuthApi`)에서 동작하므로
+ * 실제 경로(`apiTokenJson`의 `adoptIssuedToken`) 대신 바로 메모리에 넣는다.
  */
 const MOCK_TOKEN = 'mock-access-token';
 const EXPIRES_IN_SECONDS = 180;
@@ -118,6 +119,8 @@ export const mockAuthApi: AuthApi = {
         return { status: 'AUTHENTICATED', userType: UserType.Mid, passwordChangeRequired: false, passwordChangeSkippable: false };
       case 'blocked':
         throw new ApiError({ status: 400, code: 'UNSUPPORTED_LOGIN_TYPE' });
+      case 'notallowed':
+        throw new ApiError({ status: 400, code: 'LOGIN_NOT_ALLOWED' });
       case 'offline':
         throw new ApiError({ status: 0, code: 'NETWORK_ERROR' });
       case 'maint': {

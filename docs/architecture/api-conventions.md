@@ -101,4 +101,4 @@ export async function apiFetch(path: string, init: RequestInit = {}) {
 
 - 헤더 이름은 대소문자를 구분하지 않는다. 같은 이름 헤더가 여러 개면 `get`은 합쳐서 돌려준다.
 - 토큰 저장소는 React 밖에서 읽고 써야 하므로 컴포넌트 상태(Context)가 아니라 **비영속 zustand vanilla store**(`shared/api/session-token.ts`)다 (구현됨).
-- 일반 응답은 토큰을 싣지 않는다(유휴 연장은 서버 TTL). 새 토큰은 로그인 완료·비밀번호 변경 응답의 `data.accessToken`으로 오고, 전환기에는 없으면 `Access-Token` 헤더를 읽는다. 구현은 `shared/api/client.ts`의 `apiTokenEnvelope`(`docs/architecture/auth-jwt.md`).
+- 일반 응답은 토큰을 싣지 않는다(유휴 연장은 서버 TTL). 새 토큰은 로그인 완료·비밀번호 변경 응답 본문의 `accessToken`으로만 온다(`Access-Token` 헤더는 2026-11-23부터 읽지 않음). 구현은 `shared/api/client.ts`의 `apiTokenJson`(`docs/architecture/auth-jwt.md`).

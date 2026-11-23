@@ -1,7 +1,6 @@
 import { z } from 'zod';
 
-import { apiEnvelope } from '@/shared/api/client';
-import { ApiError } from '@/shared/api/errors';
+import { apiJson } from '@/shared/api/client';
 import { env } from '@/shared/config/env';
 
 import { loadDeviceSecret } from '../model/device-secret';
@@ -11,9 +10,11 @@ export type DeviceUpdate = {
   expoPushToken?: string;
 };
 
+const deviceUpdatedSchema = z.looseObject({ updated: z.literal(true) });
+
 /**
  * `PUT /api/devices/me` (Bearer): 서버가 보낸 필드만 이 기기의 행(어느 기기인지는 토큰의 claim으로 판단)에
- * 반영한다: 200 `SUCCESS`, `data` 없음. 실패(400 `PUSH_TOKEN_INVALID`·`DEVICE_NOT_FOUND`·`DEVICE_NOT_VERIFIED`, 401)는
+ * 반영한다: 200 `{ updated: true }`. 실패(400 `PUSH_TOKEN_INVALID`·`DEVICE_NOT_FOUND`·`DEVICE_NOT_VERIFIED`, 401)는
  * 클라이언트가 `ApiError`로 던진다.
  */
 export async function updateDevice(update: DeviceUpdate): Promise<void> {
@@ -22,6 +23,5 @@ export async function updateDevice(update: DeviceUpdate): Promise<void> {
   // 서버가 이 기기를 확인하려면 비밀키가 필요하다(없으면 400, 틀리면 400 DEVICE_NOT_VERIFIED). 없으면 보내지 않는다.
   const deviceSecret = await loadDeviceSecret();
   if (!deviceSecret) return;
-  const { status, code } = await apiEnvelope('/api/devices/me', z.unknown(), { method: 'PUT', body: { deviceSecret, ...update } });
-  if (status !== 200 || code !== 'SUCCESS') throw new ApiError({ status, code: 'INVALID_RESPONSE' });
+  await apiJson('/api/devices/me', deviceUpdatedSchema, { method: 'PUT', body: { deviceSecret, ...update } });
 }

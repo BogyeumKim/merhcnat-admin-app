@@ -7,7 +7,7 @@
 - **refresh token 없음.** 서버도 만들지 않는다.
 - **앱을 실행하면 항상 로그인이 필요하다.** 토큰은 어디에도 저장하지 않는다 (메모리에만). 앱 종료/강제 종료 = 로그아웃.
 - 유휴 연장은 **서버 쪽에서만** 한다: 요청마다 서버가 세션(Redis) TTL을 늘리고 토큰은 그대로다. 일반 API 응답은 새 토큰을 싣지 않는다. 토큰 절대 수명은 24시간이며 만료는 401로 온다 (2026-11 서버 확정).
-- 새 토큰은 두 경우에만 발급된다: 로그인 완료(`POST /api/auth/login` 등록 기기, `POST /api/auth/otp/verify`, `POST /api/auth/password/temp`)와 `PUT /api/users/me/password`. 둘 다 응답 **`data.accessToken`**으로 온다.
+- 새 토큰은 두 경우에만 발급된다: 로그인 완료(`POST /api/auth/login` 등록 기기, `POST /api/auth/otp/verify`, `POST /api/auth/password/temp`)와 `PUT /api/users/me/password`. 둘 다 200 응답 본문 최상위 **`accessToken`**으로 온다(2026-11-23 envelope 제거).
 
 현재 코드: 토큰은 `shared/api/session-token.ts`의 zustand vanilla store(메모리, `persist` 없음)에 있고, 로그인 상태(`userType`)는 `features/auth/model/session-store.ts`에 있다.
 
@@ -15,9 +15,9 @@
 
 ## 토큰 수신 (현재 구현)
 
-- `shared/api/client.ts`의 `apiTokenEnvelope`만 토큰을 다룬다(위 4개 엔드포인트). 일반 `apiEnvelope`/`apiFetch`는 응답에서 토큰을 읽지 않는다.
-- 순서: 검증된 `data.accessToken` → 없으면 이전 계약의 `Access-Token` 응답 헤더(서버 전환기 폴백, 배포 순서와 무관하게 동작. 서버 전환 후 제거).
-- 적용 시점: 호출자가 응답 전체(분기별 zod 스키마, `code`, 기기 비밀키 저장)를 수락한 뒤 `adoptIssuedToken`으로 한 번. 요청 이후 로그아웃했으면(세션 세대가 다르면) 적용하지 않는다. 로그인 완료인데 토큰이 둘 다 없으면 `assertTokenIssued()`가 `INVALID_RESPONSE`.
+- `shared/api/client.ts`의 `apiTokenJson`만 토큰을 다룬다(위 4개 엔드포인트). 일반 `apiJson`/`apiFetch`는 응답에서 토큰을 읽지 않는다.
+- 토큰은 검증된 본문 `accessToken`에서만 읽는다. 없거나 빈 값이면 스키마가 `INVALID_RESPONSE`로 거부한다. 이전 계약의 `Access-Token` 응답 헤더 폴백은 서버 전환이 끝나 제거했다(2026-11-23).
+- 적용 시점: 호출자가 응답 전체(`step`별 zod 스키마, 기기 비밀키 저장)를 수락한 뒤 `adoptIssuedToken`으로 한 번. 요청 이후 로그아웃했으면(세션 세대가 다르면) 적용하지 않고, 그때 로그인 mutation의 `assertTokenIssued()`가 `INVALID_RESPONSE`로 로그인을 막는다.
 - 토큰은 메모리에만 두고 로그에 남기지 않는다.
 
 ## 슬라이딩 만료 설계 (초기 조사, 서버가 서버 쪽 TTL 연장으로 확정해 아래 "응답마다 교체"는 쓰지 않는다)
@@ -31,7 +31,7 @@ JWT의 `exp`는 서명된 토큰 안에 있어서 **수명을 늘리려면 새 J
 
 | 항목 | 설계 |
 | --- | --- |
-| 새 토큰 전달 | 로그인 완료·비밀번호 변경 응답의 `data.accessToken`(전환기 폴백 `Access-Token` 헤더, `docs/backend-contract/app-migration-server-login.md`). 일반 응답은 토큰을 싣지 않는다 |
+| 새 토큰 전달 | 로그인 완료·비밀번호 변경 응답 본문의 `accessToken`(`docs/backend-contract/app-migration-server-login.md`). 일반 응답은 토큰을 싣지 않는다 |
 | 교체 위치 | API 클라이언트가 세션 저장소(메모리)를 갱신. React 밖에서도 접근 가능해야 한다 (zustand 비영속 store 등) |
 | 병렬 요청 | 일반 응답이 토큰을 바꾸지 않으므로 해당 없음. 비밀번호 변경 뒤 이전 토큰은 `SESSION_REPLACED` |
 | 401 | 즉시 로그아웃 + 로그인 화면. 재시도/refresh 없음. 로그아웃 시 **쿼리 캐시도 비운다** (다음 사용자에게 데이터가 남지 않게) |
@@ -42,7 +42,7 @@ JWT의 `exp`는 서명된 토큰 안에 있어서 **수명을 늘리려면 새 J
 
 ## 서버에 확인할 계약
 
-1. ~~새 토큰 헤더·임계값·절대 상한~~ 확정: 일반 응답은 토큰 없음(서버 TTL 연장), 새 토큰은 `data.accessToken`, 절대 수명 24시간.
+1. ~~새 토큰 헤더·임계값·절대 상한~~ 확정: 일반 응답은 토큰 없음(서버 TTL 연장), 새 토큰은 본문 `accessToken`, 절대 수명 24시간.
 2. ~~이전 토큰 병렬 허용~~ 해당 없음(일반 요청은 토큰을 바꾸지 않음).
 3. 로그아웃 시 서버 측 폐기(블랙리스트)가 있는가. 없으면 로그아웃해도 토큰은 만료까지 유효하다.
 4. 로그인 응답 코드 체계와 오류 형식 (`api-conventions.md`).

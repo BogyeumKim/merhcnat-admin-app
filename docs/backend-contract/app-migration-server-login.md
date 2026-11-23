@@ -5,39 +5,44 @@
 ## 흐름
 
 ```
-login ──(otpRequired:false)──────────────────────────▶ 로그인 완료 (data.accessToken)
-  │ otpRequired:true + challengeToken
+login ──(step: SUCCESS)───────────────────────────────▶ 로그인 완료 (accessToken)
+  │ step: MFA_REQUIRED + challengeToken
   ▼
 [deviceState NONE/CHANGED면 새 기기 안내] → loginType 1: 채널 선택(KAKAO/SMS) → otp/send → 코드 입력
                                          → loginType 0: 바로 코드 입력(TOTP)
   ▼
-otp/verify ──────────────────────────────────────────▶ 로그인 완료 (data.accessToken, 서버가 기기 등록/교체)
+otp/verify ──────────────────────────────────────────▶ 로그인 완료 (accessToken, 서버가 기기 등록/교체)
 ```
 
-## 응답 봉투
+## 응답 형식 (2026-11-23 변경)
 
-모든 응답 본문은 `{ code, message, data? }`. **각 단계가 성공하면 200**이고 다음 단계는 `code`로 구분한다: `SUCCESS`(로그인 완료, `data.accessToken`), `MFA_REQUIRED`, `PASSWORD_CHANGE_REQUIRED`(2026-11 확정, 200 외 2xx 미사용). 실패만 4xx/5xx(1차 status, 2차 code, 아래 "HTTP status 체계"). 이전 계약의 401 `MFA_REQUIRED`·403 `PASSWORD_CHANGE_REQUIRED`·202는 더 받지 않는다(2026-11-22). 필수값 누락은 400 `BAD_REQUEST` + `data.fieldErrors[{field, reason}]`. `data`에는 필요할 때만 `remainingAttempts`, `retryAfterSeconds`(점검이면 기간) 등이 온다. 앱은 **HTTP status로 먼저, `code`로 다음에** 분기하고 `data`를 zod로 검증한다. `message`는 로그용이며 화면에 쓰지 않는다 (문구는 앱이 `code`로 번역).
+- **성공(200)은 envelope가 없다**: DTO가 곧 본문이다. null 필드는 생략된다. 200 외 2xx는 쓰지 않는다(받으면 `INVALID_RESPONSE`).
+- **로그인 단계 API**(`login`, `otp/verify`, `password/temp`)는 본문 **`step`**으로 다음 단계를 구분한다: `SUCCESS`(로그인 완료, `accessToken`, `message` 없음), `MFA_REQUIRED`, `PASSWORD_CHANGE_REQUIRED`(둘은 로그용 `message` 포함). 이전 계약의 `code` 판별자와 `data` 래퍼는 없어졌다.
+- **실패(4xx/5xx)만 `{ code, message, data? }`** envelope다(code·data 모양은 그대로). 필수값 누락은 400 `BAD_REQUEST` + `data.fieldErrors[{field, reason}]`. `data`에는 필요할 때만 `remainingAttempts`, `retryAfterSeconds`(점검이면 기간) 등이 온다.
+- 분기: 성공은 **1차 status 200, 2차 본문 `step`**(로그인 단계 API만), 실패는 **1차 status, 2차 `code`**. 앱은 본문을 zod로 검증하고 `message`는 분기·화면에 쓰지 않는다 (문구는 앱이 `code`로 번역).
+- 요청 본문이 있으면 `Content-Type: application/json`이 필수다(없으면 415). 앱 클라이언트는 본문이 있을 때 항상 붙인다.
 
-## 액세스 토큰 위치 (2026-11-22 변경)
+## 액세스 토큰 위치 (2026-11-23 변경)
 
-- 새 토큰은 **로그인 완료**(`login` 등록 기기 200 `SUCCESS`, `otp/verify`, `password/temp`)와 **`PUT /api/users/me/password`** 응답의 **`data.accessToken`**(Bearer 없는 JWT 문자열)으로만 온다. 그 외 응답은 토큰을 싣지 않는다: 유휴 연장은 서버가 세션(Redis) TTL만 늘리고 토큰은 그대로이며, 절대 수명 24시간 뒤에는 401이다.
-- 이전 계약의 `Access-Token` 응답 헤더는 없어진다. **전환기 규칙**(서버 합의): 앱은 `data.accessToken`을 먼저 읽고, 없으면 `Access-Token` 헤더를 읽는다. 그래서 서버·앱 배포 순서와 무관하게 동작한다. 서버 전환이 끝나면 헤더 폴백을 지운다.
-- `data.accessToken`이 빈 문자열이면 계약 위반(`INVALID_RESPONSE`). 로그인 완료인데 본문·헤더 모두 토큰이 없어도 `INVALID_RESPONSE`.
-- 앱은 응답 전체(분기별 스키마, `code`, `deviceSecret` 저장)를 수락한 뒤에만 토큰을 적용하고, 요청 이후 로그아웃했으면 적용하지 않는다(`shared/api/client.ts` `apiTokenEnvelope`). 토큰은 메모리 전용이며 로그에 남기지 않는다.
+- 새 토큰은 **로그인 완료**(`login` 등록 기기 `step: SUCCESS`, `otp/verify`, `password/temp`)와 **`PUT /api/users/me/password`** 응답 본문 최상위 **`accessToken`**(Bearer 없는 JWT 문자열)으로만 온다. 그 외 응답은 토큰을 싣지 않는다: 유휴 연장은 서버가 세션(Redis) TTL만 늘리고 토큰은 그대로이며, 절대 수명 24시간 뒤에는 401이다.
+- 이전 계약의 `Access-Token` 응답 헤더는 서버 전환이 끝나 앱도 더 읽지 않는다(2026-11-23, 전환기 폴백 제거).
+- `accessToken`이 없거나 빈 문자열인 `SUCCESS`·비밀번호 변경 응답은 계약 위반(`INVALID_RESPONSE`).
+- 앱은 응답 전체(`step`별 스키마, `deviceSecret` 저장)를 수락한 뒤에만 토큰을 적용하고, 요청 이후 로그아웃했으면 적용하지 않는다(`shared/api/client.ts` `apiTokenJson`의 `adoptIssuedToken`). 토큰은 메모리 전용이며 로그에 남기지 않는다.
 
 ## 요청 / 응답
 
 1. `POST /api/auth/login` `{ userId, password, device }`
    - `device`: `{ deviceId(≤64), platform: "IOS"|"ANDROID", osVersion?, deviceModel?, appVersion? }` (`features/auth/model/device-info.ts`)
-   - **200 `SUCCESS`** = 로그인 완료 (등록 기기 + loginType 1). `data: { accessToken, userId, loginType, userType, deviceState: "MATCH", deviceSecret? }`
-   - **200 `MFA_REQUIRED`** = 비밀번호 통과, 추가 인증 필요 (**로그인이 아님**). `data: { userId, loginType, userType, deviceState: "NONE"|"MATCH"|"CHANGED", channels, lastUsedChannel?, challengeToken }`. `challengeToken`은 5분이며, `otp/send`가 성공할 때마다 "새 OTP 만료 + 60초"까지 연장된다(로그인 후 최대 15분, 서버 DB가 관리, 토큰 값은 그대로). 상한을 넘기면 401 `CHALLENGE_EXPIRED` → 처음부터 로그인. 비밀번호 변경 토큰은 5분 고정.
+   - **200 `step: SUCCESS`** = 로그인 완료 (등록 기기 + loginType 1). `{ step, userId, accessToken, loginType, userType, deviceState: "MATCH", passwordChangeRequired, passwordChangeSkippable, passwordChangedAt, deviceSecret? }`
+   - **200 `step: MFA_REQUIRED`** = 비밀번호 통과, 추가 인증 필요 (**로그인이 아님**). `{ step, message, userId, loginType, userType, deviceState: "NONE"|"MATCH"|"CHANGED", channels, lastUsedChannel?, challengeToken, registeredUserIdMasked?, deviceRegisteredToOtherAccount? }`.
+   - **200 `step: PASSWORD_CHANGE_REQUIRED`** = 임시비밀번호·90일 만료. `{ step, message, userId, challengeToken, reason }`(아래 "보안 변경"). `challengeToken`은 5분이며, `otp/send`가 성공할 때마다 "새 OTP 만료 + 60초"까지 연장된다(로그인 후 최대 15분, 서버 DB가 관리, 토큰 값은 그대로). 상한을 넘기면 401 `CHALLENGE_EXPIRED` → 처음부터 로그인. 비밀번호 변경 토큰은 5분 고정.
      - `channels`: `[{ channel, destination }]`(서버가 마스킹: `010-****-0000`, `te****@example.com`). loginType 0 → `[{ channel: "TOTP" }]`(MATCH여도 항상). loginType 1 → `user.phone_number`가 NULL/''이 아니면 KAKAO·SMS, `user.email`이 NULL/''이 아니면 EMAIL(순서 KAKAO, SMS, EMAIL).
-     - **둘 다 비어 있으면 `channels: []`**(같은 200 `MFA_REQUIRED`, 409 아님). 앱은 인증 시트에 "등록된 연락처가 없어요"를 보여주고 `otp/send`를 부르지 않는다.
+     - **둘 다 비어 있으면 `channels: []`**(같은 200 `step: MFA_REQUIRED`, 409 아님). 앱은 인증 시트에 "등록된 연락처가 없어요"를 보여주고 `otp/send`를 부르지 않는다.
      - `lastUsedChannel`: `user_info.last_otp_channel`(OTP 검증 성공 시 기록). 앱의 "최근 사용" 배지. 이력 없으면 생략.
      - 앱은 이전 형식(문자열 배열)도 받는다.
-2. `POST /api/auth/otp/send` `{ challengeToken, channel: "KAKAO"|"SMS"|"EMAIL" }` → 200 `SUCCESS` `data: { expiresInSeconds, resendAfterSeconds, maskedDestination, remainingSends? }`(앱은 이전 이름 `maskedPhone`도 받음). 해당 채널 컬럼이 비어 있으면 400 `OTP_CHANNEL_INVALID`. 메일은 Outlook 발송.
-3. `POST /api/auth/otp/verify` `{ challengeToken, channel: "TOTP"|"KAKAO"|"SMS", otp }` → 200 `SUCCESS`, `data: { **accessToken**, userId, loginType, userType, deviceState: "MATCH", deviceSecret? }`. 서버가 이 시점에 기기를 등록/교체한다.
-4. `PUT /api/devices/me` (Bearer) `{ expoPushToken? }` → 200 `SUCCESS`(data 없음). `notificationsEnabled`는 서버에서 제거됐다(보내도 무시, 허용 여부는 토큰 유무로 판단). 앱은 **로그인이 끝날 때마다**(바로 완료든 OTP 후든) 알림 권한을 요청(OS는 아직 선택 전일 때만 창을 띄움)하고, 허용되면 `expoPushToken`을 보낸다. 실제 토큰을 발급할 수 없는 동안은 `ExponentPushToken[<랜덤 22자>]` 임시 값을 보낸다(서버는 접두사와 길이 255 이하만 검사, expo_push_token은 UNIQUE라 값은 기기마다 고유해야 함). `user_info.push_enabled`(앱 내 알림 마스터 스위치, 1/0)는 이 API로 바뀌지 않는다. 필요하면 서버에 별도 API를 요청한다 (`features/auth/model/device-push.ts`). 실패해도 로그인에는 영향 없고 다음 로그인 때 다시 시도한다.
+2. `POST /api/auth/otp/send` `{ challengeToken, channel: "KAKAO"|"SMS"|"EMAIL" }` → 200 `{ expiresInSeconds, resendAfterSeconds, remainingSends, maskedDestination, maskedPhone? }`(앱은 이전 이름 `maskedPhone`도 받음). 해당 채널 컬럼이 비어 있으면 400 `OTP_CHANNEL_INVALID`. 메일은 Outlook 발송.
+3. `POST /api/auth/otp/verify` `{ challengeToken, channel: "TOTP"|"KAKAO"|"SMS", otp }` → 200 `step: SUCCESS`(login의 `SUCCESS`와 같은 본문, **`accessToken`** 포함) 또는 `step: PASSWORD_CHANGE_REQUIRED`. 서버가 이 시점에 기기를 등록/교체한다.
+4. `PUT /api/devices/me` (Bearer) `{ expoPushToken? }` → 200 `{ updated: true }`. `notificationsEnabled`는 서버에서 제거됐다(보내도 무시, 허용 여부는 토큰 유무로 판단). 앱은 **로그인이 끝날 때마다**(바로 완료든 OTP 후든) 알림 권한을 요청(OS는 아직 선택 전일 때만 창을 띄움)하고, 허용되면 `expoPushToken`을 보낸다. 실제 토큰을 발급할 수 없는 동안은 `ExponentPushToken[<랜덤 22자>]` 임시 값을 보낸다(서버는 접두사와 길이 255 이하만 검사, expo_push_token은 UNIQUE라 값은 기기마다 고유해야 함). `user_info.push_enabled`(앱 내 알림 마스터 스위치, 1/0)는 이 API로 바뀌지 않는다. 필요하면 서버에 별도 API를 요청한다 (`features/auth/model/device-push.ts`). 실패해도 로그인에는 영향 없고 다음 로그인 때 다시 시도한다.
 
 ## 잠금 정책
 
@@ -51,6 +56,7 @@ otp/verify ───────────────────────
 | 400 `ACCOUNT_LOCKED` (`data: { userIdMasked, lockedAt }`) | 안내 화면 `/account-locked` (관리자에게 문의, **재시도 버튼 없음**). 로그인/OTP 어느 단계에서든. `otp/send`·`otp/verify`에서 받으면 인증 시트를 닫고 로그인 화면 위에 띄운다(스택 [로그인, 안내], 아이디·비밀번호 유지). 해제 전까지 `otp/send`·`otp/verify`·login 모두 이 코드 |
 | 400 `ACCOUNT_SUSPENDED` | 정지 안내 화면 `/account-suspended` (재시도 없음) |
 | 400 `UNSUPPORTED_LOGIN_TYPE` | 인라인 |
+| 400 `LOGIN_NOT_ALLOWED` ("로그인 권한이 없습니다.", 비밀번호는 맞지만 계정 상태가 "사용 중"이 아님, 2026-11-23 추가) | 인라인 |
 | 400 `DEVICE_REQUIRED` / `DEVICE_INVALID` | 토스트 (앱 버그 성격) |
 | 401 `OTP_INVALID` + `data.remainingAttempts` | 코드 필드 아래 "N번 더 틀리면 다시 로그인" |
 | 401 `OTP_EXPIRED` | 인라인 + 다시 받기 즉시 활성화 |
@@ -65,8 +71,8 @@ otp/verify ───────────────────────
 
 | status | `code` | 비고 |
 | --- | --- | --- |
-| 200 | `SUCCESS`, `MFA_REQUIRED`, `PASSWORD_CHANGE_REQUIRED` | 성공 단계. `code`로 다음 단계를 고른다 |
-| 400 | 입력·업무 오류 전부: `BAD_REQUEST`, `OTP_CHANNEL_INVALID`, `CURRENT_PASSWORD_INVALID`, `PASSWORD_POLICY_VIOLATION`, `PUSH_TOKEN_INVALID`, `DEVICE_REQUIRED`/`DEVICE_INVALID`, `ACCOUNT_LOCKED`, `ACCOUNT_SUSPENDED`, `UNSUPPORTED_LOGIN_TYPE`, `DEVICE_NOT_VERIFIED`, `DEVICE_NOT_FOUND`, `OTP_SEND_LIMIT_EXCEEDED`, `TOTP_NOT_ENROLLED`, `PASSWORD_REUSED` | 이전 423/403/429/409/404에서 400으로 옮겨진 코드는 `code`·`message`·`data`가 그대로다 |
+| 200 | (envelope 없음) 로그인 단계 API는 본문 `step`: `SUCCESS`, `MFA_REQUIRED`, `PASSWORD_CHANGE_REQUIRED` | 성공. `step`으로 다음 단계를 고른다(2026-11-23 `code`에서 변경) |
+| 400 | 입력·업무 오류 전부: `BAD_REQUEST`, `OTP_CHANNEL_INVALID`, `CURRENT_PASSWORD_INVALID`, `PASSWORD_POLICY_VIOLATION`, `PUSH_TOKEN_INVALID`, `DEVICE_REQUIRED`/`DEVICE_INVALID`, `ACCOUNT_LOCKED`, `ACCOUNT_SUSPENDED`, `UNSUPPORTED_LOGIN_TYPE`, `LOGIN_NOT_ALLOWED`, `DEVICE_NOT_VERIFIED`, `DEVICE_NOT_FOUND`, `OTP_SEND_LIMIT_EXCEEDED`, `TOTP_NOT_ENROLLED`, `PASSWORD_REUSED` | 이전 423/403/429/409/404에서 400으로 옮겨진 코드는 `code`·`message`·`data`가 그대로다 |
 | 401 | `UNAUTHORIZED`, `SESSION_EXPIRED`, `SESSION_REPLACED`, `INVALID_CREDENTIALS`, `CHALLENGE_EXPIRED`, `OTP_INVALID`, `OTP_EXPIRED` | 토큰을 실은 요청의 401만 로그아웃 |
 | 403 | `UPDATE_REQUIRED`(이전 426), `FORBIDDEN` | **항상 `code`로 구분**: `UPDATE_REQUIRED`만 필수 업데이트 화면, `FORBIDDEN`(로그인했지만 권한 없음, 앞으로의 홈 API)은 일반 오류(`toast` 종류)이며 로그아웃하지 않는다. 토큰 없음·만료·무효는 계속 401 |
 | 503 | `MAINTENANCE`, `SESSION_STORE_UNAVAILABLE` | `code`로 구분 |
@@ -77,11 +83,11 @@ envelope가 없는 응답(프록시·CDN·WAF HTML 등)은 503만 `MAINTENANCE`�
 
 ## 앱이 지키는 것
 
-- 200이면 `code`로 다음 단계, 4xx/5xx는 1차 status·2차 `code`로 오류 분기. `message`는 분기에 쓰지 않는다.
-- 로그인 완료는 토큰(`data.accessToken`, 전환기에는 `Access-Token` 헤더 폴백)이 있는 200 `SUCCESS`뿐이다.
+- 200이면 본문 `step`으로 다음 단계, 4xx/5xx는 1차 status·2차 `code`로 오류 분기. `message`는 분기에 쓰지 않는다.
+- 로그인 완료는 본문 `accessToken`이 있는 200 `step: SUCCESS`뿐이다.
 - 비밀번호는 `login` 호출에만 쓰고 바로 버린다 (mutation 변수 `gcTime: 0`, 호출 후 `reset()`). 이후 단계는 `challengeToken`만 쓴다.
 - `challengeToken`은 메모리 전용 모듈 변수(`model/challenge-vault.ts`)에만 두고, 성공/취소/로그아웃/새 로그인/5분 경과 시 폐기한다. 디스크, SecureStore, React 상태, 쿼리 캐시, 로그에 두지 않는다.
-- 토큰이 본문·헤더 어디에도 없는 200 로그인은 계약 위반(`INVALID_RESPONSE`)이라 로그인으로 치지 않는다.
+- `accessToken`이 없는 200 `SUCCESS`는 계약 위반(`INVALID_RESPONSE`)이라 로그인으로 치지 않는다.
 - 사용자 타입은 `0, 1, 2, 3, 4, 5, 9`만 받는다. 아니면 `INVALID_RESPONSE`.
 
 ## 주의 (서버 쪽 결정에 대한 앱 의견)
@@ -105,9 +111,9 @@ envelope가 없는 응답(프록시·CDN·WAF HTML 등)은 503만 `MAINTENANCE`�
 ## 보안 변경 (2026-11, 서버 확정)
 
 - **로그인 실패 통일:** 없는 아이디·틀린 비밀번호·삭제 계정 모두 401 `INVALID_CREDENTIALS`, `data` 없음(`remainingAttempts` 제거). 400 `ACCOUNT_LOCKED`는 비밀번호가 맞았을 때만. `OTP_INVALID`·`CURRENT_PASSWORD_INVALID`의 `remainingAttempts`는 유지.
-- **기기 비밀키 `deviceSecret`:** OTP 검증 또는 `password/temp`로 기기를 등록한 200 `SUCCESS`의 `data.deviceSecret`(43자)이 **한 번만** 온다. 앱은 `expo-secure-store`(`device.secret`, THIS_DEVICE_ONLY)에 보관하고 로그인 `device.deviceSecret`(≤128자)와 `PUT /api/devices/me`(필수)에 보낸다(`features/auth/model/device-secret.ts`). OTP 생략 조건은 메시지형 + `deviceId` 일치 + `deviceSecret` 일치. 기존 등록 기기는 비밀키가 없어 업데이트 후 첫 로그인에 OTP를 한 번 거친다.
-- **다른 계정 소유 기기:** `MFA_REQUIRED` `data: { deviceState: "CHANGED", deviceRegisteredToOtherAccount: true, registeredUserIdMasked }`. 이때 `registeredUserIdMasked`는 그 기기를 등록한 **다른 계정**의 아이디(마스킹)다(2026-11-22 변경, 기기 변경 시트의 "현재 등록된 아이디"). 본인의 다른 기기면(`CHANGED`) 본인 아이디 마스킹만 오고 `deviceRegisteredToOtherAccount`는 없다. `NONE`/`MATCH`는 두 필드 모두 없다. 마스킹 규칙: 6자 이상 앞 3자 + (길이−5)개 `*` + 끝 2자(`mer*****01`), 4~5자 첫 1자 + `*` + 끝 1자, 3자 이하 첫 1자 + `*`. 앱은 값이 있으면 표시하고 없으면 그 줄을 숨긴다.
-- **비밀번호 90일 만료:** 200 `PASSWORD_CHANGE_REQUIRED` `data: { userId, challengeToken, reason: "TEMP_PASSWORD" | "PASSWORD_EXPIRED" }`(둘 다면 TEMP_PASSWORD). 흐름은 `password/temp`로 같고 문구만 다르다.
+- **기기 비밀키 `deviceSecret`:** OTP 검증 또는 `password/temp`로 기기를 등록한 200 `step: SUCCESS`의 `deviceSecret`(43자)이 **한 번만** 온다. 앱은 `expo-secure-store`(`device.secret`, THIS_DEVICE_ONLY)에 보관하고 로그인 `device.deviceSecret`(≤128자)와 `PUT /api/devices/me`(필수)에 보낸다(`features/auth/model/device-secret.ts`). OTP 생략 조건은 메시지형 + `deviceId` 일치 + `deviceSecret` 일치. 기존 등록 기기는 비밀키가 없어 업데이트 후 첫 로그인에 OTP를 한 번 거친다.
+- **다른 계정 소유 기기:** `step: MFA_REQUIRED` `{ deviceState: "CHANGED", deviceRegisteredToOtherAccount: true, registeredUserIdMasked }`. 이때 `registeredUserIdMasked`는 그 기기를 등록한 **다른 계정**의 아이디(마스킹)다(2026-11-22 변경, 기기 변경 시트의 "현재 등록된 아이디"). 본인의 다른 기기면(`CHANGED`) 본인 아이디 마스킹만 오고 `deviceRegisteredToOtherAccount`는 없다. `NONE`/`MATCH`는 두 필드 모두 없다. 마스킹 규칙: 6자 이상 앞 3자 + (길이−5)개 `*` + 끝 2자(`mer*****01`), 4~5자 첫 1자 + `*` + 끝 1자, 3자 이하 첫 1자 + `*`. 앱은 값이 있으면 표시하고 없으면 그 줄을 숨긴다.
+- **비밀번호 90일 만료:** 200 `step: PASSWORD_CHANGE_REQUIRED` `{ userId, challengeToken, reason: "TEMP_PASSWORD" | "PASSWORD_EXPIRED" }`(둘 다면 TEMP_PASSWORD). 흐름은 `password/temp`로 같고 문구만 다르다.
 - **`PUT /api/devices/me`:** `{ deviceSecret, expoPushToken? }`. 400 `DEVICE_NOT_VERIFIED`(비밀키 불일치), 400(누락), 400 `DEVICE_NOT_FOUND`, 400 `PUSH_TOKEN_INVALID`. 앱은 비밀키가 없으면 호출하지 않는다.
 - **길이 상한(400 `BAD_REQUEST` + fieldErrors):** userId 30, password 64, otp 10, challengeToken 2048, channel 10, deviceId 64, platform 10, 기기 문자열 100, expoPushToken 255, deviceSecret 128. 앱은 로그인 입력란에 30/64 `maxLength`.
 - **재전송:** 같은 채널 대기(쿨다운)는 없다(2026-11 삭제, 429 `OTP_RESEND_TOO_SOON` 더는 안 보냄). 같은 채널이든 다른 채널이든 한도 안의 모든 발송은 즉시 새 코드를 보낸다(이전 코드 무효). 예: 카카오톡 → 문자 → 다시 카카오톡도 바로 발송. `otp/send` 200의 `resendAfterSeconds`는 코드 입력 화면 "N초 후 다시 받기" 링크의 UI 타이머일 뿐 서버가 강제하지 않는다. 발송 한도는 **챌린지당 모든 채널 합쳐 5회뿐**이다: 6번째 요청은 400 `OTP_SEND_LIMIT_EXCEEDED`(`data` 없음, `retryAfterSeconds` 없음). 앱은 토스트를 띄우고 인증 시트를 닫아 처음부터 로그인하게 한다(대기 시간 안내 없음). 사용자당 시간당 한도는 없어졌다(2026-11). `otp/send` 200은 선택 필드 `remainingSends`(남은 발송 횟수)를 줄 수 있다. 앱은 받아 두기만 하고 화면에 쓰지 않는다.
@@ -125,7 +131,7 @@ envelope가 없는 응답(프록시·CDN·WAF HTML 등)은 503만 `MAINTENANCE`�
 | 503 `SESSION_STORE_UNAVAILABLE` | 서버 세션 저장소 장애 | **로그아웃하지 않는다.** 토큰 유지, 쿼리는 5xx 규칙으로 재시도, 최종 실패 시 토스트("잠시 후 다시 시도해 주세요", 전역 `QueryCache.onError`), mutation은 `presentationOf` = `toast`. envelope가 있으므로 점검(`MAINTENANCE`)으로 처리하지 않는다(envelope 없는 503만 점검) |
 
 - 401 판단은 `shared/api/client.ts`가 토큰을 실은 같은 세션 요청에만 하며, 응답 `code`를 `notifyUnauthorized(code)`로 넘겨 `session-store`가 이유를 고른다.
-- `PUT /api/users/me/password` 성공은 200 `SUCCESS` + **`data: { accessToken }`(새 토큰)**다(이전: data 없음 + `Access-Token` 헤더, 전환기 폴백). 서버가 세션을 새 토큰으로 교체하므로 이전 토큰은 401 `SESSION_REPLACED`가 된다. 기기 등록·`deviceSecret`은 그대로다. 앱은 **다시 로그인시키지 않는다**: `changePassword`가 응답 수락 뒤 `apiTokenEnvelope`의 `adoptIssuedToken`으로 메모리 토큰을 교체하고, 앱은 비밀번호 변경 요구 상태를 풀어(`markPasswordChanged()`, `Stack.Protected`가 홈으로 보냄) "비밀번호를 바꿨어요" 성공 토스트를 띄운다. 임시비밀번호 변경(`POST /api/auth/password/temp`)은 그대로 로그인까지 완료한다.
+- `PUT /api/users/me/password` 성공은 200 **`{ accessToken }`(새 토큰)**이다. 서버가 세션을 새 토큰으로 교체하므로 이전 토큰은 401 `SESSION_REPLACED`가 된다. 기기 등록·`deviceSecret`은 그대로다. 앱은 **다시 로그인시키지 않는다**: `changePassword`가 응답 수락 뒤 `apiTokenJson`의 `adoptIssuedToken`으로 메모리 토큰을 교체하고, 앱은 비밀번호 변경 요구 상태를 풀어(`markPasswordChanged()`, `Stack.Protected`가 홈으로 보냄) "비밀번호를 바꿨어요" 성공 토스트를 띄운다. 임시비밀번호 변경(`POST /api/auth/password/temp`)은 그대로 로그인까지 완료한다.
 - 비밀번호 정책: 8~20자, 영문(A-Z/a-z)·숫자(0-9)·특수문자(공백 없는 출력 가능 ASCII 기호 ``!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~``) 모두 포함, 그 외 문자(한글, 공백, 이모지, 전각)는 불가 → 400 `PASSWORD_POLICY_VIOLATION` `violations: ["CHARSET"]`. 아이디 포함 금지, 최근 비밀번호 재사용 금지는 서버만 판단한다. 앱의 규칙 목록 "영문·숫자·특수문자 모두 포함" 줄은 허용 밖 글자가 있으면 실패로 바뀌고 문구가 "영문·숫자·특수문자만 쓸 수 있어요 (공백·한글·이모지 불가)"로 바뀐다(`password-rules.ts`).
 
 ## 점검 · 버전 차단 (2026-11-22)

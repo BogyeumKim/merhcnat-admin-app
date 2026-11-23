@@ -2,21 +2,18 @@
 
 서버가 이 형태로 구현했다(로컬 서버에서 더미 3건 확인: 사진만/텍스트만/사진+텍스트). `features/notices/api/notice-api.ts`가 zod로 검증한다.
 
-`GET /api/notices/popup` (Bearer)
+`GET /api/notices/popup` (Bearer). 성공은 envelope 없이 200 본문이 곧 DTO다(2026-11-23, 실패만 `{code,message,data}`).
 
 ```json
 {
-  "code": "SUCCESS",
-  "data": {
-    "notices": [
-      {
-        "id": "100",
-        "title": "서비스 점검 안내",
-        "body": "본문 (일반 텍스트, 줄바꿈 \\n)",
-        "image": { "url": "https://cdn.example.invalid/n/100.jpg", "width": 800, "height": 500, "alt": "대체 텍스트" }
-      }
-    ]
-  }
+  "notices": [
+    {
+      "id": "100",
+      "title": "서비스 점검 안내",
+      "body": "본문 (일반 텍스트, 줄바꿈 \\n)",
+      "image": { "url": "https://cdn.example.invalid/n/100.jpg", "width": 800, "height": 500, "alt": "대체 텍스트" }
+    }
+  ]
 }
 ```
 

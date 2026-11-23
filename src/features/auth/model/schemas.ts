@@ -36,19 +36,8 @@ export const authenticatedSchema = z.object({
   userId: z.string().optional(),
 });
 
-/**
- * 로그인 완료(200 `SUCCESS`)에 오는 새 액세스 토큰. 이전 계약에서는 `Access-Token` 헤더로 왔으므로 전환기 동안 없을 수 있다
- * (그때는 `apiTokenEnvelope`가 헤더로 대신한다). 빈 문자열은 계약 위반(`INVALID_RESPONSE`). 메모리에만 두고 로그로 남기지 않는다.
- */
-export const issuedAccessTokenSchema = z.string().min(1).optional();
-
-/** 로그인 완료 시 추가되는 비밀번호 경과 필드(없으면 변경 불필요). */
-const passwordAgeFields = {
-  /** 계약상 성공 `data`에 함께 온다. 로그·화면 출력 없이 세션 메모리에만 둔다. */
-  userId: z.string().min(1).optional(),
-  passwordChangeRequired: z.boolean().optional(),
-  passwordChangeSkippable: z.boolean().optional(),
-};
+/** 로그인 완료(`step: SUCCESS`)와 비밀번호 변경 성공에 오는 새 액세스 토큰. 없거나 빈 값이면 `INVALID_RESPONSE`. 메모리에만 두고 로그로 남기지 않는다. */
+const issuedAccessTokenSchema = z.string().min(1);
 
 /**
  * 비밀번호는 통과했지만 일회용 코드가 아직 필요하다. 아직 토큰은 없다.
@@ -72,54 +61,69 @@ export const challengeRequiredSchema = z.object({
 });
 
 /**
- * `POST /api/auth/login`의 `data`. 200 `SUCCESS` = 로그인 완료(`data.accessToken`, 등록된 기기이며
- * 메시지 코드 계정). 200 `MFA_REQUIRED` = 비밀번호는 통과했으나 코드가 아직 필요: `channels`와
- * 코드 호출이 보내는 `challengeToken`을 담는다. 로그인이 아니며, 같은 200이라 `code`로 구분한다.
+ * 로그인 단계 API(login·otp/verify·password/temp)의 200 본문. 분기는 본문 `step`으로 한다(status는 모두 200).
+ * `SUCCESS` = 로그인 완료(`accessToken`, `deviceSecret`은 이번에 기기를 등록했을 때만 한 번).
+ * 앱이 쓰지 않는 필드(`loginType`, `deviceState`, `passwordChangedAt` 등)는 검증하지 않고 통과시킨다.
  */
-export const serverLoginDataSchema = z.looseObject({
-  loginType: z.union([z.literal(0), z.literal(1)]),
+export const serverLoginSuccessSchema = z.looseObject({
+  step: z.literal('SUCCESS'),
   userType: userTypeSchema,
-  deviceState: deviceStateSchema,
-  channels: serverChannelsSchema.optional(),
-  lastUsedChannel: challengeMethodSchema.optional(),
-  challengeToken: z.string().min(1).optional(),
-  registeredUserIdMasked: z.string().optional(),
-  deviceRegisteredToOtherAccount: z.boolean().optional(),
-  deviceSecret: z.string().min(1).optional(),
-  /** `SUCCESS`일 때만 온다. `MFA_REQUIRED`에서는 무시한다. */
   accessToken: issuedAccessTokenSchema,
-  ...passwordAgeFields,
+  /** 이 기기를 등록했을 때만 한 번 온다: SecureStore에 보관(`device-secret`). */
+  deviceSecret: z.string().min(1).optional(),
+  /** 계약상 함께 온다. 로그·화면 출력 없이 세션 메모리에만 둔다. */
+  userId: z.string().min(1).optional(),
+  passwordChangeRequired: z.boolean().optional(),
+  passwordChangeSkippable: z.boolean().optional(),
 });
 
-/** 200 `PASSWORD_CHANGE_REQUIRED`의 `data`(로그인·코드 검증 공통): 토큰이 없다. */
-export const serverTempPasswordDataSchema = z.looseObject({
+/** `MFA_REQUIRED` = 비밀번호는 통과했으나 코드가 아직 필요하다. 로그인이 아니며 토큰이 없다. */
+const serverMfaRequiredSchema = z.looseObject({
+  step: z.literal('MFA_REQUIRED'),
+  loginType: z.union([z.literal(0), z.literal(1)]),
+  deviceState: deviceStateSchema,
+  /** 빈 배열은 정상: 연락처가 없는 계정(인증 시트가 안내). */
+  channels: serverChannelsSchema.optional(),
+  lastUsedChannel: challengeMethodSchema.optional(),
+  challengeToken: z.string().min(1),
+  registeredUserIdMasked: z.string().optional(),
+  deviceRegisteredToOtherAccount: z.boolean().optional(),
+});
+
+/** `PASSWORD_CHANGE_REQUIRED`(로그인·코드 검증 공통): 토큰이 없고 `POST /api/auth/password/temp`로 변경해야 로그인된다. */
+const serverPasswordChangeRequiredSchema = z.looseObject({
+  step: z.literal('PASSWORD_CHANGE_REQUIRED'),
   challengeToken: z.string().min(1),
   userId: z.string().min(1).optional(),
   /** 같은 변경 흐름의 사유(문구만 다름). 없으면 임시비밀번호. */
   reason: z.enum(['TEMP_PASSWORD', 'PASSWORD_EXPIRED']).optional(),
 });
 
-/** `POST /api/auth/otp/send`의 `data`. 서버가 마스킹한 수신처가 앱이 보는 유일한 값이다(`maskedPhone`은 이전 이름). */
-export const serverSendCodeDataSchema = z.looseObject({
+/** `POST /api/auth/login`: 세 단계 모두 올 수 있다. */
+export const serverLoginStepSchema = z.discriminatedUnion('step', [
+  serverLoginSuccessSchema,
+  serverMfaRequiredSchema,
+  serverPasswordChangeRequiredSchema,
+]);
+
+/** `POST /api/auth/otp/verify`: 로그인 완료 또는 임시비밀번호 변경 필요. */
+export const serverVerifyStepSchema = z.discriminatedUnion('step', [serverLoginSuccessSchema, serverPasswordChangeRequiredSchema]);
+
+/** `PUT /api/users/me/password`의 200 본문: 세션을 교체한 새 토큰. */
+export const serverPasswordChangedSchema = z.looseObject({ accessToken: issuedAccessTokenSchema });
+
+/** `POST /api/auth/otp/send`의 200 본문. 서버가 마스킹한 수신처가 앱이 보는 유일한 값이다(`maskedPhone`은 이전 이름). */
+export const serverSendCodeSchema = z.looseObject({
   expiresInSeconds: z.number().positive(),
   resendAfterSeconds: z.number().nonnegative(),
   maskedDestination: z.string().optional(),
   maskedPhone: z.string().optional(),
-  /** 이 challenge에서 남은 발송 횟수(선택). 형식이 어긋나도 발송 성공을 막지 않도록 무시한다. */
+  /** 이 challenge에서 남은 발송 횟수. 형식이 어긋나도 발송 성공을 막지 않도록 무시한다. */
   remainingSends: z.number().int().nonnegative().optional().catch(undefined),
 });
 
-/**
- * `POST /api/auth/otp/verify`의 `data`. 액세스 토큰은 `data.accessToken`(전환기에는 없으면 `Access-Token` 헤더,
- * `shared/api/client.ts`의 `apiTokenEnvelope` 참고).
- */
-export const serverVerifyDataSchema = z.looseObject({
-  userType: userTypeSchema,
-  accessToken: issuedAccessTokenSchema,
-  /** 이 기기를 등록했을 때만 한 번 온다: SecureStore에 보관(`device-secret`). */
-  deviceSecret: z.string().min(1).optional(),
-  ...passwordAgeFields,
-});
+export type ServerLoginSuccess = z.infer<typeof serverLoginSuccessSchema>;
+export type ServerPasswordChangeRequired = z.infer<typeof serverPasswordChangeRequiredSchema>;
 
 export type ChallengeMethod = z.infer<typeof challengeMethodSchema>;
 export type ChallengeOption = z.infer<typeof challengeOptionSchema>;

@@ -1,24 +1,18 @@
-import { z } from 'zod';
-
-import { apiTokenEnvelope } from '@/shared/api/client';
+import { apiTokenJson } from '@/shared/api/client';
 import { ApiError } from '@/shared/api/errors';
 import { setAccessToken } from '@/shared/api/session-token';
 import { env } from '@/shared/config/env';
 
 import { saveDeviceSecret } from '../model/device-secret';
-import { issuedAccessTokenSchema, type Authenticated } from '../model/schemas';
-import { isUserType, UserType } from '../model/user-type';
+import { serverLoginSuccessSchema, serverPasswordChangedSchema, type Authenticated } from '../model/schemas';
+import { UserType } from '../model/user-type';
 
 export type ChangePasswordInput = { currentPassword: string; newPassword: string };
 
-/** 변경 성공(200)의 `data`: 세션을 교체한 새 토큰. 이전 계약은 `data` 없이 `Access-Token` 헤더였다(전환기 폴백). */
-const passwordChangedDataSchema = z.looseObject({ accessToken: issuedAccessTokenSchema }).nullish();
-
 /**
- * `PUT /api/users/me/password` (Bearer) `{ currentPassword, newPassword }`: 200 `SUCCESS` + `data.accessToken`(세션 교체,
- * 없으면 `Access-Token` 헤더). 응답을 수락한 뒤 메모리 토큰을 교체한다. 실패는
- * 응답 envelope의 `code`를 가진 `ApiError`로 도착한다: 400 `CURRENT_PASSWORD_INVALID`(`remainingAttempts`, 5회 잠금에
- * 포함), 400 `PASSWORD_POLICY_VIOLATION`(`violations`: LENGTH | CHARSET | CONTAINS_USER_ID), 400 `PASSWORD_REUSED`,
+ * `PUT /api/users/me/password` (Bearer) `{ currentPassword, newPassword }`: 200 `{ accessToken }`(세션 교체).
+ * 응답을 수락한 뒤 메모리 토큰을 교체한다. 실패는 오류 envelope의 `code`를 가진 `ApiError`로 도착한다:
+ * 400 `CURRENT_PASSWORD_INVALID`(`remainingAttempts`, 5회 잠금에 포함), 400 `PASSWORD_POLICY_VIOLATION`(`violations`: LENGTH | CHARSET | CONTAINS_USER_ID), 400 `PASSWORD_REUSED`,
  * 400 `ACCOUNT_LOCKED`, 401(세션 종료). 서버 판정이 최종이며 화면의 검사는 힌트일 뿐이다.
  */
 export async function changePassword(input: ChangePasswordInput): Promise<void> {
@@ -29,32 +23,22 @@ export async function changePassword(input: ChangePasswordInput): Promise<void> 
       throw new ApiError({ status: 400, code: 'CURRENT_PASSWORD_INVALID', extras: { remainingAttempts: 4 } });
     }
     if (input.newPassword === input.currentPassword) throw new ApiError({ status: 400, code: 'PASSWORD_REUSED' });
-    // 서버의 `data.accessToken`(새 토큰)으로 세션을 교체하는 것에 해당한다.
+    // 서버의 `accessToken`(새 토큰)으로 세션을 교체하는 것에 해당한다.
     setAccessToken('mock-access-token-rotated');
     return;
   }
-  const { status, code, data, adoptIssuedToken } = await apiTokenEnvelope('/api/users/me/password', passwordChangedDataSchema, {
+  const { data, adoptIssuedToken } = await apiTokenJson('/api/users/me/password', serverPasswordChangedSchema, {
     method: 'PUT',
     body: input,
   });
-  if (status !== 200 || code !== 'SUCCESS') throw new ApiError({ status, code: 'INVALID_RESPONSE' });
-  adoptIssuedToken(data?.accessToken);
+  adoptIssuedToken(data.accessToken);
 }
 
 export type ChangeTempPasswordInput = ChangePasswordInput & { challengeToken: string };
 
-/** 변경 성공(200)의 `data`. 로그인 완료와 같은 형태이며 토큰은 `data.accessToken`(전환기에는 없으면 `Access-Token` 헤더)이다. */
-const tempChangedDataSchema = z.looseObject({
-  userType: z.custom<UserType>(isUserType, { message: 'Unsupported user type' }),
-  accessToken: issuedAccessTokenSchema,
-  userId: z.string().min(1).optional(),
-  /** 이 변경으로 기기가 등록됐을 때만 한 번 온다. */
-  deviceSecret: z.string().min(1).optional(),
-});
-
 /**
- * `POST /api/auth/password/temp`(Bearer 없음) `{ challengeToken, currentPassword, newPassword }`: 200 + `data.accessToken` =
- * 변경과 로그인 완료. 실패: 400 `CURRENT_PASSWORD_INVALID`(`remainingAttempts`, 로그인·코드 오류와 합산 5회 잠금),
+ * `POST /api/auth/password/temp`(Bearer 없음) `{ challengeToken, currentPassword, newPassword }`: 200 `step: SUCCESS` + `accessToken` =
+ * 변경과 로그인 완료(로그인 완료와 같은 본문). 실패: 400 `CURRENT_PASSWORD_INVALID`(`remainingAttempts`, 로그인·코드 오류와 합산 5회 잠금),
  * 400 `PASSWORD_POLICY_VIOLATION`, 400 `PASSWORD_REUSED`, 401 `CHALLENGE_EXPIRED`(로그인부터 다시), 400 `ACCOUNT_LOCKED`.
  */
 export async function changeTempPassword(input: ChangeTempPasswordInput): Promise<Authenticated> {
@@ -65,15 +49,14 @@ export async function changeTempPassword(input: ChangeTempPasswordInput): Promis
       throw new ApiError({ status: 400, code: 'CURRENT_PASSWORD_INVALID', extras: { remainingAttempts: 4 } });
     }
     if (input.newPassword === input.currentPassword) throw new ApiError({ status: 400, code: 'PASSWORD_REUSED' });
-    // 서버의 `data.accessToken` 적용에 해당한다.
+    // 서버의 `accessToken` 적용에 해당한다.
     setAccessToken('mock-access-token');
     return { status: 'AUTHENTICATED', userType: UserType.Mid, passwordChangeRequired: false, passwordChangeSkippable: false };
   }
-  const { status, code, data, adoptIssuedToken } = await apiTokenEnvelope('/api/auth/password/temp', tempChangedDataSchema, {
+  const { data, adoptIssuedToken } = await apiTokenJson('/api/auth/password/temp', serverLoginSuccessSchema, {
     method: 'POST',
     body: input,
   });
-  if (status !== 200 || code !== 'SUCCESS') throw new ApiError({ status, code: 'INVALID_RESPONSE' });
   if (data.deviceSecret) await saveDeviceSecret(data.deviceSecret);
   adoptIssuedToken(data.accessToken);
   return { status: 'AUTHENTICATED', userType: data.userType, userId: data.userId, passwordChangeRequired: false, passwordChangeSkippable: false };

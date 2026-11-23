@@ -15,8 +15,8 @@ import { clearTempPasswordToken, getTempPasswordToken, getTempPasswordUserId } f
 export type PasswordChangeVariant = 'expired' | 'temporary' | 'voluntary';
 
 /**
- * 비밀번호를 변경한다. `expired`·`voluntary`는 로그인을 유지한다: 서버가 세션을 새 토큰으로 바꿔 `data.accessToken`으로 주고
- * (전환기에는 없으면 `Access-Token` 헤더) `changePassword`가 응답 수락 뒤 메모리 토큰을 교체한다(이전 토큰은 `SESSION_REPLACED`). `temporary`는 변경과 동시에 로그인이 완료된다.
+ * 비밀번호를 변경한다. `expired`·`voluntary`는 로그인을 유지한다: 서버가 세션을 새 토큰으로 바꿔 본문 `accessToken`으로 주고
+ * `changePassword`가 응답 수락 뒤 메모리 토큰을 교체한다(이전 토큰은 `SESSION_REPLACED`). `temporary`는 변경과 동시에 로그인이 완료된다.
  * 비밀번호는 보관하지 않는다(`gcTime: 0`).
  */
 export function useChangePassword(variant: PasswordChangeVariant, callbacks?: UseMutationCallback) {
