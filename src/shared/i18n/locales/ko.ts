@@ -41,6 +41,7 @@ export const ko: typeof en = {
     UNKNOWN: '예기치 않은 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.',
     INVALID_CREDENTIALS: '아이디 또는 비밀번호가 맞지 않아요.',
     UNSUPPORTED_LOGIN_TYPE: '이 계정 유형은 앱에서 로그인할 수 없습니다.',
+    LOGIN_NOT_ALLOWED: '로그인 권한이 없습니다. 고객센터로 문의해 주세요.',
     ACCOUNT_LOCKED: '계정이 잠겼습니다. 관리자에게 문의해 주세요.',
     ACCOUNT_SUSPENDED: '정지된 사용자입니다. 고객센터로 문의해 주세요.',
     MAINTENANCE: '서비스 점검 중입니다.',

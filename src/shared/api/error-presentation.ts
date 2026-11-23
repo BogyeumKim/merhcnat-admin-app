@@ -18,6 +18,7 @@ const presentation: Record<ErrorCode, ErrorPresentation> = {
   UNKNOWN: 'toast',
   INVALID_CREDENTIALS: 'inline',
   UNSUPPORTED_LOGIN_TYPE: 'inline',
+  LOGIN_NOT_ALLOWED: 'inline',
   ACCOUNT_LOCKED: 'locked',
   ACCOUNT_SUSPENDED: 'suspended',
   MAINTENANCE: 'maintenance',

@@ -3,6 +3,8 @@ export const ERROR_CODES = [
   'UNKNOWN',
   'INVALID_CREDENTIALS',
   'UNSUPPORTED_LOGIN_TYPE',
+  /** 비밀번호는 맞지만 계정 상태가 "사용 중"이 아님(400). 다른 로그인 업무 오류처럼 폼 알림으로 보여준다. */
+  'LOGIN_NOT_ALLOWED',
   /** 관리자가 해제할 때까지 잠김(비밀번호 또는 코드 누적 5회 오류). 재시도 금지. */
   'ACCOUNT_LOCKED',
   /** 관리자가 정지한 계정. 비밀번호가 맞은 뒤에만 내려오며 실패 횟수에 합산되지 않는다. */
@@ -69,7 +71,7 @@ export function toErrorCode(value: unknown): ErrorCode {
 export class ApiError extends Error {
   readonly status: number;
   readonly code: ErrorCode;
-  /** 서버 envelope의 `data`와 부가 정보(예: 점검 `startedAt`/`endsAt`, 업데이트 `minAppVersion`, `retryAfterSeconds`). */
+  /** 서버 오류 envelope의 `data`와 부가 정보(예: 점검 `startedAt`/`endsAt`, 업데이트 `minAppVersion`, `retryAfterSeconds`). */
   readonly extras: Readonly<Record<string, unknown>>;
 
   constructor(init: { status: number; code: ErrorCode; message?: string; extras?: Record<string, unknown> }) {

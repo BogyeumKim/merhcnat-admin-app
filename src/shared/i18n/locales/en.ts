@@ -38,6 +38,7 @@ export const en = {
     UNKNOWN: 'An unexpected error occurred. Please try again.',
     INVALID_CREDENTIALS: 'The ID or password does not match.',
     UNSUPPORTED_LOGIN_TYPE: 'This account type cannot sign in to the app.',
+    LOGIN_NOT_ALLOWED: 'This account is not allowed to sign in. Please contact support.',
     ACCOUNT_LOCKED: 'Your account is locked. Contact an administrator.',
     ACCOUNT_SUSPENDED: 'This account is suspended. Please contact support.',
     MAINTENANCE: 'The service is under maintenance.',
